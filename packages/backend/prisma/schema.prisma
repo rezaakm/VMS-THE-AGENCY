@@ -1,0 +1,122 @@
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["fullTextSearch", "fullTextIndex"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Client {
+  id        String    @id @default(uuid())
+  name      String    @unique
+  aliases   String[]
+  email     String?
+  projects  Project[]
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+
+  @@map("clients")
+}
+
+model Vendor {
+  id               String     @id @default(uuid())
+  name             String     @unique
+  aliases          String[]
+  contactName      String?    @map("contact_name")
+  phone            String?
+  email            String?
+  categories       String[]
+  reliabilityScore Float?     @default(3.0) @map("reliability_score")
+  isActive         Boolean    @default(true) @map("is_active")
+  notes            String?
+  lineItems        LineItem[]
+  createdAt        DateTime   @default(now()) @map("created_at")
+  updatedAt        DateTime   @updatedAt @map("updated_at")
+
+  @@map("vendors")
+}
+
+model Project {
+  id         String     @id @default(uuid())
+  jobNumber  String     @unique @map("job_number")
+  clientId   String     @map("client_id")
+  client     Client     @relation(fields: [clientId], references: [id])
+  subject    String
+  date       DateTime?
+  year       Int
+  status     String     @default("completed")
+  totalCost  Float      @default(0) @map("total_cost")
+  totalSell  Float      @default(0) @map("total_sell")
+  marginPct  Float      @default(0) @map("margin_pct")
+  fileName   String?    @map("file_name")
+  lineItems  LineItem[]
+  createdAt  DateTime   @default(now()) @map("created_at")
+  updatedAt  DateTime   @updatedAt @map("updated_at")
+
+  @@map("projects")
+}
+
+model LineItem {
+  id           String       @id @default(uuid())
+  projectId    String       @map("project_id")
+  project      Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  itemNumber   Int          @map("item_number")
+  description  String
+  categoryId   String?      @map("category_id")
+  category     Category?    @relation(fields: [categoryId], references: [id])
+  quantity     Float        @default(1)
+  unitCost     Float        @default(0) @map("unit_cost")
+  totalCost    Float        @default(0) @map("total_cost")
+  unitSelling  Float        @default(0) @map("unit_selling")
+  totalSelling Float        @default(0) @map("total_selling")
+  marginAmount Float        @default(0) @map("margin_amount")
+  marginPct    Float        @default(0) @map("margin_pct")
+  vendorId     String?      @map("vendor_id")
+  vendor       Vendor?      @relation(fields: [vendorId], references: [id])
+  vendorRaw    String?      @map("vendor_raw")
+  alerts       PriceAlert[]
+  createdAt    DateTime     @default(now()) @map("created_at")
+  updatedAt    DateTime     @updatedAt @map("updated_at")
+
+  @@map("line_items")
+}
+
+model Category {
+  id          String     @id @default(uuid())
+  name        String     @unique
+  keywords    String[]
+  description String?
+  items       LineItem[]
+  createdAt   DateTime   @default(now()) @map("created_at")
+  updatedAt   DateTime   @updatedAt @map("updated_at")
+
+  @@map("categories")
+}
+
+model MarketPrice {
+  id          String   @id @default(uuid())
+  itemName    String   @map("item_name")
+  supplier    String
+  price       Float
+  unit        String?
+  source      String?
+  fetchedAt   DateTime @default(now()) @map("fetched_at")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@map("market_prices")
+}
+
+model PriceAlert {
+  id           String   @id @default(uuid())
+  lineItemId   String   @map("line_item_id")
+  lineItem     LineItem @relation(fields: [lineItemId], references: [id], onDelete: Cascade)
+  alertType    String   @map("alert_type")
+  message      String
+  deviationPct Float?   @map("deviation_pct")
+  resolved     Boolean  @default(false)
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  @@map("price_alerts")
+}
