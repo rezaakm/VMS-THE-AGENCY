@@ -1,0 +1,18 @@
+{
+  "name": "vendor-management",
+  "version": "1.0.0",
+  "description": "Unified Vendor Management System with AI-powered cost analysis",
+  "private": true,
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "backend:dev": "cd packages/backend && npm run start:dev",
+    "frontend:dev": "cd packages/frontend && npm run dev",
+    "install:all": "cd packages/backend && npm install && cd ../frontend && npm install",
+    "prisma:migrate": "cd packages/backend && npm run prisma:migrate",
+    "prisma:seed": "cd packages/backend && npm run prisma:seed"
+  },
+  "author": "rezaakm",
+  "license": "MIT"
+}

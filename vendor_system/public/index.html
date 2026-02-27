@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Agency - Vendor & Pricing System</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono&display=swap" rel="stylesheet">
+    <style>
+        :root { --bg:#0f0f14; --card:#1a1a24; --elevated:#242432; --input:#2a2a3a; --accent:#00d4ff; --green:#00ff88; --orange:#ff6b35; --magenta:#ff00aa; --text:#fff; --muted:#9999aa; --dim:#666677; --border:#333344; }
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body { font-family:'Inter',sans-serif; background:var(--bg); color:var(--text); min-height:100vh; }
+        .app { display:flex; min-height:100vh; }
+        .sidebar { width:250px; background:var(--card); border-right:1px solid var(--border); padding:20px 0; position:fixed; height:100vh; overflow-y:auto; }
+        .main { flex:1; margin-left:250px; padding:25px; }
+        .logo { padding:0 20px 25px; border-bottom:1px solid var(--border); margin-bottom:20px; }
+        .logo h1 { font-size:18px; display:flex; align-items:center; gap:10px; }
+        .logo-icon { width:32px; height:32px; background:linear-gradient(135deg,var(--accent),var(--magenta)); border-radius:8px; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:12px; }
+        .logo span { display:block; font-size:11px; color:var(--muted); margin-top:2px; }
+        .nav-section { padding:0 12px; margin-bottom:20px; }
+        .nav-title { font-size:10px; text-transform:uppercase; letter-spacing:1px; color:var(--dim); padding:0 10px; margin-bottom:8px; }
+        .nav-item { display:flex; align-items:center; gap:10px; padding:10px 12px; border-radius:8px; cursor:pointer; color:var(--muted); font-size:13px; transition:all .2s; }
+        .nav-item:hover { background:var(--elevated); color:var(--text); }
+        .nav-item.active { background:var(--accent); color:var(--bg); font-weight:500; }
+        .nav-badge { margin-left:auto; background:var(--accent); color:var(--bg); padding:2px 6px; border-radius:8px; font-size:10px; font-weight:600; }
+        .page-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:25px; }
+        .page-title { font-size:24px; font-weight:700; }
+        .page-sub { color:var(--muted); font-size:13px; margin-top:4px; }
+        .btn { display:inline-flex; align-items:center; gap:6px; padding:10px 16px; border-radius:8px; font-size:13px; font-weight:500; cursor:pointer; border:none; transition:all .2s; }
+        .btn-primary { background:var(--accent); color:var(--bg); }
+        .btn-secondary { background:var(--elevated); color:var(--text); border:1px solid var(--border); }
+        .btn-sm { padding:6px 12px; font-size:12px; }
+        .card { background:var(--card); border:1px solid var(--border); border-radius:12px; padding:20px; margin-bottom:16px; }
+        .card-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; }
+        .card-title { font-size:15px; font-weight:600; }
+        .stats-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:16px; margin-bottom:25px; }
+        .stat-card { background:var(--card); border:1px solid var(--border); border-radius:12px; padding:20px; position:relative; }
+        .stat-card::before { content:''; position:absolute; top:0; left:0; right:0; height:3px; background:var(--accent); border-radius:12px 12px 0 0; }
+        .stat-card.g::before { background:var(--green); }
+        .stat-card.o::before { background:var(--orange); }
+        .stat-card.m::before { background:var(--magenta); }
+        .stat-label { font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:.5px; margin-bottom:8px; }
+        .stat-value { font-size:28px; font-weight:700; font-family:'JetBrains Mono'; }
+        .stat-sub { font-size:12px; color:var(--muted); margin-top:4px; }
+        .table-wrap { overflow-x:auto; max-height:450px; overflow-y:auto; }
+        table { width:100%; border-collapse:collapse; }
+        th { text-align:left; padding:12px; font-size:10px; text-transform:uppercase; letter-spacing:.5px; color:var(--muted); border-bottom:1px solid var(--border); background:var(--elevated); position:sticky; top:0; }
+        td { padding:12px; border-bottom:1px solid var(--border); font-size:13px; }
+        tr:hover td { background:var(--elevated); }
+        .search-box { position:relative; margin-bottom:16px; }
+        .search-input { width:100%; padding:12px 16px 12px 40px; background:var(--input); border:1px solid var(--border); border-radius:10px; color:var(--text); font-size:13px; }
+        .search-icon { position:absolute; left:14px; top:50%; transform:translateY(-50%); color:var(--dim); }
+        .filter-bar { display:flex; gap:8px; margin-bottom:16px; flex-wrap:wrap; }
+        .filter-chip { padding:6px 14px; background:var(--elevated); border:1px solid var(--border); border-radius:16px; font-size:12px; cursor:pointer; }
+        .filter-chip:hover, .filter-chip.active { background:var(--accent); color:var(--bg); border-color:var(--accent); }
+        .form-group { margin-bottom:16px; }
+        .form-label { display:block; font-size:12px; font-weight:500; margin-bottom:6px; color:var(--muted); }
+        .form-input, .form-select { width:100%; padding:10px 14px; background:var(--input); border:1px solid var(--border); border-radius:8px; color:var(--text); font-size:13px; }
+        .form-row { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+        .form-row-3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:16px; }
+        .badge { display:inline-block; padding:4px 10px; border-radius:12px; font-size:11px; font-weight:500; }
+        .badge-green { background:rgba(0,255,136,.15); color:var(--green); }
+        .badge-blue { background:rgba(0,212,255,.15); color:var(--accent); }
+        .mono { font-family:'JetBrains Mono'; }
+        .hidden { display:none !important; }
+        .price-cards { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin-top:16px; }
+        .price-card { background:var(--elevated); border-radius:10px; padding:16px; text-align:center; }
+        .price-card-title { font-size:11px; color:var(--muted); text-transform:uppercase; margin-bottom:8px; }
+        .price-card-value { font-size:24px; font-weight:700; font-family:'JetBrains Mono'; }
+        .price-low { color:var(--green); }
+        .price-avg { color:var(--accent); }
+        .price-high { color:var(--orange); }
+        .vendor-header { display:flex; align-items:center; gap:16px; padding-bottom:16px; border-bottom:1px solid var(--border); margin-bottom:16px; }
+        .vendor-avatar { width:64px; height:64px; background:linear-gradient(135deg,var(--accent),var(--magenta)); border-radius:12px; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:24px; }
+        .vendor-stats { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; }
+        .vendor-stat { text-align:center; padding:12px; background:var(--elevated); border-radius:8px; }
+        .vendor-stat-value { font-size:20px; font-weight:700; font-family:'JetBrains Mono'; color:var(--accent); }
+        .vendor-stat-label { font-size:10px; color:var(--muted); text-transform:uppercase; margin-top:4px; }
+        .toast { position:fixed; bottom:24px; right:24px; background:var(--card); border:1px solid var(--green); border-radius:10px; padding:12px 20px; transform:translateY(100px); opacity:0; transition:all .3s; z-index:1000; }
+        .toast.show { transform:translateY(0); opacity:1; }
+        @media (max-width:1200px) { .stats-grid { grid-template-columns:repeat(2,1fr); } }
+    </style>
+</head>
+<body>
+<div class="app">
+    <aside class="sidebar">
+        <div class="logo">
+            <h1><div class="logo-icon">TA</div>The Agency</h1>
+            <span>Vendor & Pricing System</span>
+        </div>
+        <nav class="nav-section">
+            <div class="nav-title">Overview</div>
+            <div class="nav-item active" data-page="dashboard">📊 Dashboard</div>
+        </nav>
+        <nav class="nav-section">
+            <div class="nav-title">Vendor Management</div>
+            <div class="nav-item" data-page="vendors">🏢 Vendor Lookup <span class="nav-badge" id="nav-vendors">0</span></div>
+            <div class="nav-item" data-page="vendor-detail">👤 Vendor Details</div>
+        </nav>
+        <nav class="nav-section">
+            <div class="nav-title">Pricing Intelligence</div>
+            <div class="nav-item" data-page="prices">💵 Price List <span class="nav-badge" id="nav-prices">0</span></div>
+            <div class="nav-item" data-page="analysis">📈 Price Analysis</div>
+        </nav>
+        <nav class="nav-section">
+            <div class="nav-title">Data</div>
+            <div class="nav-item" data-page="projects">📁 Projects <span class="nav-badge" id="nav-projects">0</span></div>
+            <div class="nav-item" data-page="clients">🤝 Clients</div>
+        </nav>
+    </aside>
+    <main class="main">
+        <!-- Dashboard -->
+        <div id="page-dashboard" class="page">
+            <div class="page-header"><div><h1 class="page-title">Dashboard</h1><p class="page-sub">Financial intelligence from your cost sheet archive</p></div></div>
+            <div class="stats-grid">
+                <div class="stat-card"><div class="stat-label">Vendors</div><div class="stat-value" id="s-vendors">-</div><div class="stat-sub">Active suppliers</div></div>
+                <div class="stat-card g"><div class="stat-label">Price Records</div><div class="stat-value" id="s-prices">-</div><div class="stat-sub">Line items extracted</div></div>
+                <div class="stat-card o"><div class="stat-label">Projects</div><div class="stat-value" id="s-projects">-</div><div class="stat-sub">2023-2026</div></div>
+                <div class="stat-card m"><div class="stat-label">Total Revenue</div><div class="stat-value" id="s-revenue">-</div><div class="stat-sub">OMR from projects</div></div>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+                <div class="card"><div class="card-header"><h3 class="card-title">Top Vendors by Spend</h3></div><div id="top-vendors"></div></div>
+                <div class="card"><div class="card-header"><h3 class="card-title">Spend by Category</h3></div><div id="cat-spend"></div></div>
+            </div>
+        </div>
+
+        <!-- Vendors -->
+        <div id="page-vendors" class="page hidden">
+            <div class="page-header"><div><h1 class="page-title">Vendor Lookup</h1><p class="page-sub">Search and browse your supplier database</p></div></div>
+            <div class="card">
+                <div class="search-box"><span class="search-icon">🔍</span><input type="text" class="search-input" placeholder="Search vendors..." id="vendor-search" oninput="loadVendors()"></div>
+                <div class="filter-bar" id="vendor-filters"></div>
+                <div class="table-wrap">
+                    <table><thead><tr><th>Vendor</th><th>Category</th><th>Contact</th><th>Total Spend</th><th>Items</th><th>Actions</th></tr></thead><tbody id="vendors-table"></tbody></table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Vendor Detail -->
+        <div id="page-vendor-detail" class="page hidden">
+            <div class="page-header"><div><h1 class="page-title">Vendor Details</h1><p class="page-sub">Complete vendor profile and pricing history</p></div><button class="btn btn-secondary" onclick="nav('vendors')">← Back</button></div>
+            <div id="vendor-detail-content"><div class="card" style="text-align:center;padding:40px;"><p style="color:var(--muted)">Select a vendor from the lookup page</p></div></div>
+        </div>
+
+        <!-- Price List -->
+        <div id="page-prices" class="page hidden">
+            <div class="page-header"><div><h1 class="page-title">Price List</h1><p class="page-sub">Historical pricing from all cost sheets</p></div><button class="btn btn-secondary" onclick="exportCSV()">📥 Export CSV</button></div>
+            <div class="card">
+                <div class="form-row-3" style="margin-bottom:16px;">
+                    <input type="text" class="form-input" placeholder="Search items..." id="price-search" oninput="filterPrices()">
+                    <select class="form-select" id="price-cat" onchange="filterPrices()"><option value="">All Categories</option></select>
+                    <select class="form-select" id="price-vendor" onchange="filterPrices()"><option value="">All Vendors</option></select>
+                </div>
+                <div class="table-wrap">
+                    <table><thead><tr><th>Description</th><th>Category</th><th>Vendor</th><th>Qty</th><th>Unit Cost</th><th>Total</th></tr></thead><tbody id="prices-table"></tbody></table>
+                </div>
+                <div style="margin-top:12px;color:var(--muted);font-size:12px;">Showing <span id="price-showing">0</span> of <span id="price-total">0</span> records</div>
+            </div>
+        </div>
+
+        <!-- Price Analysis -->
+        <div id="page-analysis" class="page hidden">
+            <div class="page-header"><div><h1 class="page-title">Price Analysis</h1><p class="page-sub">Analyze pricing trends and margins by category</p></div></div>
+            <div class="card">
+                <div class="card-header"><h3 class="card-title">Category Breakdown</h3></div>
+                <div class="table-wrap">
+                    <table><thead><tr><th>Category</th><th>Items</th><th>Total Cost</th><th>Avg Unit</th><th>Min</th><th>Max</th></tr></thead><tbody id="analysis-table"></tbody></table>
+                </div>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:16px;">
+                <div class="card">
+                    <div class="card-header"><h3 class="card-title">Quick Price Lookup</h3></div>
+                    <input type="text" class="form-input" placeholder="Search for an item..." id="quick-search" oninput="quickLookup()">
+                    <div id="quick-results" style="margin-top:12px;"></div>
+                </div>
+                <div class="card">
+                    <div class="card-header"><h3 class="card-title">Price Estimator</h3></div>
+                    <div class="form-row">
+                        <div class="form-group"><label class="form-label">Category</label><select class="form-select" id="est-cat" onchange="estimate()"></select></div>
+                        <div class="form-group"><label class="form-label">Quantity</label><input type="number" class="form-input" id="est-qty" value="1" min="1" oninput="estimate()"></div>
+                    </div>
+                    <div class="price-cards" id="est-results" style="display:none;">
+                        <div class="price-card"><div class="price-card-title">Low</div><div class="price-card-value price-low" id="est-low">-</div></div>
+                        <div class="price-card"><div class="price-card-title">Average</div><div class="price-card-value price-avg" id="est-avg">-</div></div>
+                        <div class="price-card"><div class="price-card-title">High</div><div class="price-card-value price-high" id="est-high">-</div></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Projects -->
+        <div id="page-projects" class="page hidden">
+            <div class="page-header"><div><h1 class="page-title">Projects</h1><p class="page-sub">Historical project data</p></div></div>
+            <div class="card">
+                <div class="form-row" style="margin-bottom:16px;">
+                    <input type="text" class="form-input" placeholder="Search by client..." id="proj-search" oninput="loadProjects()">
+                    <select class="form-select" id="proj-year" onchange="loadProjects()"><option value="">All Years</option><option>2026</option><option>2025</option><option>2024</option><option>2023</option></select>
+                </div>
+                <div class="table-wrap">
+                    <table><thead><tr><th>Project #</th><th>Client</th><th>Subject</th><th>Year</th><th>Cost</th><th>Price</th><th>Margin</th></tr></thead><tbody id="projects-table"></tbody></table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Clients -->
+        <div id="page-clients" class="page hidden">
+            <div class="page-header"><div><h1 class="page-title">Clients</h1><p class="page-sub">Client performance analysis</p></div></div>
+            <div class="card">
+                <div class="search-box"><span class="search-icon">🔍</span><input type="text" class="search-input" placeholder="Search clients..." id="client-search" oninput="loadClients()"></div>
+                <div class="table-wrap">
+                    <table><thead><tr><th>Client</th><th>Projects</th><th>Revenue</th><th>Cost</th><th>Margin</th><th>Avg %</th></tr></thead><tbody id="clients-table"></tbody></table>
+                </div>
+            </div>
+        </div>
+    </main>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+const API='';
+let categories=[],vendors=[],prices=[],catStats=[];
+let currentCat='';
+
+document.addEventListener('DOMContentLoaded',async()=>{
+    document.querySelectorAll('.nav-item').forEach(i=>i.addEventListener('click',()=>nav(i.dataset.page)));
+    await loadCats();
+    loadDashboard();
+});
+
+function nav(page){
+    document.querySelectorAll('.nav-item').forEach(i=>i.classList.remove('active'));
+    document.querySelector(`[data-page="${page}"]`)?.classList.add('active');
+    document.querySelectorAll('.page').forEach(p=>p.classList.add('hidden'));
+    document.getElementById('page-'+page)?.classList.remove('hidden');
+    if(page==='dashboard')loadDashboard();
+    if(page==='vendors')loadVendors();
+    if(page==='prices')loadPrices();
+    if(page==='analysis')loadAnalysis();
+    if(page==='projects')loadProjects();
+    if(page==='clients')loadClients();
+}
+
+async function api(url){return(await fetch(API+url)).json();}
+async function loadCats(){
+    categories=await api('/api/categories');
+    const opts=categories.map(c=>`<option value="${c.name}">${c.name}</option>`).join('');
+    document.getElementById('price-cat').innerHTML='<option value="">All Categories</option>'+opts;
+    document.getElementById('est-cat').innerHTML='<option value="">Select category</option>'+opts;
+    document.getElementById('vendor-filters').innerHTML='<div class="filter-chip active" onclick="filterCat(\'\')">All</div>'+categories.map(c=>`<div class="filter-chip" onclick="filterCat('${c.name}')">${c.name}</div>`).join('');
+}
+
+async function loadDashboard(){
+    const d=await api('/api/analytics/dashboard');
+    document.getElementById('s-vendors').textContent=d.vendors.total;
+    document.getElementById('s-prices').textContent=d.price_history?.total||0;
+    document.getElementById('s-projects').textContent=d.projects.total;
+    document.getElementById('s-revenue').textContent=fmtC(d.projects.total_revenue);
+    document.getElementById('nav-vendors').textContent=d.vendors.total;
+    document.getElementById('nav-prices').textContent=d.price_history?.total||0;
+    document.getElementById('nav-projects').textContent=d.projects.total;
+    document.getElementById('top-vendors').innerHTML=(d.top_vendors||[]).slice(0,8).map(v=>`<div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border);"><div><strong>${v.company_name}</strong><div style="font-size:11px;color:var(--muted)">${v.category||''}</div></div><div class="mono" style="color:var(--accent)">${fmtC(v.total_spent)}</div></div>`).join('');
+    document.getElementById('cat-spend').innerHTML=(d.category_spend||[]).slice(0,8).map(c=>`<div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border);"><span>${c.category}</span><span class="mono">${fmtC(c.total_cost)}</span></div>`).join('');
+}
+
+async function loadVendors(){
+    const s=document.getElementById('vendor-search')?.value||'';
+    let url='/api/vendors?search='+encodeURIComponent(s);
+    if(currentCat)url+='&category='+encodeURIComponent(currentCat);
+    vendors=await api(url);
+    document.getElementById('vendors-table').innerHTML=vendors.map(v=>`<tr style="cursor:pointer" onclick="viewVendor('${v.id}')"><td><div style="display:flex;align-items:center;gap:10px;"><div style="width:36px;height:36px;background:linear-gradient(135deg,var(--accent),var(--magenta));border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:600;font-size:12px;">${v.company_name.substring(0,2).toUpperCase()}</div><div><div style="font-weight:500">${v.company_name}</div>${v.contact_name?`<div style="font-size:11px;color:var(--muted)">${v.contact_name}</div>`:''}</div></div></td><td>${v.category||'-'}</td><td>${v.phone||v.email||'-'}</td><td class="mono">${v.total_spent?fmtC(v.total_spent):'-'}</td><td>${v.projects_count||0}</td><td><button class="btn btn-sm btn-secondary" onclick="event.stopPropagation();viewVendor('${v.id}')">View</button></td></tr>`).join('');
+}
+
+function filterCat(cat){
+    currentCat=cat;
+    document.querySelectorAll('.filter-chip').forEach(c=>c.classList.remove('active'));
+    event.target.classList.add('active');
+    loadVendors();
+}
+
+async function viewVendor(id){
+    const v=await api('/api/vendors/'+id);
+    const ph=await api('/api/vendors/'+id+'/prices');
+    document.getElementById('vendor-detail-content').innerHTML=`
+        <div class="card">
+            <div class="vendor-header">
+                <div class="vendor-avatar">${v.company_name.substring(0,2).toUpperCase()}</div>
+                <div><h2 style="font-size:22px">${v.company_name}</h2><div style="color:var(--muted)">${v.category||'Uncategorized'}</div>
+                <div style="margin-top:8px;font-size:13px;color:var(--muted)">${v.contact_name?'👤 '+v.contact_name+' ':''} ${v.phone?'📞 '+v.phone:''} ${v.email?'✉️ '+v.email:''}</div></div>
+                <span class="badge badge-green" style="margin-left:auto">${v.status||'Active'}</span>
+            </div>
+            <div class="vendor-stats">
+                <div class="vendor-stat"><div class="vendor-stat-value">${fmtC(v.total_spent||0)}</div><div class="vendor-stat-label">Total Spent</div></div>
+                <div class="vendor-stat"><div class="vendor-stat-value">${v.projects_count||0}</div><div class="vendor-stat-label">Items</div></div>
+                <div class="vendor-stat"><div class="vendor-stat-value">${v.payment_terms||'NET30'}</div><div class="vendor-stat-label">Terms</div></div>
+                <div class="vendor-stat"><div class="vendor-stat-value">${v.rating||'-'}</div><div class="vendor-stat-label">Rating</div></div>
+            </div>
+        </div>
+        <div class="card">
+            <div class="card-header"><h3 class="card-title">Price History (${ph.length} items)</h3></div>
+            <div class="table-wrap">
+                <table><thead><tr><th>Description</th><th>Category</th><th>Qty</th><th>Unit Cost</th><th>Total</th></tr></thead>
+                <tbody>${ph.length?ph.map(p=>`<tr><td style="max-width:280px">${p.item_description}</td><td>${p.category}</td><td>${p.quantity}</td><td class="mono">${fmtO(p.unit_cost)}</td><td class="mono">${fmtO(p.total_cost)}</td></tr>`).join(''):'<tr><td colspan="5" style="text-align:center;color:var(--muted)">No history</td></tr>'}</tbody></table>
+            </div>
+        </div>`;
+    nav('vendor-detail');
+}
+
+async function loadPrices(){
+    prices=await api('/api/prices');
+    const vlist=[...new Set(prices.filter(p=>p.vendor_name).map(p=>p.vendor_name))].sort();
+    document.getElementById('price-vendor').innerHTML='<option value="">All Vendors</option>'+vlist.map(v=>`<option>${v}</option>`).join('');
+    document.getElementById('price-total').textContent=prices.length;
+    filterPrices();
+}
+
+function filterPrices(){
+    const s=(document.getElementById('price-search')?.value||'').toLowerCase();
+    const cat=document.getElementById('price-cat')?.value||'';
+    const ven=document.getElementById('price-vendor')?.value||'';
+    let f=prices;
+    if(s)f=f.filter(p=>(p.item_description||'').toLowerCase().includes(s));
+    if(cat)f=f.filter(p=>p.category===cat);
+    if(ven)f=f.filter(p=>p.vendor_name===ven);
+    const show=f.slice(0,500);
+    document.getElementById('price-showing').textContent=show.length;
+    document.getElementById('prices-table').innerHTML=show.map(p=>`<tr><td style="max-width:300px">${p.item_description||'-'}</td><td>${p.category}</td><td>${p.vendor_name||'-'}</td><td>${p.quantity||1}</td><td class="mono">${fmtO(p.unit_cost)}</td><td class="mono" style="font-weight:600">${fmtO(p.total_cost)}</td></tr>`).join('');
+}
+
+async function loadAnalysis(){
+    catStats=await api('/api/prices/stats');
+    document.getElementById('analysis-table').innerHTML=catStats.map(c=>`<tr><td><strong>${c.category}</strong></td><td>${c.items}</td><td class="mono">${fmtC(c.total_cost)}</td><td class="mono">${fmtO(c.avg_unit_cost)}</td><td class="mono">${fmtO(c.min_cost)}</td><td class="mono">${fmtO(c.max_cost)}</td></tr>`).join('');
+}
+
+function quickLookup(){
+    const s=(document.getElementById('quick-search')?.value||'').toLowerCase();
+    if(s.length<2){document.getElementById('quick-results').innerHTML='';return;}
+    const m=prices.filter(p=>(p.item_description||'').toLowerCase().includes(s)).slice(0,8);
+    document.getElementById('quick-results').innerHTML=m.length?m.map(p=>`<div style="display:flex;justify-content:space-between;padding:8px;background:var(--elevated);border-radius:6px;margin-bottom:6px;"><span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-right:10px">${p.item_description}</span><span class="mono" style="color:var(--accent)">${fmtO(p.total_cost)}</span></div>`).join(''):'<p style="color:var(--muted)">No matches</p>';
+}
+
+function estimate(){
+    const cat=document.getElementById('est-cat').value;
+    const qty=parseInt(document.getElementById('est-qty').value)||1;
+    if(!cat||!catStats.length){document.getElementById('est-results').style.display='none';return;}
+    const s=catStats.find(c=>c.category===cat);
+    if(!s){document.getElementById('est-results').style.display='none';return;}
+    document.getElementById('est-results').style.display='grid';
+    document.getElementById('est-low').textContent=fmtO(s.min_cost*qty);
+    document.getElementById('est-avg').textContent=fmtO(s.avg_unit_cost*qty);
+    document.getElementById('est-high').textContent=fmtO(s.max_cost*qty);
+}
+
+async function loadProjects(){
+    const s=document.getElementById('proj-search')?.value||'';
+    const y=document.getElementById('proj-year')?.value||'';
+    let url='/api/projects?client='+encodeURIComponent(s);
+    if(y)url+='&year='+y;
+    const p=await api(url);
+    document.getElementById('projects-table').innerHTML=p.map(r=>`<tr><td><strong>${r.project_number||'-'}</strong></td><td>${r.client}</td><td style="max-width:220px;overflow:hidden;text-overflow:ellipsis">${r.subject||'-'}</td><td>${r.year}</td><td class="mono">${fmtO(r.total_cost)}</td><td class="mono">${fmtO(r.total_price)}</td><td class="mono" style="color:${(r.margin_pct||0)>15?'var(--green)':'var(--muted)'}">${fmtO(r.margin)} (${(r.margin_pct||0).toFixed(1)}%)</td></tr>`).join('');
+}
+
+async function loadClients(){
+    const s=(document.getElementById('client-search')?.value||'').toLowerCase();
+    let c=await api('/api/clients');
+    if(s)c=c.filter(x=>x.client.toLowerCase().includes(s));
+    document.getElementById('clients-table').innerHTML=c.map(r=>`<tr><td><strong>${r.client}</strong></td><td>${r.projects}</td><td class="mono">${fmtC(r.revenue)}</td><td class="mono">${fmtC(r.cost)}</td><td class="mono" style="color:${(r.avg_margin||0)>15?'var(--green)':'var(--muted)'}">${fmtC(r.margin)}</td><td class="mono">${(r.avg_margin||0).toFixed(1)}%</td></tr>`).join('');
+}
+
+function exportCSV(){
+    let csv='Description,Category,Vendor,Qty,Unit Cost,Total\n';
+    prices.forEach(p=>{csv+=`"${(p.item_description||'').replace(/"/g,'""')}","${p.category}","${p.vendor_name||''}",${p.quantity||1},${p.unit_cost||0},${p.total_cost||0}\n`;});
+    const b=new Blob([csv],{type:'text/csv'});
+    const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='price_list.csv';a.click();
+}
+
+function fmtC(v){if(!v||isNaN(v))return'OMR 0';if(v>=1e6)return'OMR '+(v/1e6).toFixed(1)+'M';if(v>=1e3)return'OMR '+(v/1e3).toFixed(1)+'K';return'OMR '+Math.round(v);}
+function fmtO(v){if(!v||isNaN(v))return'-';return parseFloat(v).toFixed(2)+' OMR';}
+function toast(m){const t=document.getElementById('toast');t.textContent=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),3000);}
+</script>
+</body>
+</html>

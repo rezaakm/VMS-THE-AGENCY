@@ -1,0 +1,1037 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Agency - Financial Intelligence Dashboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --bg-primary: #0a0a0f;
+            --bg-secondary: #12121a;
+            --bg-card: #1a1a24;
+            --bg-elevated: #22222e;
+            --accent-cyan: #00d4ff;
+            --accent-magenta: #ff00aa;
+            --accent-gold: #ffd700;
+            --accent-green: #00ff88;
+            --accent-orange: #ff6b35;
+            --text-primary: #ffffff;
+            --text-secondary: #8888aa;
+            --text-muted: #555566;
+            --border: #2a2a3a;
+            --gradient-1: linear-gradient(135deg, #00d4ff 0%, #ff00aa 100%);
+            --gradient-2: linear-gradient(135deg, #00ff88 0%, #00d4ff 100%);
+            --glow-cyan: 0 0 30px rgba(0, 212, 255, 0.3);
+            --glow-magenta: 0 0 30px rgba(255, 0, 170, 0.3);
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Space Grotesk', sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+        
+        /* Animated Background */
+        .bg-grid {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: 
+                linear-gradient(rgba(0, 212, 255, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 212, 255, 0.03) 1px, transparent 1px);
+            background-size: 50px 50px;
+            pointer-events: none;
+            z-index: 0;
+        }
+        
+        .bg-glow {
+            position: fixed;
+            width: 600px;
+            height: 600px;
+            border-radius: 50%;
+            filter: blur(150px);
+            opacity: 0.15;
+            pointer-events: none;
+            z-index: 0;
+        }
+        
+        .bg-glow-1 {
+            top: -200px;
+            left: -200px;
+            background: var(--accent-cyan);
+        }
+        
+        .bg-glow-2 {
+            bottom: -200px;
+            right: -200px;
+            background: var(--accent-magenta);
+        }
+        
+        /* Header */
+        .header {
+            position: relative;
+            z-index: 10;
+            padding: 30px 50px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--border);
+            background: rgba(10, 10, 15, 0.8);
+            backdrop-filter: blur(20px);
+        }
+        
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .logo-icon {
+            width: 50px;
+            height: 50px;
+            background: var(--gradient-1);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 24px;
+            box-shadow: var(--glow-cyan);
+        }
+        
+        .logo-text h1 {
+            font-size: 24px;
+            font-weight: 600;
+            letter-spacing: -0.5px;
+        }
+        
+        .logo-text span {
+            font-size: 12px;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+        
+        .header-stats {
+            display: flex;
+            gap: 40px;
+        }
+        
+        .header-stat {
+            text-align: right;
+        }
+        
+        .header-stat-value {
+            font-size: 28px;
+            font-weight: 700;
+            font-family: 'JetBrains Mono', monospace;
+            background: var(--gradient-1);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .header-stat-label {
+            font-size: 11px;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        /* Main Container */
+        .container {
+            position: relative;
+            z-index: 10;
+            padding: 30px 50px;
+            max-width: 1800px;
+            margin: 0 auto;
+        }
+        
+        /* Section Headers */
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+        }
+        
+        .section-title {
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            color: var(--text-secondary);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .section-title::before {
+            content: '';
+            width: 4px;
+            height: 20px;
+            background: var(--gradient-1);
+            border-radius: 2px;
+        }
+        
+        /* KPI Cards */
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 20px;
+            margin-bottom: 40px;
+        }
+        
+        .kpi-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 25px;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+        
+        .kpi-card:hover {
+            transform: translateY(-5px);
+            border-color: var(--accent-cyan);
+            box-shadow: var(--glow-cyan);
+        }
+        
+        .kpi-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: var(--gradient-1);
+        }
+        
+        .kpi-card.green::before { background: var(--accent-green); }
+        .kpi-card.gold::before { background: var(--accent-gold); }
+        .kpi-card.orange::before { background: var(--accent-orange); }
+        .kpi-card.magenta::before { background: var(--accent-magenta); }
+        
+        .kpi-label {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            color: var(--text-secondary);
+            margin-bottom: 10px;
+        }
+        
+        .kpi-value {
+            font-size: 32px;
+            font-weight: 700;
+            font-family: 'JetBrains Mono', monospace;
+            margin-bottom: 8px;
+        }
+        
+        .kpi-change {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 13px;
+        }
+        
+        .kpi-change.positive { color: var(--accent-green); }
+        .kpi-change.negative { color: var(--accent-orange); }
+        
+        /* Charts Row */
+        .charts-row {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 20px;
+            margin-bottom: 40px;
+        }
+        
+        .chart-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 25px;
+        }
+        
+        .chart-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        
+        .chart-title {
+            font-size: 16px;
+            font-weight: 600;
+        }
+        
+        .chart-filters {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .filter-btn {
+            background: var(--bg-elevated);
+            border: 1px solid var(--border);
+            color: var(--text-secondary);
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .filter-btn:hover, .filter-btn.active {
+            background: var(--accent-cyan);
+            color: var(--bg-primary);
+            border-color: var(--accent-cyan);
+        }
+        
+        .chart-container {
+            position: relative;
+            height: 300px;
+        }
+        
+        /* Tables */
+        .tables-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 40px;
+        }
+        
+        .table-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 25px;
+            max-height: 450px;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .table-scroll {
+            overflow-y: auto;
+            flex: 1;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        th {
+            text-align: left;
+            padding: 12px 15px;
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--text-secondary);
+            border-bottom: 1px solid var(--border);
+            position: sticky;
+            top: 0;
+            background: var(--bg-card);
+        }
+        
+        td {
+            padding: 15px;
+            border-bottom: 1px solid var(--border);
+            font-size: 14px;
+        }
+        
+        tr:hover td {
+            background: var(--bg-elevated);
+        }
+        
+        .client-name {
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .client-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            background: var(--gradient-1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        
+        .amount {
+            font-family: 'JetBrains Mono', monospace;
+            font-weight: 500;
+        }
+        
+        .amount.positive { color: var(--accent-green); }
+        
+        .badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 500;
+        }
+        
+        .badge.high { background: rgba(0, 255, 136, 0.15); color: var(--accent-green); }
+        .badge.medium { background: rgba(0, 212, 255, 0.15); color: var(--accent-cyan); }
+        .badge.low { background: rgba(255, 107, 53, 0.15); color: var(--accent-orange); }
+        
+        /* Vendor Management Section */
+        .vendor-section {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 30px;
+            margin-bottom: 40px;
+        }
+        
+        .vendor-stats {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .vendor-stat {
+            background: var(--bg-elevated);
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+        }
+        
+        .vendor-stat-value {
+            font-size: 36px;
+            font-weight: 700;
+            font-family: 'JetBrains Mono', monospace;
+            color: var(--accent-cyan);
+        }
+        
+        .vendor-stat-label {
+            font-size: 12px;
+            color: var(--text-secondary);
+            margin-top: 5px;
+        }
+        
+        .vendor-categories {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        
+        .vendor-tag {
+            background: var(--bg-elevated);
+            border: 1px solid var(--border);
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 13px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.2s ease;
+        }
+        
+        .vendor-tag:hover {
+            border-color: var(--accent-cyan);
+            transform: translateY(-2px);
+        }
+        
+        .vendor-tag-count {
+            background: var(--accent-cyan);
+            color: var(--bg-primary);
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+        
+        /* RFQ System Preview */
+        .rfq-preview {
+            background: linear-gradient(135deg, var(--bg-card) 0%, var(--bg-elevated) 100%);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 40px;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .rfq-preview::before {
+            content: 'COMING SOON';
+            position: absolute;
+            top: 20px;
+            right: -30px;
+            background: var(--accent-magenta);
+            color: white;
+            padding: 5px 40px;
+            font-size: 10px;
+            font-weight: 600;
+            letter-spacing: 2px;
+            transform: rotate(45deg);
+        }
+        
+        .rfq-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 30px;
+        }
+        
+        .rfq-title {
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 10px;
+        }
+        
+        .rfq-subtitle {
+            color: var(--text-secondary);
+            max-width: 500px;
+            line-height: 1.6;
+        }
+        
+        .rfq-features {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 25px;
+        }
+        
+        .rfq-feature {
+            background: var(--bg-primary);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 25px;
+            transition: all 0.3s ease;
+        }
+        
+        .rfq-feature:hover {
+            border-color: var(--accent-cyan);
+            transform: translateY(-5px);
+        }
+        
+        .rfq-feature-icon {
+            width: 50px;
+            height: 50px;
+            background: var(--gradient-1);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            margin-bottom: 15px;
+        }
+        
+        .rfq-feature-title {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+        
+        .rfq-feature-desc {
+            font-size: 13px;
+            color: var(--text-secondary);
+            line-height: 1.5;
+        }
+        
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: var(--bg-secondary);
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: var(--border);
+            border-radius: 4px;
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--accent-cyan);
+        }
+        
+        /* Animation */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .kpi-card, .chart-card, .table-card, .vendor-section, .rfq-preview {
+            animation: fadeIn 0.6s ease forwards;
+        }
+        
+        .kpi-card:nth-child(1) { animation-delay: 0.1s; }
+        .kpi-card:nth-child(2) { animation-delay: 0.2s; }
+        .kpi-card:nth-child(3) { animation-delay: 0.3s; }
+        .kpi-card:nth-child(4) { animation-delay: 0.4s; }
+        .kpi-card:nth-child(5) { animation-delay: 0.5s; }
+    </style>
+</head>
+<body>
+    <div class="bg-grid"></div>
+    <div class="bg-glow bg-glow-1"></div>
+    <div class="bg-glow bg-glow-2"></div>
+    
+    <header class="header">
+        <div class="logo">
+            <div class="logo-icon">TA</div>
+            <div class="logo-text">
+                <h1>The Agency</h1>
+                <span>Financial Intelligence</span>
+            </div>
+        </div>
+        <div class="header-stats">
+            <div class="header-stat">
+                <div class="header-stat-value">518</div>
+                <div class="header-stat-label">Total Projects</div>
+            </div>
+            <div class="header-stat">
+                <div class="header-stat-value">2023-2026</div>
+                <div class="header-stat-label">Data Range</div>
+            </div>
+        </div>
+    </header>
+    
+    <main class="container">
+        <!-- KPI Section -->
+        <section>
+            <div class="section-header">
+                <div class="section-title">Key Performance Indicators</div>
+            </div>
+            <div class="kpi-grid">
+                <div class="kpi-card">
+                    <div class="kpi-label">Total Revenue</div>
+                    <div class="kpi-value">1.65M</div>
+                    <div class="kpi-change positive">OMR across all years</div>
+                </div>
+                <div class="kpi-card green">
+                    <div class="kpi-label">Total Costs</div>
+                    <div class="kpi-value">359K</div>
+                    <div class="kpi-change">OMR vendor payments</div>
+                </div>
+                <div class="kpi-card gold">
+                    <div class="kpi-label">Gross Margin</div>
+                    <div class="kpi-value">214K</div>
+                    <div class="kpi-change positive">↑ 13% avg margin</div>
+                </div>
+                <div class="kpi-card orange">
+                    <div class="kpi-label">Active Clients</div>
+                    <div class="kpi-value">79</div>
+                    <div class="kpi-change">Unique companies</div>
+                </div>
+                <div class="kpi-card magenta">
+                    <div class="kpi-label">Vendors</div>
+                    <div class="kpi-value">120+</div>
+                    <div class="kpi-change">Supplier network</div>
+                </div>
+            </div>
+        </section>
+        
+        <!-- Charts Section -->
+        <section>
+            <div class="charts-row">
+                <div class="chart-card">
+                    <div class="chart-header">
+                        <div class="chart-title">Revenue & Margin by Year</div>
+                        <div class="chart-filters">
+                            <button class="filter-btn active">All Years</button>
+                            <button class="filter-btn">YoY Growth</button>
+                        </div>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="revenueChart"></canvas>
+                    </div>
+                </div>
+                <div class="chart-card">
+                    <div class="chart-header">
+                        <div class="chart-title">Client Distribution</div>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="clientChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </section>
+        
+        <!-- Tables Section -->
+        <section>
+            <div class="section-header">
+                <div class="section-title">Client & Project Analysis</div>
+            </div>
+            <div class="tables-row">
+                <div class="table-card">
+                    <div class="chart-header">
+                        <div class="chart-title">Top Clients by Revenue</div>
+                    </div>
+                    <div class="table-scroll">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Client</th>
+                                    <th>Projects</th>
+                                    <th>Revenue</th>
+                                    <th>Margin</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><div class="client-name"><div class="client-avatar">AH</div>Al Hashar</div></td>
+                                    <td>12</td>
+                                    <td class="amount">201,033</td>
+                                    <td><span class="badge high">9.8%</span></td>
+                                </tr>
+                                <tr>
+                                    <td><div class="client-name"><div class="client-avatar">BR</div>BRF</div></td>
+                                    <td>6</td>
+                                    <td class="amount">143,075</td>
+                                    <td><span class="badge high">19.7%</span></td>
+                                </tr>
+                                <tr>
+                                    <td><div class="client-name"><div class="client-avatar">OM</div>Omantel</div></td>
+                                    <td>43</td>
+                                    <td class="amount">133,465</td>
+                                    <td><span class="badge high">33.9%</span></td>
+                                </tr>
+                                <tr>
+                                    <td><div class="client-name"><div class="client-avatar">BW</div>BMW</div></td>
+                                    <td>2</td>
+                                    <td class="amount">100,302</td>
+                                    <td><span class="badge medium">6.0%</span></td>
+                                </tr>
+                                <tr>
+                                    <td><div class="client-name"><div class="client-avatar">OS</div>OSHRM</div></td>
+                                    <td>2</td>
+                                    <td class="amount">72,393</td>
+                                    <td><span class="badge low">0%</span></td>
+                                </tr>
+                                <tr>
+                                    <td><div class="client-name"><div class="client-avatar">FT</div>Fairtrade Auto</div></td>
+                                    <td>71</td>
+                                    <td class="amount">67,206</td>
+                                    <td><span class="badge high">16.9%</span></td>
+                                </tr>
+                                <tr>
+                                    <td><div class="client-name"><div class="client-avatar">MB</div>MBRF</div></td>
+                                    <td>1</td>
+                                    <td class="amount">60,374</td>
+                                    <td><span class="badge low">0%</span></td>
+                                </tr>
+                                <tr>
+                                    <td><div class="client-name"><div class="client-avatar">AS</div>Arsenale SpA</div></td>
+                                    <td>3</td>
+                                    <td class="amount">44,285</td>
+                                    <td><span class="badge high">15.8%</span></td>
+                                </tr>
+                                <tr>
+                                    <td><div class="client-name"><div class="client-avatar">SB</div>Saud Bahwan</div></td>
+                                    <td>2</td>
+                                    <td class="amount">39,195</td>
+                                    <td><span class="badge high">36.0%</span></td>
+                                </tr>
+                                <tr>
+                                    <td><div class="client-name"><div class="client-avatar">AF</div>Al Fardan</div></td>
+                                    <td>79</td>
+                                    <td class="amount">37,595</td>
+                                    <td><span class="badge high">20.3%</span></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="table-card">
+                    <div class="chart-header">
+                        <div class="chart-title">Top Clients by Volume</div>
+                    </div>
+                    <div class="table-scroll">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Client</th>
+                                    <th>Projects</th>
+                                    <th>Avg Value</th>
+                                    <th>Trend</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><div class="client-name"><div class="client-avatar">AF</div>Al Fardan</div></td>
+                                    <td>79</td>
+                                    <td class="amount">476</td>
+                                    <td><span class="badge high">Active</span></td>
+                                </tr>
+                                <tr>
+                                    <td><div class="client-name"><div class="client-avatar">FT</div>Fairtrade Auto</div></td>
+                                    <td>71</td>
+                                    <td class="amount">946</td>
+                                    <td><span class="badge high">Active</span></td>
+                                </tr>
+                                <tr>
+                                    <td><div class="client-name"><div class="client-avatar">OM</div>Omantel</div></td>
+                                    <td>43</td>
+                                    <td class="amount">3,104</td>
+                                    <td><span class="badge high">Active</span></td>
+                                </tr>
+                                <tr>
+                                    <td><div class="client-name"><div class="client-avatar">AJ</div>Al Jenaibi Intl</div></td>
+                                    <td>40</td>
+                                    <td class="amount">741</td>
+                                    <td><span class="badge high">Active</span></td>
+                                </tr>
+                                <tr>
+                                    <td><div class="client-name"><div class="client-avatar">EG</div>Emirates Gift</div></td>
+                                    <td>30</td>
+                                    <td class="amount">590</td>
+                                    <td><span class="badge medium">Moderate</span></td>
+                                </tr>
+                                <tr>
+                                    <td><div class="client-name"><div class="client-avatar">AH</div>Al Hashar</div></td>
+                                    <td>12</td>
+                                    <td class="amount">16,753</td>
+                                    <td><span class="badge high">Premium</span></td>
+                                </tr>
+                                <tr>
+                                    <td><div class="client-name"><div class="client-avatar">AS</div>Al Ahly Sabbour</div></td>
+                                    <td>7</td>
+                                    <td class="amount">3,881</td>
+                                    <td><span class="badge medium">Growing</span></td>
+                                </tr>
+                                <tr>
+                                    <td><div class="client-name"><div class="client-avatar">KR</div>KR</div></td>
+                                    <td>7</td>
+                                    <td class="amount">0</td>
+                                    <td><span class="badge low">Inactive</span></td>
+                                </tr>
+                                <tr>
+                                    <td><div class="client-name"><div class="client-avatar">IC</div>ICRC</div></td>
+                                    <td>7</td>
+                                    <td class="amount">0</td>
+                                    <td><span class="badge low">Inactive</span></td>
+                                </tr>
+                                <tr>
+                                    <td><div class="client-name"><div class="client-avatar">BR</div>BRF</div></td>
+                                    <td>6</td>
+                                    <td class="amount">23,846</td>
+                                    <td><span class="badge high">Premium</span></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </section>
+        
+        <!-- Vendor Management Section -->
+        <section>
+            <div class="section-header">
+                <div class="section-title">Vendor Intelligence</div>
+            </div>
+            <div class="vendor-section">
+                <div class="vendor-stats">
+                    <div class="vendor-stat">
+                        <div class="vendor-stat-value">120+</div>
+                        <div class="vendor-stat-label">Active Vendors</div>
+                    </div>
+                    <div class="vendor-stat">
+                        <div class="vendor-stat-value">359K</div>
+                        <div class="vendor-stat-label">Total Spend (OMR)</div>
+                    </div>
+                    <div class="vendor-stat">
+                        <div class="vendor-stat-value">12</div>
+                        <div class="vendor-stat-label">Categories</div>
+                    </div>
+                    <div class="vendor-stat">
+                        <div class="vendor-stat-value">4.2</div>
+                        <div class="vendor-stat-label">Avg Vendors/Project</div>
+                    </div>
+                </div>
+                
+                <div class="chart-title" style="margin-bottom: 15px;">Vendor Categories</div>
+                <div class="vendor-categories">
+                    <div class="vendor-tag">Production & Fabrication <span class="vendor-tag-count">35</span></div>
+                    <div class="vendor-tag">AV & Sound <span class="vendor-tag-count">18</span></div>
+                    <div class="vendor-tag">Printing & Signage <span class="vendor-tag-count">22</span></div>
+                    <div class="vendor-tag">Furniture Rental <span class="vendor-tag-count">8</span></div>
+                    <div class="vendor-tag">Photography/Video <span class="vendor-tag-count">12</span></div>
+                    <div class="vendor-tag">Hospitality Staff <span class="vendor-tag-count">6</span></div>
+                    <div class="vendor-tag">Entertainment <span class="vendor-tag-count">9</span></div>
+                    <div class="vendor-tag">Catering <span class="vendor-tag-count">7</span></div>
+                    <div class="vendor-tag">Transportation <span class="vendor-tag-count">5</span></div>
+                    <div class="vendor-tag">Florals & Decor <span class="vendor-tag-count">8</span></div>
+                    <div class="vendor-tag">Technology <span class="vendor-tag-count">4</span></div>
+                    <div class="vendor-tag">Giveaways/Merch <span class="vendor-tag-count">15</span></div>
+                </div>
+            </div>
+        </section>
+        
+        <!-- RFQ System Preview -->
+        <section>
+            <div class="section-header">
+                <div class="section-title">Next Generation Tools</div>
+            </div>
+            <div class="rfq-preview">
+                <div class="rfq-header">
+                    <div>
+                        <div class="rfq-title">Vendor Management & RFQ System</div>
+                        <div class="rfq-subtitle">
+                            Streamline your procurement workflow with AI-powered vendor matching, 
+                            automated quote requests, and intelligent cost analysis.
+                        </div>
+                    </div>
+                </div>
+                <div class="rfq-features">
+                    <div class="rfq-feature">
+                        <div class="rfq-feature-icon">📋</div>
+                        <div class="rfq-feature-title">Smart RFQ Generation</div>
+                        <div class="rfq-feature-desc">
+                            Auto-generate detailed RFQs from project briefs. 
+                            AI suggests specifications based on historical data.
+                        </div>
+                    </div>
+                    <div class="rfq-feature">
+                        <div class="rfq-feature-icon">🔍</div>
+                        <div class="rfq-feature-title">Vendor Matching</div>
+                        <div class="rfq-feature-desc">
+                            Intelligent vendor recommendations based on past performance, 
+                            pricing history, and availability.
+                        </div>
+                    </div>
+                    <div class="rfq-feature">
+                        <div class="rfq-feature-icon">📊</div>
+                        <div class="rfq-feature-title">Quote Comparison</div>
+                        <div class="rfq-feature-desc">
+                            Side-by-side quote analysis with margin impact calculations 
+                            and historical pricing benchmarks.
+                        </div>
+                    </div>
+                    <div class="rfq-feature">
+                        <div class="rfq-feature-icon">🤖</div>
+                        <div class="rfq-feature-title">AI Cost Estimation</div>
+                        <div class="rfq-feature-desc">
+                            Predict costs before quotes arrive using ML models 
+                            trained on your 518 project history.
+                        </div>
+                    </div>
+                    <div class="rfq-feature">
+                        <div class="rfq-feature-icon">📧</div>
+                        <div class="rfq-feature-title">Automated Outreach</div>
+                        <div class="rfq-feature-desc">
+                            Send RFQs to multiple vendors with one click. 
+                            Track responses and follow-ups automatically.
+                        </div>
+                    </div>
+                    <div class="rfq-feature">
+                        <div class="rfq-feature-icon">📁</div>
+                        <div class="rfq-feature-title">Vendor Database</div>
+                        <div class="rfq-feature-desc">
+                            Centralized vendor profiles with contact info, 
+                            performance ratings, and pricing history.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+    
+    <script>
+        // Revenue Chart
+        const revenueCtx = document.getElementById('revenueChart').getContext('2d');
+        new Chart(revenueCtx, {
+            type: 'bar',
+            data: {
+                labels: ['2023', '2024', '2025', '2026 (YTD)'],
+                datasets: [{
+                    label: 'Revenue',
+                    data: [172208, 438638, 725393, 313006],
+                    backgroundColor: 'rgba(0, 212, 255, 0.7)',
+                    borderColor: '#00d4ff',
+                    borderWidth: 2,
+                    borderRadius: 8
+                }, {
+                    label: 'Margin',
+                    data: [0, 20581, 146533, 47366],
+                    backgroundColor: 'rgba(0, 255, 136, 0.7)',
+                    borderColor: '#00ff88',
+                    borderWidth: 2,
+                    borderRadius: 8
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: { color: '#8888aa', padding: 20 }
+                    }
+                },
+                scales: {
+                    x: {
+                        grid: { color: 'rgba(42, 42, 58, 0.5)' },
+                        ticks: { color: '#8888aa' }
+                    },
+                    y: {
+                        grid: { color: 'rgba(42, 42, 58, 0.5)' },
+                        ticks: { 
+                            color: '#8888aa',
+                            callback: function(value) {
+                                return 'OMR ' + (value/1000).toFixed(0) + 'K';
+                            }
+                        }
+                    }
+                }
+            }
+        });
+        
+        // Client Distribution Chart
+        const clientCtx = document.getElementById('clientChart').getContext('2d');
+        new Chart(clientCtx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Al Fardan', 'Fairtrade', 'Omantel', 'Al Jenaibi', 'Others'],
+                datasets: [{
+                    data: [79, 71, 43, 40, 285],
+                    backgroundColor: [
+                        '#00d4ff',
+                        '#ff00aa',
+                        '#00ff88',
+                        '#ffd700',
+                        '#555566'
+                    ],
+                    borderWidth: 0
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                cutout: '65%',
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: { 
+                            color: '#8888aa', 
+                            padding: 15,
+                            usePointStyle: true
+                        }
+                    }
+                }
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,355 @@
+// Prisma schema for Vendor Management System
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  ADMIN
+  MANAGER
+  BUYER
+  VIEWER
+}
+
+enum VendorStatus {
+  ACTIVE
+  INACTIVE
+  PENDING
+  BLACKLISTED
+}
+
+enum POStatus {
+  DRAFT
+  SUBMITTED
+  APPROVED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum ContractStatus {
+  DRAFT
+  ACTIVE
+  EXPIRED
+  TERMINATED
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  OVERDUE
+  CANCELLED
+}
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  password  String
+  firstName String
+  lastName  String
+  role      UserRole @default(BUYER)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  purchaseOrders PurchaseOrder[]
+  evaluations    Evaluation[]
+  auditLogs      AuditLog[]
+
+  @@map("users")
+}
+
+model Vendor {
+  id                String       @id @default(uuid())
+  name              String
+  code              String       @unique
+  email             String
+  phone             String
+  website           String?
+  taxId             String?
+  status            VendorStatus @default(PENDING)
+  
+  // Address
+  address           String
+  city              String
+  state             String
+  country           String
+  postalCode        String
+  
+  // Business Info
+  industry          String
+  category          String
+  description       String?
+  registrationDate  DateTime?
+  
+  // Payment Terms
+  paymentTerms      String?      // e.g., "Net 30", "Net 60"
+  creditLimit       Float?
+  currency          String       @default("USD")
+  
+  // Performance
+  performanceScore  Float?       @default(0)
+  totalOrders       Int          @default(0)
+  totalSpent        Float        @default(0)
+  
+  // Metadata
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+
+  // Relations
+  contacts          VendorContact[]
+  documents         Document[]
+  purchaseOrders    PurchaseOrder[]
+  contracts         Contract[]
+  evaluations       Evaluation[]
+  invoices          Invoice[]
+
+  @@map("vendors")
+}
+
+model VendorContact {
+  id        String   @id @default(uuid())
+  vendorId  String
+  firstName String
+  lastName  String
+  email     String
+  phone     String
+  position  String?
+  isPrimary Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  vendor Vendor @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+
+  @@map("vendor_contacts")
+}
+
+model Document {
+  id          String   @id @default(uuid())
+  vendorId    String
+  name        String
+  type        String   // e.g., "Certificate", "License", "Contract"
+  fileUrl     String
+  fileSize    Int?
+  mimeType    String?
+  expiryDate  DateTime?
+  uploadedAt  DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  vendor Vendor @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+
+  @@map("documents")
+}
+
+model PurchaseOrder {
+  id            String    @id @default(uuid())
+  orderNumber   String    @unique
+  vendorId      String
+  userId        String
+  status        POStatus  @default(DRAFT)
+  
+  // Dates
+  orderDate     DateTime  @default(now())
+  requiredDate  DateTime?
+  deliveryDate  DateTime?
+  
+  // Financial
+  subtotal      Float     @default(0)
+  taxAmount     Float     @default(0)
+  shippingCost  Float     @default(0)
+  totalAmount   Float     @default(0)
+  
+  // Details
+  description   String?
+  notes         String?
+  deliveryAddress String?
+  
+  // Metadata
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Relations
+  vendor        Vendor         @relation(fields: [vendorId], references: [id])
+  user          User           @relation(fields: [userId], references: [id])
+  items         POItem[]
+  invoices      Invoice[]
+
+  @@map("purchase_orders")
+}
+
+model POItem {
+  id          String  @id @default(uuid())
+  poId        String
+  itemNumber  String
+  description String
+  quantity    Float
+  unitPrice   Float
+  discount    Float   @default(0)
+  taxRate     Float   @default(0)
+  totalPrice  Float
+
+  // Relations
+  purchaseOrder PurchaseOrder @relation(fields: [poId], references: [id], onDelete: Cascade)
+
+  @@map("po_items")
+}
+
+model Contract {
+  id            String         @id @default(uuid())
+  vendorId      String
+  contractNumber String        @unique
+  title         String
+  status        ContractStatus @default(DRAFT)
+  
+  // Dates
+  startDate     DateTime
+  endDate       DateTime
+  signedDate    DateTime?
+  
+  // Financial
+  contractValue Float?
+  currency      String         @default("USD")
+  
+  // Details
+  terms         String?        // Contract terms and conditions
+  description   String?
+  autoRenew     Boolean        @default(false)
+  renewalPeriod Int?           // in months
+  
+  // Metadata
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  // Relations
+  vendor Vendor @relation(fields: [vendorId], references: [id])
+
+  @@map("contracts")
+}
+
+model Evaluation {
+  id              String   @id @default(uuid())
+  vendorId        String
+  evaluatorId     String
+  
+  // Scores (1-5 scale)
+  qualityScore    Float
+  deliveryScore   Float
+  pricingScore    Float
+  serviceScore    Float
+  overallScore    Float    // Calculated average
+  
+  // Details
+  comments        String?
+  evaluationDate  DateTime @default(now())
+  period          String?  // e.g., "Q1 2024"
+  
+  // Metadata
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relations
+  vendor    Vendor @relation(fields: [vendorId], references: [id])
+  evaluator User   @relation(fields: [evaluatorId], references: [id])
+
+  @@map("evaluations")
+}
+
+model Invoice {
+  id            String        @id @default(uuid())
+  invoiceNumber String        @unique
+  vendorId      String
+  poId          String?
+  
+  // Dates
+  invoiceDate   DateTime      @default(now())
+  dueDate       DateTime
+  paidDate      DateTime?
+  
+  // Financial
+  amount        Float
+  taxAmount     Float         @default(0)
+  totalAmount   Float
+  paidAmount    Float         @default(0)
+  
+  // Status
+  status        PaymentStatus @default(PENDING)
+  
+  // Details
+  description   String?
+  notes         String?
+  
+  // Metadata
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  // Relations
+  vendor        Vendor         @relation(fields: [vendorId], references: [id])
+  purchaseOrder PurchaseOrder? @relation(fields: [poId], references: [id])
+
+  @@map("invoices")
+}
+
+model AuditLog {
+  id        String   @id @default(uuid())
+  userId    String
+  action    String   // e.g., "CREATE", "UPDATE", "DELETE"
+  entity    String   // e.g., "VENDOR", "PO", "CONTRACT"
+  entityId  String
+  changes   Json?    // Store before/after values
+  ipAddress String?
+  userAgent String?
+  createdAt DateTime @default(now())
+
+  // Relations
+  user User @relation(fields: [userId], references: [id])
+
+  @@map("audit_logs")
+}
+
+// Cost Sheet Models (Excel parsing & vendor analytics)
+model CostSheet {
+  id          String    @id @default(uuid())
+  jobNumber   String
+  client      String
+  event       String
+  date        DateTime?
+  driveFileId String    @unique
+  fileName    String
+  lastSynced  DateTime  @default(now())
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  items CostSheetItem[]
+
+  @@index([jobNumber])
+  @@index([client])
+  @@map("cost_sheets")
+}
+
+model CostSheetItem {
+  id                String  @id @default(uuid())
+  costSheetId       String
+  itemNumber        Int?
+  description       String
+  vendor            String?
+  days              Int?
+  unitCost          Float?
+  totalCost         Float?
+  unitSellingPrice  Float?
+  totalSellingPrice Float?
+
+  costSheet CostSheet @relation(fields: [costSheetId], references: [id], onDelete: Cascade)
+
+  @@index([costSheetId])
+  @@index([vendor])
+  @@map("cost_sheet_items")
+}
+

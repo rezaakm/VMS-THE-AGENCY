@@ -1,0 +1,19 @@
+{
+  "name": "cost-intelligence-system",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "packages/backend",
+    "packages/frontend"
+  ],
+  "scripts": {
+    "dev:backend": "npm run dev --workspace=packages/backend",
+    "dev:frontend": "npm run dev --workspace=packages/frontend",
+    "build:backend": "npm run build --workspace=packages/backend",
+    "build:frontend": "npm run build --workspace=packages/frontend",
+    "prisma:generate": "npm run prisma:generate --workspace=packages/backend",
+    "prisma:migrate": "npm run prisma:migrate --workspace=packages/backend",
+    "prisma:seed": "npm run prisma:seed --workspace=packages/backend",
+    "import:costsheets": "npm run import:costsheets --workspace=packages/backend"
+  }
+}

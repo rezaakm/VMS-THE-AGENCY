@@ -1,0 +1,38 @@
+# Dependencies
+node_modules/
+
+# Build outputs
+dist/
+.next/
+out/
+build/
+
+# Environment and secrets
+.env
+.env.local
+.env.*.local
+*.env
+
+# Logs and debug
+*.log
+npm-debug.log*
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Database files (local SQLite)
+*.db
+*.db-journal
+
+# Prisma
+packages/backend/node_modules/
+cost-intelligence-system/cis/packages/backend/node_modules/
+
+# Optional: uncomment to ignore large or generated data
+# price_history.json
+# vendor_system/vendor_system.db
