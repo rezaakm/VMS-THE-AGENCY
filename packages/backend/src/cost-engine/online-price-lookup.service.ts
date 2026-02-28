@@ -53,8 +53,8 @@ export class OnlinePriceLookupService {
       return commodityResult;
     }
 
-    // 3. Fall back to SerpAPI web search
-    const serpResult = await this.trySerpApi(materialName);
+    // 3. Web search (Google CSE → SerpAPI → Brave, whichever key is set)
+    const serpResult = await this.tryWebSearch(materialName);
     if (serpResult.unitPrice !== null) {
       await this.savePrice(materialName, unit, serpResult);
       return serpResult;
@@ -136,46 +136,93 @@ export class OnlinePriceLookupService {
     return null;
   }
 
-  // ── SerpAPI web search ────────────────────────────────────────────────────
+  // ── Web search (Google Custom Search → SerpAPI fallback) ─────────────────
 
-  private async trySerpApi(materialName: string): Promise<LookupResult> {
-    const apiKey = this.configService.get<string>('SERPAPI_KEY');
-    if (!apiKey) {
-      return { unitPrice: null, currency: 'OMR', source: 'serp:no-key', confidence: 0 };
-    }
+  private async tryWebSearch(materialName: string): Promise<LookupResult> {
+    const query = `${materialName} price oman OMR 2026`;
+    const pricePattern = /(?:OMR|RO|ر\.ع\.?)\s*([\d,]+(?:\.\d+)?)|(?:[\d,]+(?:\.\d+)?)\s*(?:OMR|RO)/i;
 
-    try {
-      const query = `${materialName} price oman OMR per unit 2026`;
-      const response = await axios.get('https://serpapi.com/search', {
-        params: { engine: 'google', q: query, api_key: apiKey, num: 5, gl: 'om', hl: 'en' },
-        timeout: 10000,
-      });
+    // ── Option A: Google Custom Search JSON API (same Google Cloud project as Drive) ──
+    const googleApiKey = this.configService.get<string>('GOOGLE_CLIENT_ID')
+      ? this.configService.get<string>('GOOGLE_CSE_API_KEY')
+      : null;
+    const cseId = this.configService.get<string>('GOOGLE_CSE_ID');
 
-      const results = response.data?.organic_results ?? [];
-      // Scan snippets for price patterns like "OMR 1.250" or "1.25 OMR" or "RO 1.25"
-      const pricePattern = /(?:OMR|RO|ر\.ع)\s*([\d,]+(?:\.\d+)?)|(?:[\d,]+(?:\.\d+)?)\s*(?:OMR|RO)/i;
-      for (const result of results) {
-        const text = `${result.title ?? ''} ${result.snippet ?? ''}`;
-        const match = text.match(pricePattern);
-        if (match) {
-          const raw = match[1] ?? match[0];
-          const price = parseFloat(raw.replace(/,/g, ''));
-          if (!isNaN(price) && price > 0 && price < 50000) {
-            return {
-              unitPrice: Math.round(price * 1000) / 1000,
-              currency: 'OMR',
-              source: 'serp',
-              confidence: 0.55,
-              raw: text.substring(0, 120),
-            };
+    if (googleApiKey && cseId) {
+      try {
+        const response = await axios.get('https://www.googleapis.com/customsearch/v1', {
+          params: { key: googleApiKey, cx: cseId, q: query, num: 5, gl: 'om' },
+          timeout: 10000,
+        });
+        const items: any[] = response.data?.items ?? [];
+        for (const item of items) {
+          const text = `${item.title ?? ''} ${item.snippet ?? ''}`;
+          const match = text.match(pricePattern);
+          if (match) {
+            const raw = (match[1] ?? match[0]).replace(/,/g, '');
+            const price = parseFloat(raw);
+            if (!isNaN(price) && price > 0 && price < 50000) {
+              return { unitPrice: Math.round(price * 1000) / 1000, currency: 'OMR', source: 'google-cse', confidence: 0.55, raw: text.substring(0, 120) };
+            }
           }
         }
+      } catch (err: any) {
+        this.logger.warn(`Google CSE error for "${materialName}": ${err.message}`);
       }
-    } catch (err: any) {
-      this.logger.warn(`SerpAPI error for "${materialName}": ${err.message}`);
     }
 
-    return { unitPrice: null, currency: 'OMR', source: 'serp', confidence: 0 };
+    // ── Option B: SerpAPI (if key provided) ───────────────────────────────
+    const serpKey = this.configService.get<string>('SERPAPI_KEY');
+    if (serpKey) {
+      try {
+        const response = await axios.get('https://serpapi.com/search', {
+          params: { engine: 'google', q: query, api_key: serpKey, num: 5, gl: 'om', hl: 'en' },
+          timeout: 10000,
+        });
+        const results: any[] = response.data?.organic_results ?? [];
+        for (const result of results) {
+          const text = `${result.title ?? ''} ${result.snippet ?? ''}`;
+          const match = text.match(pricePattern);
+          if (match) {
+            const raw = (match[1] ?? match[0]).replace(/,/g, '');
+            const price = parseFloat(raw);
+            if (!isNaN(price) && price > 0 && price < 50000) {
+              return { unitPrice: Math.round(price * 1000) / 1000, currency: 'OMR', source: 'serp', confidence: 0.55, raw: text.substring(0, 120) };
+            }
+          }
+        }
+      } catch (err: any) {
+        this.logger.warn(`SerpAPI error for "${materialName}": ${err.message}`);
+      }
+    }
+
+    // ── Option C: Brave Search API (free tier, no phone needed) ───────────
+    const braveKey = this.configService.get<string>('BRAVE_SEARCH_KEY');
+    if (braveKey) {
+      try {
+        const response = await axios.get('https://api.search.brave.com/res/v1/web/search', {
+          headers: { 'Accept': 'application/json', 'X-Subscription-Token': braveKey },
+          params: { q: query, count: 5, country: 'om' },
+          timeout: 10000,
+        });
+        const results: any[] = response.data?.web?.results ?? [];
+        for (const result of results) {
+          const text = `${result.title ?? ''} ${result.description ?? ''}`;
+          const match = text.match(pricePattern);
+          if (match) {
+            const raw = (match[1] ?? match[0]).replace(/,/g, '');
+            const price = parseFloat(raw);
+            if (!isNaN(price) && price > 0 && price < 50000) {
+              return { unitPrice: Math.round(price * 1000) / 1000, currency: 'OMR', source: 'brave', confidence: 0.55, raw: text.substring(0, 120) };
+            }
+          }
+        }
+      } catch (err: any) {
+        this.logger.warn(`Brave Search error for "${materialName}": ${err.message}`);
+      }
+    }
+
+    return { unitPrice: null, currency: 'OMR', source: 'web:no-key', confidence: 0 };
   }
 
   // ── Cache helpers ─────────────────────────────────────────────────────────
