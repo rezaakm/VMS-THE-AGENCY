@@ -7,6 +7,7 @@ import { CostSheetsService } from './cost-sheets.service';
 import { AiService } from './ai.service';
 import { GoogleDriveService } from './google-drive.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { Public } from '../auth/decorators/public.decorator';
 
 @ApiTags('cost-sheets')
 @Controller('cost-sheets')
@@ -118,6 +119,7 @@ export class CostSheetsController {
     return this.googleDriveService.syncFolder();
   }
 
+  @Public()
   @Get('drive/auth')
   @ApiOperation({ summary: 'Get Google OAuth URL to authorise Drive access' })
   async getDriveAuthUrl() {
@@ -125,6 +127,7 @@ export class CostSheetsController {
     return { authUrl: url };
   }
 
+  @Public()
   @Get('drive/callback')
   @ApiOperation({ summary: 'OAuth callback — exchanges code for refresh token' })
   async driveCallback(@Query('code') code: string) {
