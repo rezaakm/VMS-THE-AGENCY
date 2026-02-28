@@ -13,6 +13,7 @@ interface User {
 export function useAuth() {
   const [token, setToken] = useState<string | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isInitialized, setIsInitialized] = useState(false);
 
   useEffect(() => {
     const storedToken = localStorage.getItem('token');
@@ -20,6 +21,7 @@ export function useAuth() {
       setToken(storedToken);
       setIsAuthenticated(true);
     }
+    setIsInitialized(true);
   }, []);
 
   const { data: user, isLoading } = useQuery<User>({
@@ -55,7 +57,8 @@ export function useAuth() {
     user: user || (typeof window !== 'undefined' ? JSON.parse(localStorage.getItem('user') || 'null') : null),
     token,
     isAuthenticated,
-    isLoading: isLoading && isAuthenticated,
+    isInitialized,
+    isLoading: !isInitialized || (isLoading && isAuthenticated),
     login,
     logout,
   };

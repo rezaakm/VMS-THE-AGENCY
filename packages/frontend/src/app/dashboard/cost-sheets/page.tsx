@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { Search, RefreshCw, Upload, TrendingUp, CloudDownload, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
+import { Search, RefreshCw, Upload, TrendingUp, DownloadCloud, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -224,7 +224,7 @@ export default function CostSheetsPage() {
             Upload Excel
           </Button>
           <Button variant="outline" onClick={handleDriveConnect} title="Connect your Google account to allow Drive sync">
-            <CloudDownload className="h-4 w-4 mr-2" />
+            <DownloadCloud className="h-4 w-4 mr-2" />
             Connect Drive
           </Button>
           <Button onClick={handleDriveSync} disabled={syncing}>
