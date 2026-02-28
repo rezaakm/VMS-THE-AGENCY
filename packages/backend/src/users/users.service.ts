@@ -2,6 +2,19 @@ import { Injectable, ConflictException, NotFoundException } from '@nestjs/common
 import { PrismaService } from '../prisma/prisma.service';
 import { User } from '@prisma/client';
 
+type SafeUser = Omit<User, 'password'>;
+
+const safeUserSelect = {
+  id: true,
+  email: true,
+  firstName: true,
+  lastName: true,
+  role: true,
+  isActive: true,
+  createdAt: true,
+  updatedAt: true,
+} as const;
+
 @Injectable()
 export class UsersService {
   constructor(private prisma: PrismaService) {}
@@ -18,36 +31,14 @@ export class UsersService {
     return this.prisma.user.create({ data });
   }
 
-  async findAll(): Promise<User[]> {
-    return this.prisma.user.findMany({
-      select: {
-        id: true,
-        email: true,
-        firstName: true,
-        lastName: true,
-        role: true,
-        isActive: true,
-        createdAt: true,
-        updatedAt: true,
-        password: false,
-      },
-    });
+  async findAll(): Promise<SafeUser[]> {
+    return this.prisma.user.findMany({ select: safeUserSelect });
   }
 
-  async findOne(id: string): Promise<User> {
+  async findOne(id: string): Promise<SafeUser> {
     const user = await this.prisma.user.findUnique({
       where: { id },
-      select: {
-        id: true,
-        email: true,
-        firstName: true,
-        lastName: true,
-        role: true,
-        isActive: true,
-        createdAt: true,
-        updatedAt: true,
-        password: false,
-      },
+      select: safeUserSelect,
     });
 
     if (!user) {
@@ -63,23 +54,13 @@ export class UsersService {
     });
   }
 
-  async update(id: string, data: any): Promise<User> {
+  async update(id: string, data: any): Promise<SafeUser> {
     await this.findOne(id);
 
     return this.prisma.user.update({
       where: { id },
       data,
-      select: {
-        id: true,
-        email: true,
-        firstName: true,
-        lastName: true,
-        role: true,
-        isActive: true,
-        createdAt: true,
-        updatedAt: true,
-        password: false,
-      },
+      select: safeUserSelect,
     });
   }
 

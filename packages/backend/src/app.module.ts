@@ -11,6 +11,8 @@ import { EvaluationsModule } from './evaluations/evaluations.module';
 import { ReportsModule } from './reports/reports.module';
 import { UsersModule } from './users/users.module';
 import { CostSheetsModule } from './cost-sheets/cost-sheets.module';
+import { CostEngineModule } from './cost-engine/cost-engine.module';
+import { AiAssistantModule } from './ai-assistant/ai-assistant.module';
 
 @Module({
   imports: [
@@ -26,6 +28,8 @@ import { CostSheetsModule } from './cost-sheets/cost-sheets.module';
     EvaluationsModule,
     ReportsModule,
     CostSheetsModule,
+    CostEngineModule,
+    AiAssistantModule,
   ],
   controllers: [AppController],
   providers: [AppService],

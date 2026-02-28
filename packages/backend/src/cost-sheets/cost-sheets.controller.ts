@@ -1,10 +1,11 @@
 import {
-  Controller, Get, Post, Body, Param, Query, UseGuards, UseInterceptors, UploadedFile,
+  Controller, Get, Post, Body, Param, Query, UseGuards, UseInterceptors, UploadedFile, Redirect,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiQuery, ApiConsumes } from '@nestjs/swagger';
 import { CostSheetsService } from './cost-sheets.service';
 import { AiService } from './ai.service';
+import { GoogleDriveService } from './google-drive.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 
 @ApiTags('cost-sheets')
@@ -15,6 +16,7 @@ export class CostSheetsController {
   constructor(
     private readonly costSheetsService: CostSheetsService,
     private readonly aiService: AiService,
+    private readonly googleDriveService: GoogleDriveService,
   ) {}
 
   @Get()
@@ -106,5 +108,30 @@ export class CostSheetsController {
   @ApiOperation({ summary: 'Extract estimate from brief' })
   async extractEstimate(@Body() body: { text: string }) {
     return this.aiService.extractEstimate(body.text);
+  }
+
+  // ─── Google Drive ──────────────────────────────────────────────────────────
+
+  @Post('drive/sync')
+  @ApiOperation({ summary: 'Sync cost sheets from Google Drive folder' })
+  async syncDrive() {
+    return this.googleDriveService.syncFolder();
+  }
+
+  @Get('drive/auth')
+  @ApiOperation({ summary: 'Get Google OAuth URL to authorise Drive access' })
+  async getDriveAuthUrl() {
+    const url = await this.googleDriveService.getAuthUrl();
+    return { authUrl: url };
+  }
+
+  @Get('drive/callback')
+  @ApiOperation({ summary: 'OAuth callback — exchanges code for refresh token' })
+  async driveCallback(@Query('code') code: string) {
+    const result = await this.googleDriveService.exchangeCodeForToken(code);
+    return {
+      message: 'Google Drive connected. Copy this refresh token into your .env as GOOGLE_REFRESH_TOKEN, then restart the backend.',
+      refresh_token: result.refresh_token,
+    };
   }
 }

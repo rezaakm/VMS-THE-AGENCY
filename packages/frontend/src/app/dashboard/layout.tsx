@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/use-auth';
 import Sidebar from '@/components/sidebar';
 import Header from '@/components/header';
+import AiAssistantPanel from '@/components/ai-assistant-panel';
 
 export default function DashboardLayout({
   children,
@@ -37,6 +38,7 @@ export default function DashboardLayout({
           {children}
         </main>
       </div>
+      <AiAssistantPanel />
     </div>
   );
 }

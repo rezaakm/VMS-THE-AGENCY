@@ -1,11 +1,26 @@
 'use client';
 
-import { useState, useRef } from 'react';
-import { Search, RefreshCw, Upload, TrendingUp } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { Search, RefreshCw, Upload, TrendingUp, CloudDownload, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
+
+interface SyncResult {
+  success: boolean;
+  filesFound: number;
+  filesProcessed: number;
+  filesSkipped: number;
+  errors: string[];
+  details: Array<{
+    fileName: string;
+    driveFileId: string;
+    rowsInserted: number;
+    rowsSkipped: number;
+    error?: string;
+  }>;
+}
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
@@ -36,6 +51,8 @@ export default function CostSheetsPage() {
   const [results, setResults] = useState<CostSheetItem[]>([]);
   const [stats, setStats] = useState<Stats | null>(null);
   const [loading, setLoading] = useState(false);
+  const [syncing, setSyncing] = useState(false);
+  const [syncResult, setSyncResult] = useState<SyncResult | null>(null);
   const [compareV1, setCompareV1] = useState('');
   const [compareV2, setCompareV2] = useState('');
   const [comparison, setComparison] = useState<any>(null);
@@ -141,10 +158,54 @@ export default function CostSheetsPage() {
     }
   };
 
+  const handleDriveSync = async () => {
+    setSyncing(true);
+    setSyncResult(null);
+    try {
+      const res = await fetch(`${API_URL}/cost-sheets/drive/sync`, {
+        method: 'POST',
+        headers: getAuthHeader(),
+      });
+      const result: SyncResult = await res.json();
+      setSyncResult(result);
+      if (result.success && result.filesProcessed > 0) {
+        toast({
+          title: 'Drive Sync Complete',
+          description: `Processed ${result.filesProcessed} of ${result.filesFound} files`,
+        });
+        fetchStats();
+      } else if (!result.success) {
+        toast({
+          title: 'Drive Sync Failed',
+          description: result.errors[0] || 'Unknown error',
+          variant: 'destructive',
+        });
+      } else {
+        toast({ title: 'Drive Sync', description: 'No new files to process' });
+      }
+    } catch {
+      toast({ title: 'Drive Sync Error', description: 'Could not connect to server', variant: 'destructive' });
+    } finally {
+      setSyncing(false);
+    }
+  };
+
+  const handleDriveConnect = async () => {
+    try {
+      const res = await fetch(`${API_URL}/cost-sheets/drive/auth`, {
+        headers: getAuthHeader(),
+      });
+      const { authUrl } = await res.json();
+      window.open(authUrl, '_blank');
+    } catch {
+      toast({ title: 'Error', description: 'Could not generate Google auth URL. Check that GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET are set in backend .env', variant: 'destructive' });
+    }
+  };
+
   // Load stats on mount
-  useState(() => {
+  useEffect(() => {
     fetchStats();
-  });
+  }, []);
 
   return (
     <div className="space-y-6">
@@ -162,8 +223,52 @@ export default function CostSheetsPage() {
             <Upload className="h-4 w-4 mr-2" />
             Upload Excel
           </Button>
+          <Button variant="outline" onClick={handleDriveConnect} title="Connect your Google account to allow Drive sync">
+            <CloudDownload className="h-4 w-4 mr-2" />
+            Connect Drive
+          </Button>
+          <Button onClick={handleDriveSync} disabled={syncing}>
+            {syncing ? (
+              <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Syncing Drive...</>
+            ) : (
+              <><RefreshCw className="h-4 w-4 mr-2" />Sync from Drive</>
+            )}
+          </Button>
         </div>
       </div>
+
+      {/* Drive Sync Result */}
+      {syncResult && (
+        <Card className={syncResult.success ? 'border-green-200 bg-green-50 dark:bg-green-950/20' : 'border-red-200 bg-red-50 dark:bg-red-950/20'}>
+          <CardContent className="pt-4">
+            <div className="flex items-center gap-2 mb-3">
+              {syncResult.success
+                ? <CheckCircle className="h-5 w-5 text-green-600" />
+                : <AlertCircle className="h-5 w-5 text-red-600" />}
+              <span className="font-semibold">
+                Drive Sync {syncResult.success ? 'Complete' : 'Failed'} — {syncResult.filesFound} files found, {syncResult.filesProcessed} processed, {syncResult.filesSkipped} skipped
+              </span>
+            </div>
+            {syncResult.errors.length > 0 && (
+              <div className="text-sm text-red-600 mb-2 space-y-1">
+                {syncResult.errors.map((e, i) => <div key={i}>{e}</div>)}
+              </div>
+            )}
+            {syncResult.details.length > 0 && (
+              <div className="text-sm space-y-1 max-h-40 overflow-y-auto">
+                {syncResult.details.map((d) => (
+                  <div key={d.driveFileId} className="flex justify-between items-center">
+                    <span className="truncate max-w-xs text-muted-foreground">{d.fileName}</span>
+                    {d.error
+                      ? <span className="text-red-500 text-xs">{d.error}</span>
+                      : <span className="text-green-600 text-xs">{d.rowsInserted} rows imported</span>}
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       {/* Stats Cards */}
       {stats && (

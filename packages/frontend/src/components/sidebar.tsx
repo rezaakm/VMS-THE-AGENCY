@@ -10,12 +10,14 @@ import {
   BarChart3,
   Settings,
   Search,
+  Calculator,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
   { name: 'Cost Sheets', href: '/dashboard/cost-sheets', icon: Search },
+  { name: 'Cost Engine', href: '/dashboard/cost-engine', icon: Calculator },
   { name: 'Vendors', href: '/dashboard/vendors', icon: Users },
   { name: 'Purchase Orders', href: '/dashboard/purchase-orders', icon: ShoppingCart },
   { name: 'Contracts', href: '/dashboard/contracts', icon: FileText },

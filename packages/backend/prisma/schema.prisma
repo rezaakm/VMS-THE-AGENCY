@@ -353,3 +353,127 @@ model CostSheetItem {
   @@map("cost_sheet_items")
 }
 
+// ─── AI Cost Intelligence Engine ──────────────────────────────────────────────
+
+model RawMaterial {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  unit        String   // e.g. sqm, metre, kg, piece, hour
+  category    String?  // e.g. Fabric, Steel, Labour, Printing
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  prices      MaterialPrice[]
+  bomLines    BOMLine[]
+
+  @@index([name])
+  @@map("raw_materials")
+}
+
+enum PriceSource {
+  MANUAL
+  COST_SHEET
+  VENDOR_PO
+  ONLINE
+}
+
+model MaterialPrice {
+  id            String      @id @default(uuid())
+  materialId    String
+  source        PriceSource
+  unitPrice     Float
+  currency      String      @default("OMR")
+  vendorName    String?
+  sourceRef     String?     // file name, PO number, URL, etc.
+  confidence    Float       @default(1.0) // 0-1
+  recordedAt    DateTime    @default(now())
+  expiresAt     DateTime?   // for ONLINE prices (24h TTL)
+
+  material RawMaterial @relation(fields: [materialId], references: [id], onDelete: Cascade)
+
+  @@index([materialId])
+  @@index([source])
+  @@map("material_prices")
+}
+
+model BOMTemplate {
+  id          String   @id @default(uuid())
+  name        String
+  description String?
+  category    String?  // events, construction, goods
+  aiGenerated Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  lines       BOMLine[]
+  estimates   CostEstimate[]
+
+  @@map("bom_templates")
+}
+
+model BOMLine {
+  id           String      @id @default(uuid())
+  templateId   String
+  materialId   String
+  quantity     Float
+  unit         String
+  notes        String?
+
+  template BOMTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  material RawMaterial @relation(fields: [materialId], references: [id])
+
+  @@map("bom_lines")
+}
+
+enum EstimateStatus {
+  DRAFT
+  REVIEWED
+  APPROVED
+  QUOTED
+}
+
+model CostEstimate {
+  id              String         @id @default(uuid())
+  title           String
+  description     String?
+  category        String?
+  templateId      String?
+  clientName      String?
+  
+  // Calculated fields
+  materialCost    Float          @default(0)
+  labourCost      Float          @default(0)
+  overheadCost    Float          @default(0)
+  totalCostPrice  Float          @default(0)
+  sellingPrice    Float?
+  margin          Float?         // percentage
+  confidenceScore Float          @default(0) // 0-100
+
+  status          EstimateStatus @default(DRAFT)
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  template BOMTemplate?    @relation(fields: [templateId], references: [id])
+  lines    EstimateLine[]
+
+  @@map("cost_estimates")
+}
+
+model EstimateLine {
+  id           String  @id @default(uuid())
+  estimateId   String
+  description  String
+  materialName String?
+  unit         String?
+  quantity     Float
+  unitPrice    Float
+  totalPrice   Float
+  source       String? // which price source was used
+  confidence   Float   @default(1.0)
+
+  estimate CostEstimate @relation(fields: [estimateId], references: [id], onDelete: Cascade)
+
+  @@map("estimate_lines")
+}
+
