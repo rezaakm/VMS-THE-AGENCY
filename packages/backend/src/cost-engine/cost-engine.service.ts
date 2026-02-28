@@ -2,6 +2,7 @@ import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma/prisma.service';
 import { PriceSource } from '@prisma/client';
+import { OnlinePriceLookupService } from './online-price-lookup.service';
 
 export interface BOMLine {
   materialName: string;
@@ -34,6 +35,7 @@ export class CostEngineService {
   constructor(
     private prisma: PrismaService,
     private configService: ConfigService,
+    private onlineLookup: OnlinePriceLookupService,
   ) {
     this.initOpenAI();
   }
@@ -91,6 +93,11 @@ Be specific with material names (e.g. "Aluminium extrusion 40x40mm", "PVC fabric
     });
 
     if (!material || material.prices.length === 0) {
+      // Nothing in catalog — try online lookup as the last resort
+      const online = await this.onlineLookup.lookup(materialName, material?.unit ?? 'piece');
+      if (online.unitPrice !== null) {
+        return { unitPrice: online.unitPrice, source: 'ONLINE', confidence: online.confidence };
+      }
       return { unitPrice: 0, source: 'none', confidence: 0 };
     }
 
@@ -100,6 +107,11 @@ Be specific with material names (e.g. "Aluminium extrusion 40x40mm", "PVC fabric
     );
 
     if (validPrices.length === 0) {
+      // All cached prices expired — try online lookup to refresh
+      const online = await this.onlineLookup.lookup(materialName, material.unit);
+      if (online.unitPrice !== null) {
+        return { unitPrice: online.unitPrice, source: 'ONLINE', confidence: online.confidence };
+      }
       return { unitPrice: 0, source: 'expired', confidence: 0 };
     }
 

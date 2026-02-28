@@ -3,6 +3,8 @@ import { Response } from 'express';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { CostEngineService } from './cost-engine.service';
 import { DocumentService, DocumentType } from './document.service';
+import { OnlinePriceLookupService } from './online-price-lookup.service';
+import { PoPriceExtractorService } from './po-price-extractor.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { PriceSource } from '@prisma/client';
 
@@ -14,6 +16,8 @@ export class CostEngineController {
   constructor(
     private readonly costEngineService: CostEngineService,
     private readonly documentService: DocumentService,
+    private readonly onlineLookup: OnlinePriceLookupService,
+    private readonly poExtractor: PoPriceExtractorService,
   ) {}
 
   // ── BOM Dissection ─────────────────────────────────────────────────────────
@@ -146,5 +150,43 @@ export class CostEngineController {
       'Content-Disposition': `attachment; filename="${result.filename}"`,
     });
     res.send(result.buffer);
+  }
+
+  // ── Online price lookup ────────────────────────────────────────────────────
+
+  @Post('online-lookup')
+  @ApiOperation({ summary: 'Look up live market price for a material (SerpAPI + commodity feeds, 24h cache)' })
+  async lookupOnlinePrice(@Body() body: { materialName: string; unit?: string }) {
+    return this.onlineLookup.lookup(body.materialName, body.unit || 'piece');
+  }
+
+  @Post('online-lookup/batch')
+  @ApiOperation({ summary: 'Batch online lookup for multiple materials' })
+  async lookupOnlinePriceBatch(@Body() body: { materialNames: string[] }) {
+    return this.onlineLookup.lookupAndSaveAll(body.materialNames);
+  }
+
+  // ── PO / cost sheet price extraction ──────────────────────────────────────
+
+  @Post('extract/purchase-orders')
+  @ApiOperation({ summary: 'Extract unit prices from approved POs into the raw material catalog' })
+  async extractFromPOs() {
+    return this.poExtractor.extractFromPurchaseOrders();
+  }
+
+  @Post('extract/cost-sheets')
+  @ApiOperation({ summary: 'Extract unit costs from imported cost sheet items into the raw material catalog' })
+  async extractFromCostSheets() {
+    return this.poExtractor.extractFromCostSheets();
+  }
+
+  @Post('extract/all')
+  @ApiOperation({ summary: 'Run all extraction jobs (POs + cost sheets) in sequence' })
+  async extractAll() {
+    const [pos, sheets] = await Promise.all([
+      this.poExtractor.extractFromPurchaseOrders(),
+      this.poExtractor.extractFromCostSheets(),
+    ]);
+    return { purchaseOrders: pos, costSheets: sheets };
   }
 }
