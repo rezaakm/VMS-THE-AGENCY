@@ -177,7 +177,7 @@ model PurchaseOrder {
   updatedAt     DateTime  @updatedAt
 
   // Relations
-  vendor        Vendor         @relation(fields: [vendorId], references: [id])
+  vendor        Vendor         @relation(fields: [vendorId], references: [id], onDelete: Cascade)
   user          User           @relation(fields: [userId], references: [id])
   items         POItem[]
   invoices      Invoice[]
@@ -229,7 +229,7 @@ model Contract {
   updatedAt     DateTime       @updatedAt
 
   // Relations
-  vendor Vendor @relation(fields: [vendorId], references: [id])
+  vendor Vendor @relation(fields: [vendorId], references: [id], onDelete: Cascade)
 
   @@map("contracts")
 }
@@ -256,7 +256,7 @@ model Evaluation {
   updatedAt       DateTime @updatedAt
 
   // Relations
-  vendor    Vendor @relation(fields: [vendorId], references: [id])
+  vendor    Vendor @relation(fields: [vendorId], references: [id], onDelete: Cascade)
   evaluator User   @relation(fields: [evaluatorId], references: [id])
 
   @@map("evaluations")
@@ -291,8 +291,8 @@ model Invoice {
   updatedAt     DateTime      @updatedAt
 
   // Relations
-  vendor        Vendor         @relation(fields: [vendorId], references: [id])
-  purchaseOrder PurchaseOrder? @relation(fields: [poId], references: [id])
+  vendor        Vendor         @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  purchaseOrder PurchaseOrder? @relation(fields: [poId], references: [id], onDelete: SetNull)
 
   @@map("invoices")
 }

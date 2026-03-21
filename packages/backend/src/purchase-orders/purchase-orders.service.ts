@@ -13,13 +13,13 @@ export class PurchaseOrdersService {
 
     // Calculate totals from items
     const subtotal = createDto.items.reduce(
-      (sum, item) => sum + item.quantity * item.unitPrice * (1 - item.discount / 100),
+      (sum, item) => sum + item.quantity * item.unitPrice * (1 - (item.discount || 0) / 100),
       0,
     );
 
     const taxAmount = createDto.items.reduce(
       (sum, item) =>
-        sum + (item.quantity * item.unitPrice * (1 - item.discount / 100) * item.taxRate) / 100,
+        sum + (item.quantity * item.unitPrice * (1 - (item.discount || 0) / 100) * (item.taxRate || 0)) / 100,
       0,
     );
 
@@ -38,7 +38,9 @@ export class PurchaseOrdersService {
         items: {
           create: items.map((item) => ({
             ...item,
-            totalPrice: item.quantity * item.unitPrice * (1 - item.discount / 100),
+            discount: item.discount || 0,
+            taxRate: item.taxRate || 0,
+            totalPrice: item.quantity * item.unitPrice * (1 - (item.discount || 0) / 100),
           })),
         },
       },
@@ -130,13 +132,13 @@ export class PurchaseOrdersService {
     // Recalculate if items are updated
     if (items) {
       const subtotal = items.reduce(
-        (sum, item) => sum + item.quantity * item.unitPrice * (1 - item.discount / 100),
+        (sum, item) => sum + item.quantity * item.unitPrice * (1 - (item.discount || 0) / 100),
         0,
       );
 
       const taxAmount = items.reduce(
         (sum, item) =>
-          sum + (item.quantity * item.unitPrice * (1 - item.discount / 100) * item.taxRate) / 100,
+          sum + (item.quantity * item.unitPrice * (1 - (item.discount || 0) / 100) * (item.taxRate || 0)) / 100,
         0,
       );
 
@@ -153,7 +155,9 @@ export class PurchaseOrdersService {
             deleteMany: {},
             create: items.map((item) => ({
               ...item,
-              totalPrice: item.quantity * item.unitPrice * (1 - item.discount / 100),
+              discount: item.discount || 0,
+              taxRate: item.taxRate || 0,
+              totalPrice: item.quantity * item.unitPrice * (1 - (item.discount || 0) / 100),
             })),
           },
         },
