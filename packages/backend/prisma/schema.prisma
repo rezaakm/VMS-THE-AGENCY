@@ -61,6 +61,7 @@ model User {
   purchaseOrders PurchaseOrder[]
   evaluations    Evaluation[]
   auditLogs      AuditLog[]
+  rfqs           RFQ[]
 
   @@map("users")
 }
@@ -109,6 +110,7 @@ model Vendor {
   contracts         Contract[]
   evaluations       Evaluation[]
   invoices          Invoice[]
+  rfqBids           RFQVendorBid[]
 
   @@map("vendors")
 }
@@ -475,5 +477,97 @@ model EstimateLine {
   estimate CostEstimate @relation(fields: [estimateId], references: [id], onDelete: Cascade)
 
   @@map("estimate_lines")
+}
+
+// ─── RFQ (Request for Quotation) ─────────────────────────────────────────────
+
+enum RFQStatus {
+  DRAFT
+  SENT
+  CLOSED
+  AWARDED
+  CANCELLED
+}
+
+enum BidStatus {
+  PENDING
+  SUBMITTED
+  ACCEPTED
+  REJECTED
+}
+
+model RFQ {
+  id            String    @id @default(uuid())
+  rfqNumber     String    @unique
+  title         String
+  description   String?
+  category      String?
+  deadline      DateTime
+  deliveryDate  DateTime?
+  status        RFQStatus @default(DRAFT)
+  createdById   String
+  notes         String?
+
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  createdBy     User      @relation(fields: [createdById], references: [id])
+  items         RFQItem[]
+  vendorBids    RFQVendorBid[]
+
+  @@index([status])
+  @@index([createdById])
+  @@map("rfqs")
+}
+
+model RFQItem {
+  id          String  @id @default(uuid())
+  rfqId       String
+  itemNumber  Int
+  description String
+  quantity    Float
+  unit        String
+  specs       String?
+
+  rfq         RFQ     @relation(fields: [rfqId], references: [id], onDelete: Cascade)
+  bidItems    RFQBidItem[]
+
+  @@map("rfq_items")
+}
+
+model RFQVendorBid {
+  id           String    @id @default(uuid())
+  rfqId        String
+  vendorId     String
+  token        String    @unique @default(uuid())
+  status       BidStatus @default(PENDING)
+  totalAmount  Float?
+  notes        String?
+  validityDays Int?
+  submittedAt  DateTime?
+
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  rfq          RFQ       @relation(fields: [rfqId], references: [id], onDelete: Cascade)
+  vendor       Vendor    @relation(fields: [vendorId], references: [id])
+  items        RFQBidItem[]
+
+  @@index([token])
+  @@map("rfq_vendor_bids")
+}
+
+model RFQBidItem {
+  id          String  @id @default(uuid())
+  bidId       String
+  rfqItemId   String
+  unitPrice   Float
+  totalPrice  Float
+  notes       String?
+
+  bid         RFQVendorBid @relation(fields: [bidId], references: [id], onDelete: Cascade)
+  rfqItem     RFQItem      @relation(fields: [rfqItemId], references: [id])
+
+  @@map("rfq_bid_items")
 }
 
