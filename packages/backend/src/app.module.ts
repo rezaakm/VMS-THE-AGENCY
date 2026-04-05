@@ -13,6 +13,7 @@ import { UsersModule } from './users/users.module';
 import { CostSheetsModule } from './cost-sheets/cost-sheets.module';
 import { CostEngineModule } from './cost-engine/cost-engine.module';
 import { AiAssistantModule } from './ai-assistant/ai-assistant.module';
+import { RfqsModule } from './rfqs/rfqs.module';
 
 @Module({
   imports: [
@@ -30,6 +31,7 @@ import { AiAssistantModule } from './ai-assistant/ai-assistant.module';
     CostSheetsModule,
     CostEngineModule,
     AiAssistantModule,
+    RfqsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

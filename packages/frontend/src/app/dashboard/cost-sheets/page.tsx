@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { Search, RefreshCw, Upload, TrendingUp, DownloadCloud, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
+import { Search, RefreshCw, Upload, TrendingUp, DownloadCloud, CheckCircle, AlertCircle, Loader2, ExternalLink } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -24,18 +24,37 @@ interface SyncResult {
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
-interface CostSheetItem {
+interface LookupItem {
   id: string;
   description: string;
   vendor: string | null;
-  totalCost: number | null;
-  unitCost: number | null;
   days: number | null;
-  costSheet?: {
+  unitCost: number | null;
+  totalCost: number | null;
+  unitSellingPrice: number | null;
+  totalSellingPrice: number | null;
+  costSheet: {
     jobNumber: string;
     client: string;
     event: string;
+    date: string | null;
+    driveUrl: string | null;
+    fileName: string | null;
   };
+}
+
+interface LookupResult {
+  keyword: string;
+  totalMatches: number;
+  jobsFound: number;
+  pricing: {
+    avgUnitCost: number | null;
+    minUnitCost: number | null;
+    maxUnitCost: number | null;
+    avgSellingPrice: number | null;
+    dataPoints: number;
+  };
+  items: LookupItem[];
 }
 
 interface Stats {
@@ -48,7 +67,7 @@ interface Stats {
 export default function CostSheetsPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [vendorFilter, setVendorFilter] = useState('');
-  const [results, setResults] = useState<CostSheetItem[]>([]);
+  const [lookupResult, setLookupResult] = useState<LookupResult | null>(null);
   const [stats, setStats] = useState<Stats | null>(null);
   const [loading, setLoading] = useState(false);
   const [syncing, setSyncing] = useState(false);
@@ -81,14 +100,14 @@ export default function CostSheetsPage() {
     if (!searchTerm.trim()) return;
     setLoading(true);
     try {
-      const params = new URLSearchParams({ description: searchTerm });
+      const params = new URLSearchParams({ q: searchTerm, limit: '20' });
       if (vendorFilter) params.append('vendor', vendorFilter);
-      
-      const res = await fetch(`${API_URL}/cost-sheets/search?${params}`, {
+
+      const res = await fetch(`${API_URL}/cost-sheets/lookup?${params}`, {
         headers: getAuthHeader(),
       });
       if (res.ok) {
-        setResults(await res.json());
+        setLookupResult(await res.json());
       }
     } catch (error) {
       toast({ title: 'Search failed', variant: 'destructive' });
@@ -101,18 +120,17 @@ export default function CostSheetsPage() {
     if (!searchTerm.trim()) return;
     setLoading(true);
     try {
-      const res = await fetch(`${API_URL}/cost-sheets/ai/search`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', ...getAuthHeader() },
-        body: JSON.stringify({ query: searchTerm }),
+      const params = new URLSearchParams({ q: searchTerm, limit: '20' });
+      const res = await fetch(`${API_URL}/cost-sheets/lookup?${params}`, {
+        headers: getAuthHeader(),
       });
       if (res.ok) {
         const data = await res.json();
-        setResults(data.items);
-        toast({ title: 'AI Search', description: `Found ${data.items.length} items` });
+        setLookupResult(data);
+        toast({ title: 'Search', description: `Found ${data.totalMatches} items across ${data.jobsFound} jobs` });
       }
     } catch (error) {
-      toast({ title: 'AI Search failed', variant: 'destructive' });
+      toast({ title: 'Search failed', variant: 'destructive' });
     } finally {
       setLoading(false);
     }
@@ -202,7 +220,11 @@ export default function CostSheetsPage() {
     }
   };
 
-  // Load stats on mount
+  const formatCurrency = (val: number | null | undefined) => {
+    if (val == null) return '-';
+    return val.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  };
+
   useEffect(() => {
     fetchStats();
   }, []);
@@ -249,6 +271,7 @@ export default function CostSheetsPage() {
                 Drive Sync {syncResult.success ? 'Complete' : 'Failed'} — {syncResult.filesFound} files found, {syncResult.filesProcessed} processed, {syncResult.filesSkipped} skipped
               </span>
             </div>
+            <p className="text-xs text-muted-foreground mb-2">Auto-syncs every hour when Google Drive is connected.</p>
             {syncResult.errors.length > 0 && (
               <div className="text-sm text-red-600 mb-2 space-y-1">
                 {syncResult.errors.map((e, i) => <div key={i}>{e}</div>)}
@@ -318,7 +341,7 @@ export default function CostSheetsPage() {
         <CardContent>
           <div className="flex gap-4 mb-4">
             <Input
-              placeholder="Search items (e.g., 'LED screen 4x3m')"
+              placeholder="Search items (e.g., 'backdrop', 'LED screen', 'reception desk')"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
@@ -331,16 +354,51 @@ export default function CostSheetsPage() {
               className="w-48"
             />
             <Button onClick={handleSearch} disabled={loading}>
-              <Search className="h-4 w-4 mr-2" />
+              {loading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Search className="h-4 w-4 mr-2" />}
               Search
-            </Button>
-            <Button onClick={handleAISearch} variant="secondary" disabled={loading}>
-              ✨ AI Search
             </Button>
           </div>
 
-          {/* Results */}
-          {results.length > 0 && (
+          {/* Pricing Summary */}
+          {lookupResult && (
+            <div className="mb-4 p-4 bg-muted/50 rounded-lg">
+              <div className="flex items-center gap-6 flex-wrap">
+                <div>
+                  <span className="text-sm text-muted-foreground">Results</span>
+                  <p className="font-semibold">{lookupResult.totalMatches} items across {lookupResult.jobsFound} jobs</p>
+                </div>
+                {lookupResult.pricing.avgUnitCost != null && (
+                  <div>
+                    <span className="text-sm text-muted-foreground">Avg Unit Cost</span>
+                    <p className="font-semibold text-lg">{formatCurrency(lookupResult.pricing.avgUnitCost)} OMR</p>
+                  </div>
+                )}
+                {lookupResult.pricing.minUnitCost != null && (
+                  <div>
+                    <span className="text-sm text-muted-foreground">Range</span>
+                    <p className="font-semibold">{formatCurrency(lookupResult.pricing.minUnitCost)} - {formatCurrency(lookupResult.pricing.maxUnitCost)} OMR</p>
+                  </div>
+                )}
+                {lookupResult.pricing.avgSellingPrice != null && (
+                  <div>
+                    <span className="text-sm text-muted-foreground">Avg Selling Price</span>
+                    <p className="font-semibold text-green-600">{formatCurrency(lookupResult.pricing.avgSellingPrice)} OMR</p>
+                  </div>
+                )}
+                {lookupResult.pricing.avgUnitCost != null && lookupResult.pricing.avgSellingPrice != null && (
+                  <div>
+                    <span className="text-sm text-muted-foreground">Avg Margin</span>
+                    <p className="font-semibold text-blue-600">
+                      {(((lookupResult.pricing.avgSellingPrice - lookupResult.pricing.avgUnitCost) / lookupResult.pricing.avgSellingPrice) * 100).toFixed(1)}%
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Results Table */}
+          {lookupResult && lookupResult.items.length > 0 && (
             <div className="border rounded-lg overflow-hidden">
               <table className="w-full">
                 <thead className="bg-muted">
@@ -348,33 +406,58 @@ export default function CostSheetsPage() {
                     <th className="p-3 text-left">Description</th>
                     <th className="p-3 text-left">Vendor</th>
                     <th className="p-3 text-right">Unit Cost</th>
+                    <th className="p-3 text-right">Selling Price</th>
                     <th className="p-3 text-right">Total</th>
-                    <th className="p-3 text-left">Job/Client</th>
+                    <th className="p-3 text-left">Job / Client</th>
+                    <th className="p-3 text-center">File</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {results.slice(0, 50).map((item) => (
-                    <tr key={item.id} className="border-t hover:bg-muted/50">
-                      <td className="p-3">{item.description}</td>
+                  {lookupResult.items.map((item, idx) => (
+                    <tr key={idx} className="border-t hover:bg-muted/50">
+                      <td className="p-3">
+                        <div className="font-medium">{item.description}</div>
+                        {item.days && <span className="text-xs text-muted-foreground">{item.days} days</span>}
+                      </td>
                       <td className="p-3 text-muted-foreground">{item.vendor || '-'}</td>
-                      <td className="p-3 text-right">
-                        {item.unitCost?.toLocaleString('en-US', { minimumFractionDigits: 2 }) || '-'}
+                      <td className="p-3 text-right">{formatCurrency(item.unitCost)}</td>
+                      <td className="p-3 text-right text-green-600">{formatCurrency(item.unitSellingPrice)}</td>
+                      <td className="p-3 text-right font-medium">{formatCurrency(item.totalCost)}</td>
+                      <td className="p-3 text-sm">
+                        <div className="font-medium">{item.costSheet.jobNumber}</div>
+                        <div className="text-muted-foreground">{item.costSheet.client}</div>
+                        {item.costSheet.date && (
+                          <div className="text-xs text-muted-foreground">
+                            {new Date(item.costSheet.date).toLocaleDateString('en-GB', { month: 'short', year: 'numeric' })}
+                          </div>
+                        )}
                       </td>
-                      <td className="p-3 text-right font-medium">
-                        {item.totalCost?.toLocaleString('en-US', { minimumFractionDigits: 2 }) || '-'}
-                      </td>
-                      <td className="p-3 text-sm text-muted-foreground">
-                        {item.costSheet?.jobNumber} - {item.costSheet?.client}
+                      <td className="p-3 text-center">
+                        {item.costSheet.driveUrl ? (
+                          <a
+                            href={item.costSheet.driveUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1 text-blue-600 hover:text-blue-800 text-sm"
+                            title={item.costSheet.fileName || 'Open in Google Drive'}
+                          >
+                            <ExternalLink className="h-4 w-4" />
+                            <span className="hidden lg:inline">Open</span>
+                          </a>
+                        ) : (
+                          <span className="text-muted-foreground text-xs">-</span>
+                        )}
                       </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
-              {results.length > 50 && (
-                <div className="p-3 text-center text-muted-foreground">
-                  Showing 50 of {results.length} results
-                </div>
-              )}
+            </div>
+          )}
+
+          {lookupResult && lookupResult.items.length === 0 && (
+            <div className="text-center py-8 text-muted-foreground">
+              No items found for &quot;{lookupResult.keyword}&quot;. Try syncing more cost sheets from Google Drive.
             </div>
           )}
         </CardContent>

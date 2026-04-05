@@ -108,6 +108,21 @@ If credentials are missing (e.g. OpenAI key, Google Drive), explain what to set 
       {
         type: 'function',
         function: {
+          name: 'searchCostSheetItems',
+          description: 'Search cost sheet line items by keyword (e.g. "backdrop", "LED screen", "reception desk"). Returns matching items with pricing, vendor, job details, and Google Drive links to source files.',
+          parameters: {
+            type: 'object',
+            properties: {
+              keyword: { type: 'string', description: 'Search keyword to match against item descriptions' },
+              limit: { type: 'number', description: 'Max results (default 20)' },
+            },
+            required: ['keyword'],
+          },
+        },
+      },
+      {
+        type: 'function',
+        function: {
           name: 'createCostEstimate',
           description: 'Create a new cost estimate using AI dissection. Navigates to the cost engine and prepopulates with the description.',
           parameters: {
@@ -131,6 +146,9 @@ If credentials are missing (e.g. OpenAI key, Google Drive), explain what to set 
       case 'navigate':
         return JSON.stringify({ action: 'navigate', route: args.route, reason: args.reason });
 
+      case 'searchCostSheetItems':
+        return this.handleCostSheetSearch(args.keyword, args.limit);
+
       case 'syncGoogleDrive':
         return JSON.stringify({ action: 'syncDrive', message: 'Drive sync triggered. Results will appear on the Cost Sheets page.' });
 
@@ -140,6 +158,55 @@ If credentials are missing (e.g. OpenAI key, Google Drive), explain what to set 
       default:
         return JSON.stringify({ error: `Unknown tool: ${name}` });
     }
+  }
+
+  private async handleCostSheetSearch(keyword: string, limit?: number): Promise<string> {
+    const take = Math.min(limit || 20, 50);
+    const items = await this.prisma.costSheetItem.findMany({
+      where: {
+        description: { contains: keyword, mode: 'insensitive' },
+        unitCost: { not: null },
+      },
+      include: {
+        costSheet: {
+          select: { jobNumber: true, client: true, event: true, date: true, driveFileId: true, fileName: true },
+        },
+      },
+      orderBy: [{ costSheet: { date: 'desc' } }, { totalCost: 'desc' }],
+      take,
+    });
+
+    const withCost = items.filter((i) => i.unitCost != null && i.unitCost > 0);
+    const avgCost = withCost.length
+      ? +(withCost.reduce((s, i) => s + (i.unitCost || 0), 0) / withCost.length).toFixed(3)
+      : null;
+
+    const withSelling = items.filter((i) => i.unitSellingPrice != null && i.unitSellingPrice > 0);
+    const avgSelling = withSelling.length
+      ? +(withSelling.reduce((s, i) => s + (i.unitSellingPrice || 0), 0) / withSelling.length).toFixed(3)
+      : null;
+
+    return JSON.stringify({
+      keyword,
+      totalMatches: items.length,
+      avgUnitCost: avgCost,
+      avgSellingPrice: avgSelling,
+      items: items.map((i) => ({
+        description: i.description,
+        vendor: i.vendor,
+        unitCost: i.unitCost,
+        totalCost: i.totalCost,
+        unitSellingPrice: i.unitSellingPrice,
+        days: i.days,
+        job: i.costSheet?.jobNumber,
+        client: i.costSheet?.client,
+        event: i.costSheet?.event,
+        date: i.costSheet?.date,
+        driveUrl: i.costSheet?.driveFileId
+          ? `https://drive.google.com/file/d/${i.costSheet.driveFileId}/view`
+          : null,
+      })),
+    });
   }
 
   private async handleQueryData(entity: string, filters: any): Promise<string> {

@@ -58,6 +58,12 @@ export class CostSheetsController {
     });
   }
 
+  @Get('lookup')
+  @ApiOperation({ summary: 'Search items with pricing summary and Drive links' })
+  lookupItem(@Query('q') q: string, @Query('limit') limit?: string) {
+    return this.costSheetsService.searchItemsWithPricing(q, limit ? parseInt(limit) : 20);
+  }
+
   @Get('compare')
   @ApiOperation({ summary: 'Compare two vendors' })
   compareVendors(@Query('v1') v1: string, @Query('v2') v2: string) {

@@ -68,7 +68,7 @@ export class CostSheetsService {
       where,
       include: {
         costSheet: {
-          select: { id: true, jobNumber: true, client: true, event: true, date: true },
+          select: { id: true, jobNumber: true, client: true, event: true, date: true, driveFileId: true, fileName: true },
         },
       },
       orderBy: { totalCost: 'desc' },
@@ -87,6 +87,71 @@ export class CostSheetsService {
       );
     }
     return result;
+  }
+
+  async searchItemsWithPricing(keyword: string, limit: number = 20) {
+    const items = await this.prisma.costSheetItem.findMany({
+      where: {
+        description: { contains: keyword, mode: 'insensitive' },
+        unitCost: { not: null },
+      },
+      include: {
+        costSheet: {
+          select: { id: true, jobNumber: true, client: true, event: true, date: true, driveFileId: true, fileName: true },
+        },
+      },
+      orderBy: [{ costSheet: { date: 'desc' } }, { totalCost: 'desc' }],
+      take: limit,
+    });
+
+    // Calculate pricing summary
+    const withCost = items.filter((i) => i.unitCost != null && i.unitCost > 0);
+    const withSelling = items.filter((i) => i.unitSellingPrice != null && i.unitSellingPrice > 0);
+
+    const avgUnitCost = withCost.length
+      ? withCost.reduce((s, i) => s + (i.unitCost || 0), 0) / withCost.length
+      : null;
+    const minUnitCost = withCost.length ? Math.min(...withCost.map((i) => i.unitCost!)) : null;
+    const maxUnitCost = withCost.length ? Math.max(...withCost.map((i) => i.unitCost!)) : null;
+
+    const avgSellingPrice = withSelling.length
+      ? withSelling.reduce((s, i) => s + (i.unitSellingPrice || 0), 0) / withSelling.length
+      : null;
+
+    const uniqueJobs = new Set(items.map((i) => i.costSheetId));
+
+    return {
+      keyword,
+      totalMatches: items.length,
+      jobsFound: uniqueJobs.size,
+      pricing: {
+        avgUnitCost: avgUnitCost ? +avgUnitCost.toFixed(3) : null,
+        minUnitCost: minUnitCost ? +minUnitCost.toFixed(3) : null,
+        maxUnitCost: maxUnitCost ? +maxUnitCost.toFixed(3) : null,
+        avgSellingPrice: avgSellingPrice ? +avgSellingPrice.toFixed(3) : null,
+        dataPoints: withCost.length,
+      },
+      items: items.map((item) => ({
+        id: item.id,
+        description: item.description,
+        vendor: item.vendor,
+        days: item.days,
+        unitCost: item.unitCost,
+        totalCost: item.totalCost,
+        unitSellingPrice: item.unitSellingPrice,
+        totalSellingPrice: item.totalSellingPrice,
+        costSheet: {
+          jobNumber: item.costSheet?.jobNumber,
+          client: item.costSheet?.client,
+          event: item.costSheet?.event,
+          date: item.costSheet?.date,
+          driveUrl: item.costSheet?.driveFileId
+            ? `https://drive.google.com/file/d/${item.costSheet.driveFileId}/view`
+            : null,
+          fileName: item.costSheet?.fileName,
+        },
+      })),
+    };
   }
 
   async compareVendors(vendor1: string, vendor2: string) {
