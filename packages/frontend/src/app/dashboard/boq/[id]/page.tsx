@@ -28,6 +28,9 @@ export default function BoqDetailPage() {
   const [repricing, setRepricing] = useState(false);
   const [syncing, setSyncing] = useState(false);
   const [showAddItem, setShowAddItem] = useState(false);
+  const [showVendors, setShowVendors] = useState(false);
+  const [vendors, setVendors] = useState<any>(null);
+  const [loadingVendors, setLoadingVendors] = useState(false);
   const [newItem, setNewItem] = useState({ description: '', quantity: 1, unit: 'piece', section: '', unitCost: 0, unitSelling: 0 });
 
   const loadBoq = useCallback(async () => {
@@ -106,6 +109,19 @@ export default function BoqDetailPage() {
     }
   }
 
+  async function handleRecommendVendors() {
+    setShowVendors(true);
+    setLoadingVendors(true);
+    try {
+      const { data } = await api.get(`/boq/${id}/recommend-vendors`);
+      setVendors(data);
+    } catch {
+      setVendors(null);
+    } finally {
+      setLoadingVendors(false);
+    }
+  }
+
   async function handleStatusChange(newStatus: string) {
     await api.patch(`/boq/${id}/status`, { status: newStatus });
     loadBoq();
@@ -170,6 +186,12 @@ export default function BoqDetailPage() {
               Approve
             </button>
           )}
+          <button
+            onClick={handleRecommendVendors}
+            className="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 text-sm"
+          >
+            Recommend Vendors
+          </button>
           <button onClick={handleDelete} className="px-4 py-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 text-sm">
             Delete
           </button>
@@ -232,6 +254,70 @@ export default function BoqDetailPage() {
               </div>
             ))}
           </div>
+        </div>
+      )}
+
+      {/* Vendor Recommendations */}
+      {showVendors && (
+        <div className="bg-white rounded-xl shadow p-6">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-semibold text-gray-900">Recommended Vendors</h2>
+            <button onClick={() => setShowVendors(false)} className="text-gray-400 hover:text-gray-600 text-sm">Close</button>
+          </div>
+          {loadingVendors ? (
+            <p className="text-gray-500">Analyzing vendor performance and pricing history...</p>
+          ) : vendors ? (
+            <div className="space-y-4">
+              {vendors.recommended?.length > 0 && (
+                <div>
+                  <h3 className="text-sm font-medium text-green-700 mb-2">Top Recommended (score-based)</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    {vendors.recommended.map((v: any) => (
+                      <div key={v.id} className="bg-green-50 border border-green-200 rounded-lg p-3">
+                        <div className="flex justify-between">
+                          <p className="font-medium text-gray-900">{v.name}</p>
+                          <span className="text-xs bg-green-200 text-green-800 px-2 py-0.5 rounded-full">Score: {v.compositeScore}</span>
+                        </div>
+                        <p className="text-xs text-gray-500">{v.code} | {v.category}</p>
+                        {v.evaluation && (
+                          <div className="flex gap-3 mt-1 text-xs text-gray-600">
+                            <span>Quality: {v.evaluation.quality}/5</span>
+                            <span>Pricing: {v.evaluation.pricing}/5</span>
+                            <span>Delivery: {v.evaluation.delivery}/5</span>
+                          </div>
+                        )}
+                        {v.costSheetHistory && (
+                          <p className="text-xs text-blue-600 mt-1">
+                            {v.costSheetHistory.itemsSupplied} items in cost sheet history
+                            {v.costSheetHistory.avgUnitCost ? ` | avg ${v.costSheetHistory.avgUnitCost.toFixed(2)} OMR` : ''}
+                          </p>
+                        )}
+                        <p className="text-xs text-gray-400 mt-1">{v.totalOrders} POs | {v.email}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {vendors.fromCostSheets?.length > 0 && (
+                <div>
+                  <h3 className="text-sm font-medium text-blue-700 mb-2">From Cost Sheet History (not yet registered)</h3>
+                  <div className="flex flex-wrap gap-2">
+                    {vendors.fromCostSheets.map((v: any, i: number) => (
+                      <div key={i} className="bg-blue-50 border border-blue-200 rounded-lg px-3 py-2 text-sm">
+                        <p className="font-medium">{v.name}</p>
+                        <p className="text-xs text-gray-500">{v.itemsSupplied} items | avg {v.avgUnitCost || '?'} OMR</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {(!vendors.recommended?.length && !vendors.fromCostSheets?.length) && (
+                <p className="text-gray-500 text-sm">No vendor recommendations available. Add more cost sheets and vendors.</p>
+              )}
+            </div>
+          ) : (
+            <p className="text-red-500 text-sm">Failed to load recommendations.</p>
+          )}
         </div>
       )}
 

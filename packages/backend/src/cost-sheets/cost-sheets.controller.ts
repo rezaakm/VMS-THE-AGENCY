@@ -1,7 +1,7 @@
 import {
-  Controller, Get, Post, Body, Param, Query, UseGuards, UseInterceptors, UploadedFile, Redirect,
+  Controller, Get, Post, Body, Param, Query, UseGuards, UseInterceptors, UploadedFile, UploadedFiles, Redirect,
 } from '@nestjs/common';
-import { FileInterceptor } from '@nestjs/platform-express';
+import { FileInterceptor, FilesInterceptor } from '@nestjs/platform-express';
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiQuery, ApiConsumes } from '@nestjs/swagger';
 import { CostSheetsService } from './cost-sheets.service';
 import { AiService } from './ai.service';
@@ -83,12 +83,64 @@ export class CostSheetsController {
   }
 
   @Post('upload')
-  @ApiOperation({ summary: 'Upload Excel cost sheet' })
+  @ApiOperation({ summary: 'Upload Excel cost sheet and feed into VMS pricing brain' })
   @ApiConsumes('multipart/form-data')
   @UseInterceptors(FileInterceptor('file'))
   async uploadFile(@UploadedFile() file: Express.Multer.File) {
     if (!file) return { success: false, error: 'No file uploaded' };
-    return this.costSheetsService.uploadAndParse(file.buffer, file.originalname);
+    const parseResult = await this.costSheetsService.uploadAndParse(file.buffer, file.originalname);
+
+    // Auto-extract prices into material catalog (VMS Brain)
+    let brainUpdate = null;
+    if (parseResult.success) {
+      brainUpdate = await this.costSheetsService.extractNewPricesToCatalog();
+    }
+
+    return { ...parseResult, brainUpdate };
+  }
+
+  @Post('upload-batch')
+  @ApiOperation({ summary: 'Upload multiple Excel cost sheets at once' })
+  @ApiConsumes('multipart/form-data')
+  @UseInterceptors(FilesInterceptor('files', 20, {
+    limits: { fileSize: 20 * 1024 * 1024 },
+    fileFilter: (_req, file, cb) => {
+      const allowed = [
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        'application/vnd.ms-excel',
+        'application/pdf',
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        'application/msword',
+        'image/jpeg',
+        'image/png',
+        'image/webp',
+      ];
+      cb(null, allowed.includes(file.mimetype));
+    },
+  }))
+  async uploadBatch(@UploadedFiles() files: Express.Multer.File[]) {
+    if (!files?.length) return { success: false, error: 'No files uploaded' };
+
+    const results = [];
+    for (const file of files) {
+      // Only parse Excel files; store others as documents
+      if (file.mimetype.includes('spreadsheet') || file.mimetype.includes('excel')) {
+        const result = await this.costSheetsService.uploadAndParse(file.buffer, file.originalname);
+        results.push({ fileName: file.originalname, type: 'excel', ...result });
+      } else {
+        results.push({
+          fileName: file.originalname,
+          type: file.mimetype.split('/')[1],
+          success: true,
+          message: 'File received (non-Excel files stored for reference)',
+        });
+      }
+    }
+
+    // Feed all new prices into brain
+    const brainUpdate = await this.costSheetsService.extractNewPricesToCatalog();
+
+    return { files: results, totalFiles: files.length, brainUpdate };
   }
 
   @Post('ai/search')

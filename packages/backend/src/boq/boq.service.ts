@@ -559,6 +559,115 @@ For architectural plans, calculate areas from dimensions shown.`;
     return { updated, total: boq.items.length };
   }
 
+  // ── Vendor Recommendations ─────────────────────────────────────────────
+
+  async recommendVendors(boqId: string) {
+    const boq = await this.findOne(boqId);
+    const itemDescriptions = boq.items.map((i: any) => i.description.toLowerCase());
+
+    // Find vendors from cost sheet items that supplied similar items
+    const costSheetVendors = await this.prisma.costSheetItem.groupBy({
+      by: ['vendor'],
+      where: {
+        vendor: { not: null },
+        OR: itemDescriptions.slice(0, 10).map((desc: string) => {
+          const keywords = desc.split(/\s+/).filter((w: string) => w.length > 2).slice(0, 2);
+          return {
+            OR: keywords.map((kw: string) => ({
+              description: { contains: kw, mode: 'insensitive' as const },
+            })),
+          };
+        }),
+      },
+      _count: { id: true },
+      _avg: { unitCost: true },
+      orderBy: { _count: { id: 'desc' } },
+      take: 20,
+    });
+
+    // Find registered vendors with best performance + pricing scores
+    const registeredVendors = await this.prisma.vendor.findMany({
+      where: { status: 'ACTIVE' },
+      select: {
+        id: true, name: true, code: true, email: true, phone: true,
+        category: true, performanceScore: true, totalOrders: true, totalSpent: true,
+        _count: { select: { purchaseOrders: true, evaluations: true, rfqBids: true } },
+      },
+      orderBy: [{ performanceScore: 'desc' }, { totalOrders: 'desc' }],
+      take: 20,
+    });
+
+    // Get latest evaluation for each registered vendor
+    const vendorIds = registeredVendors.map((v: any) => v.id);
+    const evaluations = await this.prisma.evaluation.findMany({
+      where: { vendorId: { in: vendorIds } },
+      orderBy: { evaluationDate: 'desc' },
+      distinct: ['vendorId'],
+    });
+
+    const evalMap = new Map(evaluations.map((e: any) => [e.vendorId, e]));
+
+    // Score registered vendors: combine performance, pricing, and relevance
+    const scoredVendors = registeredVendors.map((v: any) => {
+      const evaluation = evalMap.get(v.id);
+      const performanceScore = v.performanceScore || 0;
+      const pricingScore = evaluation?.pricingScore || 3;
+      const qualityScore = evaluation?.qualityScore || 3;
+      const deliveryScore = evaluation?.deliveryScore || 3;
+
+      // Check if vendor appears in cost sheet history
+      const costSheetMatch = costSheetVendors.find(
+        (csv: any) => csv.vendor && v.name.toLowerCase().includes(csv.vendor.toLowerCase()),
+      );
+
+      const relevanceBonus = costSheetMatch ? 15 : 0;
+      const compositeScore = Math.round(
+        performanceScore * 0.3 +
+        pricingScore * 6 +
+        qualityScore * 5 +
+        deliveryScore * 4 +
+        relevanceBonus,
+      );
+
+      return {
+        ...v,
+        evaluation: evaluation ? {
+          quality: evaluation.qualityScore,
+          delivery: evaluation.deliveryScore,
+          pricing: evaluation.pricingScore,
+          service: evaluation.serviceScore,
+          overall: evaluation.overallScore,
+        } : null,
+        costSheetHistory: costSheetMatch ? {
+          itemsSupplied: costSheetMatch._count.id,
+          avgUnitCost: costSheetMatch._avg.unitCost,
+        } : null,
+        compositeScore,
+        recommended: compositeScore >= 40,
+      };
+    });
+
+    scoredVendors.sort((a: any, b: any) => b.compositeScore - a.compositeScore);
+
+    // Also include cost-sheet-only vendors (not registered in system)
+    const unregisteredVendors = costSheetVendors
+      .filter((csv: any) => csv.vendor && !registeredVendors.some((rv: any) =>
+        rv.name.toLowerCase().includes(csv.vendor.toLowerCase()),
+      ))
+      .map((csv: any) => ({
+        name: csv.vendor,
+        source: 'cost_sheet_history',
+        itemsSupplied: csv._count.id,
+        avgUnitCost: csv._avg.unitCost ? Math.round(csv._avg.unitCost * 100) / 100 : null,
+      }));
+
+    return {
+      recommended: scoredVendors.filter((v: any) => v.recommended),
+      other: scoredVendors.filter((v: any) => !v.recommended),
+      fromCostSheets: unregisteredVendors,
+    };
+  }
+
   // ── Sync cost sheets from Google Drive and re-price ────────────────────
 
   async syncAndReprice(id: string) {

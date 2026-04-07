@@ -67,6 +67,12 @@ export class BoqController {
     return this.boqService.syncAndReprice(id);
   }
 
+  @Get(':id/recommend-vendors')
+  @ApiOperation({ summary: 'Recommend vendors based on performance scores, pricing, and cost sheet history' })
+  recommendVendors(@Param('id') id: string) {
+    return this.boqService.recommendVendors(id);
+  }
+
   @Post(':id/items')
   @ApiOperation({ summary: 'Add a new item to BOQ' })
   addItem(@Param('id') id: string, @Body() dto: any) {

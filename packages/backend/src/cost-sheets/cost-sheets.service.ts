@@ -253,6 +253,63 @@ export class CostSheetsService {
     return this.excelParser.parseAndInsert(fileBuffer, fileName, driveFileId || `upload-${Date.now()}`);
   }
 
+  /**
+   * Extract newly uploaded cost sheet prices into the raw material catalog (VMS Brain).
+   * Only processes items that haven't been extracted yet.
+   */
+  async extractNewPricesToCatalog(): Promise<{ materialsCreated: number; pricesInserted: number; skipped: number }> {
+    let materialsCreated = 0;
+    let pricesInserted = 0;
+    let skipped = 0;
+
+    const items = await this.prisma.costSheetItem.findMany({
+      where: {
+        unitCost: { gt: 0 },
+        description: { not: '' },
+      },
+      include: {
+        costSheet: { select: { driveFileId: true, fileName: true } },
+      },
+      orderBy: { costSheet: { date: 'desc' } },
+      take: 5000,
+    });
+
+    for (const item of items) {
+      const sourceRef = `COSTSHEET:${item.id}`;
+      const exists = await this.prisma.materialPrice.findFirst({ where: { sourceRef } });
+      if (exists) { skipped++; continue; }
+
+      try {
+        let material = await this.prisma.rawMaterial.findFirst({
+          where: { name: { equals: item.description, mode: 'insensitive' } },
+        });
+        if (!material) {
+          material = await this.prisma.rawMaterial.create({
+            data: { name: item.description, unit: item.days ? 'day' : 'piece' },
+          });
+          materialsCreated++;
+        }
+
+        await this.prisma.materialPrice.create({
+          data: {
+            materialId: material.id,
+            source: 'COST_SHEET',
+            unitPrice: item.unitCost!,
+            currency: 'OMR',
+            vendorName: item.vendor ?? undefined,
+            sourceRef,
+            confidence: 0.8,
+          },
+        });
+        pricesInserted++;
+      } catch {
+        skipped++;
+      }
+    }
+
+    return { materialsCreated, pricesInserted, skipped };
+  }
+
   async getStats() {
     const [totalSheets, totalItems, vendors] = await Promise.all([
       this.prisma.costSheet.count(),
