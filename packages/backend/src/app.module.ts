@@ -14,6 +14,7 @@ import { CostSheetsModule } from './cost-sheets/cost-sheets.module';
 import { CostEngineModule } from './cost-engine/cost-engine.module';
 import { AiAssistantModule } from './ai-assistant/ai-assistant.module';
 import { RfqsModule } from './rfqs/rfqs.module';
+import { BoqModule } from './boq/boq.module';
 
 @Module({
   imports: [
@@ -32,6 +33,7 @@ import { RfqsModule } from './rfqs/rfqs.module';
     CostEngineModule,
     AiAssistantModule,
     RfqsModule,
+    BoqModule,
   ],
   controllers: [AppController],
   providers: [AppService],

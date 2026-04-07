@@ -62,6 +62,7 @@ model User {
   evaluations    Evaluation[]
   auditLogs      AuditLog[]
   rfqs           RFQ[]
+  boqs           BOQ[]
 
   @@map("users")
 }
@@ -569,5 +570,87 @@ model RFQBidItem {
   rfqItem     RFQItem      @relation(fields: [rfqItemId], references: [id])
 
   @@map("rfq_bid_items")
+}
+
+// ─── BOQ from Drawings ──────────────────────────────────────────────────────
+
+enum BOQStatus {
+  PROCESSING
+  DRAFT
+  REVIEWED
+  APPROVED
+  EXPORTED
+}
+
+model BOQ {
+  id            String    @id @default(uuid())
+  boqNumber     String    @unique
+  title         String
+  description   String?
+  projectName   String?
+  clientName    String?
+  status        BOQStatus @default(PROCESSING)
+  createdById   String
+
+  // Totals
+  totalCost     Float     @default(0)
+  totalSelling  Float     @default(0)
+  margin        Float?
+
+  // AI processing
+  aiModel       String?   // model used for extraction
+  drawingCount  Int       @default(0)
+
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  createdBy     User      @relation(fields: [createdById], references: [id])
+  drawings      BOQDrawing[]
+  items         BOQItem[]
+
+  @@index([status])
+  @@index([createdById])
+  @@map("boqs")
+}
+
+model BOQDrawing {
+  id          String   @id @default(uuid())
+  boqId       String
+  fileName    String
+  fileUrl     String   // local path or cloud URL
+  fileSize    Int?
+  mimeType    String
+  pageCount   Int      @default(1)
+  aiNotes     String?  // AI observations about this drawing
+
+  createdAt   DateTime @default(now())
+
+  boq BOQ @relation(fields: [boqId], references: [id], onDelete: Cascade)
+
+  @@map("boq_drawings")
+}
+
+model BOQItem {
+  id              String  @id @default(uuid())
+  boqId           String
+  sectionNumber   String? // e.g. "1", "2.1"
+  section         String? // e.g. "Structural", "MEP", "Finishes"
+  itemNumber      Int
+  description     String
+  quantity        Float
+  unit            String  // sqm, lm, piece, kg, etc.
+  unitCost        Float   @default(0)
+  totalCost       Float   @default(0)
+  unitSelling     Float   @default(0)
+  totalSelling    Float   @default(0)
+  priceSource     String? // MANUAL, COST_SHEET, VENDOR_PO, ONLINE, AI_ESTIMATED
+  priceConfidence Float   @default(0) // 0-1
+  specs           String?
+  drawingRef      String? // which drawing this came from
+
+  boq BOQ @relation(fields: [boqId], references: [id], onDelete: Cascade)
+
+  @@index([boqId])
+  @@map("boq_items")
 }
 
