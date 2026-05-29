@@ -1,5 +1,7 @@
 # ROADMAP.md — The Agency VMS Delivery Roadmap
 
+> Maintained honestly. Phase status reflects verified working software, not aspirations.
+
 ## Guiding Rule
 
 Do not build features because they are interesting.
@@ -9,144 +11,52 @@ Build only what improves procurement control, financial visibility, vendor accou
 
 ## Phase 0 — Foundation (COMPLETED)
 
-### Goal
-Stand up the core VMS with vendor management and procurement.
+- [x] Core VMS (vendors, POs, contracts, evaluations, cost sheets)
+- [x] NestJS + Prisma + Next.js 14 + Tailwind
+- [x] JWT + role-based auth (ADMIN, MANAGER, BUYER, VIEWER)
+- [x] Docker support
 
-### Deliverables
-- [x] NestJS + Prisma backend with PostgreSQL
-- [x] Next.js 14 frontend with Tailwind CSS
-- [x] JWT authentication with role-based access
-- [x] Vendor management (CRUD, contacts, documents)
-- [x] Purchase order lifecycle (draft → approved → completed)
-- [x] Contract management
-- [x] Vendor evaluations and performance scoring
-- [x] Cost sheets (Excel upload, vendor comparison)
-- [x] Dashboard with spend analytics
-- [x] Docker deployment support
-- [x] README and setup documentation
+## Phase 1 — RFQ + Cost Engine + CIS (COMPLETED)
 
-### Exit Criteria
-- VMS is functional for basic vendor and procurement operations.
-- Authentication works with role separation.
-- Data model is stable and migrated.
+- [x] Full RFQ workflow with vendor bid portal
+- [x] AI Cost Engine
+- [x] Standalone Cost Intelligence System (CIS)
 
 ---
 
-## Phase 1 — RFQ System + Cost Engine (COMPLETED)
+## Phase 2 — Financial Oversight (IN PROGRESS — Clean Rebuild)
 
-### Goal
-Add structured procurement through RFQs and AI-powered cost intelligence.
+**Current work happening on `feature/vms-honest-completion` branch**
 
-### Deliverables
-- [x] RFQ creation and management
-- [x] Vendor bid submission (public bid portal with token auth)
-- [x] Bid comparison and evaluation
-- [x] Cost Engine with AI-powered analysis (OpenAI GPT-4o-mini)
-- [x] Cost Intelligence System (CIS) — standalone search and benchmarking
-- [x] Prisma migrations for RFQ and cost engine tables
+**Completed so far (verified):**
+- [x] Prisma models for FinancialFlag, FlagResponse (A-F), Checklist, Processes
+- [x] Clean service layer (refactored, maintainable)
+- [x] Controller with proper RBAC (RolesGuard + @Roles)
+- [x] Daily scheduler for overdue escalation
+- [x] Email service foundation
 
-### Exit Criteria
-- RFQ workflow works end-to-end: create → invite vendors → receive bids → compare → award.
-- Cost engine provides meaningful analysis on uploaded cost sheets.
+**Remaining for Phase 2:**
+- [ ] Real email delivery
+- [ ] Seed the actual 12 April 2026 audit flags
+- [ ] Full frontend (flags with A-F form, checklist UI, processes, dashboard)
+- [ ] Tests + documentation finalization
 
----
-
-## Phase 2 — Financial Oversight Module (IN PROGRESS)
-
-### Goal
-Add financial controls born from the real April 2026 audit.
-
-### Scope
-- [ ] Financial flags (audit issues with severity, assignment, deadlines)
-- [ ] Flag response system (A-F template: acknowledge, root cause, status, action, evidence, date)
-- [ ] Response grading (Adequate / Partial / Inadequate)
-- [ ] Auto-escalation of overdue flags
-- [ ] Monthly financial checklist (bank recon, P&L, AR aging, owner account)
-- [ ] Checklist completion tracking by period
-- [ ] Financial process registry (SOPs with ownership and status)
-- [ ] Financial oversight dashboard (open flags, checklist progress, process status)
-- [ ] Prisma migration and seed data with the 12 real flags from the audit
-
-### Success Criteria
-- All 12 flags from the April 2026 audit are trackable in the system.
-- Monthly checklist generates automatically and tracks completion.
-- Overdue items are visible on the dashboard within 24 hours of deadline.
-- Dinesh can submit responses through the system instead of email/PDF.
-- Reza can grade responses and track resolution from the dashboard.
-
-### Seed Data
-The module ships with real data from The Agency's financial audit:
-- 12 financial flags (budget conflicts, revenue forecasting, direct costs, AR collections, staff settlements, bank reconciliation, financial statements, etc.)
-- Standard monthly checklist items (bank recon by 5th, owner account by 5th, P&L by 10th, AR aging weekly)
-- 6 financial processes (cash flow forecast, client profitability, job-type profitability, depreciation schedule, PO system, owner account reconciliation)
+**Success Criteria (non-negotiable):**
+- The 12 real audit flags are usable in the live system
+- Overdue flags automatically escalate and notify
+- Dinesh and managers can use the UI daily
 
 ---
 
-## Phase 3 — Reporting & Analytics Enhancement
+## Phase 3 — Reporting & Analytics (NOT STARTED)
 
-### Goal
-Transform raw data into actionable business intelligence.
+## Phase 4 — Integrations (NOT STARTED)
 
-### Scope
-- [ ] Spend analytics by vendor, category, and period
-- [ ] Vendor performance trending over time
-- [ ] Cost variance reports (budget vs actual)
-- [ ] AR aging dashboard with collection tracking
-- [ ] Client profitability view (revenue minus direct cost per client)
-- [ ] Monthly financial summary (P&L format)
-- [ ] Export to PDF/Excel for board reporting
-
-### Success Criteria
-- Reza can pull a monthly financial summary without asking Dinesh.
-- Vendor spend trends are visible without manual Excel work.
-- Client profitability is calculable from system data.
-
----
-
-## Phase 4 — Integration Layer
-
-### Goal
-Connect VMS to external systems for automated data flow.
-
-### Scope
-- [ ] Zoho Books integration (chart of accounts, journal entries)
-- [ ] Bank statement import (CSV/PDF from Bank Muscat)
-- [ ] Automated bank reconciliation matching
-- [ ] Email notifications for flag deadlines and overdue items
-- [ ] ClickUp integration for task routing (from Theagencyagents)
-- [ ] Webhook endpoints for external triggers
-
-### Success Criteria
-- Bank reconciliation runs monthly with minimal manual effort.
-- Financial data flows between VMS and Zoho without re-entry.
-- Deadline reminders are sent automatically.
-
----
-
-## Phase 5 — Audit & Compliance Hardening
-
-### Goal
-Make the system audit-ready for external review.
-
-### Scope
-- [ ] Complete audit trail for all financial actions
-- [ ] Document retention and versioning
-- [ ] Approval workflows for POs above threshold
-- [ ] Segregation of duties enforcement
-- [ ] Compliance dashboard (checklist pass rates, flag resolution times)
-- [ ] Annual audit package generation
-
-### Success Criteria
-- External auditor can review procurement and financial decisions from system data alone.
-- No material action happens without an audit log entry.
-- Average flag resolution time is trackable and trending downward.
+## Phase 5 — Audit & Compliance Hardening (NOT STARTED)
 
 ---
 
 ## Do Not Build (Yet)
 
-- Mobile app (web works fine for office use)
-- Multi-tenant SaaS (this is single-company)
-- AI-generated financial statements (too risky without validation)
-- Automated payment execution (manual approval required)
-- Blockchain anything (solve real problems first)
+- Features that bypass accountability
+- Anything before Phase 2 is actually complete and seeded with real data
