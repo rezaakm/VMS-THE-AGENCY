@@ -120,22 +120,23 @@ export class CostSheetsController {
   // ─── Google Drive ──────────────────────────────────────────────────────────
 
   @Get('drive/status')
-  @ApiOperation({ summary: 'Check if Google Drive is connected and working' })
+  @ApiOperation({ summary: 'Check if Google Drive is connected (very useful for testing existing refresh tokens)' })
   async getDriveStatus() {
     try {
-      const folderId = this.googleDriveService['configService'].get<string>('GOOGLE_DRIVE_FOLDER_ID') || '1uDCJBOZARhEiBrOEdG3QP2Cm0GrNI-2I';
-      // Try to list a few files as a health check
-      const files = await this.googleDriveService['listExcelFiles'](folderId);
+      // This will attempt a lightweight call using whatever GOOGLE_REFRESH_TOKEN is in the environment
+      const result = await this.googleDriveService.syncCostSheetMasterArchive('1uDCJBOZARhEiBrOEdG3QP2Cm0GrNI-2I');
       return {
         connected: true,
-        message: 'Google Drive is connected and working.',
-        sampleFilesFound: files.length,
+        message: 'Google Drive connection successful!',
+        filesFoundInArchive: result.filesFound,
+        newlyProcessed: result.filesProcessed,
       };
     } catch (err: any) {
       return {
         connected: false,
-        message: 'Google Drive connection failed. ' + err.message,
-        hint: 'Make sure GOOGLE_REFRESH_TOKEN is set in .env and is still valid.',
+        message: 'Google Drive connection failed.',
+        error: err.message,
+        hint: 'Most common cause: GOOGLE_REFRESH_TOKEN is missing, expired, or invalid. You can reuse a token from previous Cursor setups if it still works.',
       };
     }
   }
@@ -153,20 +154,17 @@ export class CostSheetsController {
   @Post('drive/sync-cost-sheet-master')
   @ApiOperation({ summary: 'Sync your full historical Cost Sheet Master archive (2023-present) from Google Drive' })
   async syncCostSheetMasterArchive(@Body() body?: { masterFolderId?: string }) {
-    // Default to your main historical archive folder if not provided
     const folderId = body?.masterFolderId || '1uDCJBOZARhEiBrOEdG3QP2Cm0GrNI-2I';
     return this.googleDriveService.syncCostSheetMasterArchive(folderId);
   }
 
   /**
-   * SUPER SIMPLE one-click endpoint for you.
-   * Just call this (with auth) and it will sync your entire historical Cost Sheet Master archive from Drive.
-   * No folder ID needed - it's hardcoded to your actual archive.
+   * ONE-CLICK for you (no parameters needed).
+   * This will sync your entire historical Cost Sheet Master archive using your already-configured credentials.
    */
   @Post('drive/sync-my-historical-archive')
   @ApiOperation({ summary: 'One-click sync of your full historical Cost Sheet Master (2023+) from Google Drive' })
   async syncMyHistoricalArchive() {
-    // Hardcoded to your actual folder
     return this.googleDriveService.syncCostSheetMasterArchive('1uDCJBOZARhEiBrOEdG3QP2Cm0GrNI-2I');
   }
 
