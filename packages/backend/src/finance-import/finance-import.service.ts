@@ -1,6 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { AiAssistantService } from '../ai-assistant/ai-assistant.service';
+import { ExcelParserService } from '../cost-sheets/excel-parser.service';
+import * as fs from 'fs';
 
 @Injectable()
 export class FinanceImportService {
@@ -9,71 +11,72 @@ export class FinanceImportService {
   constructor(
     private prisma: PrismaService,
     private aiAssistant: AiAssistantService,
+    private excelParser: ExcelParserService,
   ) {}
 
+  // ... existing monthly pack and P&L methods ...
+
   /**
-   * Ingests a "Monthly Finance Pack" style Excel (like the April 2026 one).
+   * Imports a detailed Cost Sheet from the "Cost Sheet-Master" folder style.
+   * File format example: "4169- Saud Bahwan Group- iCAUR Test drive- Cost Sheet.xlsx"
+   *
+   * These are the granular per-job cost breakdowns. Importing them at scale
+   * gives the AI Finance Controller deep actual vs sell data for analysis.
    */
-  async ingestMonthlyFinancePack(filePath: string, period: string, userId: string) {
-    this.logger.log(`Starting ingestion of finance pack for period ${period}: ${filePath}`);
+  async importCostSheetFromMaster(filePath: string) {
+    this.logger.log(`Importing cost sheet: ${filePath}`);
 
-    const doc = await this.prisma.financialDocument.create({
-      data: {
-        type: 'MONTHLY_FINANCE_PACK',
-        period,
-        originalName: filePath.split(/[\/\\]/).pop() || 'Monthly_Finance_Pack.xlsx',
-        status: 'PROCESSING',
-      },
-    });
+    try {
+      const fileBuffer = fs.readFileSync(filePath);
+      const fileName = filePath.split(/[\/\\]/).pop() || 'cost-sheet.xlsx';
 
-    // TODO: Real Excel parsing + mapping to flags/checklist/processes
-    await this.prisma.financialDocument.update({
-      where: { id: doc.id },
-      data: { status: 'COMPLETED', processedAt: new Date() },
-    });
+      const result = await this.excelParser.parseAndInsert(
+        fileBuffer,
+        fileName,
+        `local-master-${Date.now()}-${fileName}`,
+      );
 
-    return { documentId: doc.id, message: 'Monthly pack received. Full parser coming.' };
+      return {
+        success: result.success,
+        fileName,
+        rowsInserted: result.rowsInserted,
+        rowsSkipped: result.rowsSkipped,
+        error: result.error,
+      };
+    } catch (error: any) {
+      this.logger.error(`Failed importing cost sheet: ${error.message}`);
+      return { success: false, error: error.message };
+    }
   }
 
   /**
-   * Ingests P&L PDF reports (the kind the old accountant used to send monthly).
-   * Example: "The Agency-P&L Dec'2025.pdf"
-   *
-   * This is critical for rebuilding historical finance data.
+   * Bulk import the entire Cost Sheet-Master folder.
+   * This lets the user point at their desktop folder and suck in years of detailed cost data.
    */
-  async ingestPLReportPdf(filePath: string, period: string, userId: string) {
-    this.logger.log(`Ingesting P&L PDF for ${period}: ${filePath}`);
+  async importCostSheetMasterFolder(folderPath: string) {
+    this.logger.log(`Bulk importing Cost Sheet-Master folder: ${folderPath}`);
 
-    const doc = await this.prisma.financialDocument.create({
-      data: {
-        type: 'PDF_REPORT',
-        period,
-        originalName: filePath.split(/[\/\\]/).pop() || 'P&L Report.pdf',
-        status: 'PROCESSING',
-      },
-    });
+    const results: any[] = [];
+    try {
+      const files = fs.readdirSync(folderPath)
+        .filter((f: string) => f.endsWith('.xlsx') || f.endsWith('.xls'));
 
-    // TODO (high priority):
-    // 1. Extract text from PDF (pdf-parse or similar)
-    // 2. Send extracted text + smart prompt to the Finance AI Controller
-    //    Prompt idea: "You are analyzing The Agency Oman's P&L for ${period}.
-    //    Extract: Revenue breakdown, Direct Costs by major categories,
-    //    Gross Profit, Operating Expenses (detailed if possible), Net Profit/Loss.
-    //    Also flag any unusual variances or items. Return structured JSON."
-    // 3. Store structured result in extractedData
-    // 4. Optionally auto-create FinancialFlag records for suspicious items
+      for (const file of files) {
+        const fullPath = `${folderPath}/${file}`;
+        const res = await this.importCostSheetFromMaster(fullPath);
+        results.push({ file, ...res });
+      }
 
-    await this.prisma.financialDocument.update({
-      where: { id: doc.id },
-      data: {
-        status: 'RECEIVED',
-        notes: 'P&L PDF queued for AI extraction. This will feed the finance data model and AI controller.',
-      },
-    });
+      const totalInserted = results.reduce((sum, r) => sum + (r.rowsInserted || 0), 0);
 
-    return {
-      documentId: doc.id,
-      message: `P&L for ${period} received. AI will extract revenue, costs, margins and look for issues.`,
-    };
+      return {
+        success: true,
+        totalFiles: files.length,
+        totalItemsImported: totalInserted,
+        results,
+      };
+    } catch (error: any) {
+      return { success: false, error: error.message, partialResults: results };
+    }
   }
 }
