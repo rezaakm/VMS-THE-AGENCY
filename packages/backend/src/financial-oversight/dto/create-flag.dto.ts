@@ -1,27 +1,26 @@
-import { IsString, IsEnum, IsOptional, IsInt, IsDateString } from 'class-validator';
+import { IsString, IsEnum, IsOptional, IsDateString, MaxLength } from 'class-validator';
+import { FlagSeverity, FlagCategory } from '@prisma/client';
 
 export class CreateFlagDto {
-  @IsInt()
-  flagNumber: number;
-
   @IsString()
+  @MaxLength(200)
   title: string;
 
+  @IsString()
+  @MaxLength(2000)
+  description: string;
+
+  @IsEnum(FlagSeverity)
+  severity: FlagSeverity;
+
+  @IsEnum(FlagCategory)
+  category: FlagCategory;
+
   @IsOptional()
   @IsString()
-  description?: string;
-
-  @IsEnum(['CRITICAL', 'HIGH', 'MEDIUM', 'LOW'])
-  severity: string;
-
-  @IsEnum(['BUDGET', 'REVENUE', 'COSTS', 'AR', 'STAFF', 'EXPENSES', 'RECONCILIATION', 'COMPLIANCE', 'PROCESSES'])
-  category: string;
-
-  @IsOptional()
-  @IsString()
-  assignedTo?: string;
+  assignedToId?: string;
 
   @IsOptional()
   @IsDateString()
-  deadline?: string;
+  dueDate?: string;
 }
