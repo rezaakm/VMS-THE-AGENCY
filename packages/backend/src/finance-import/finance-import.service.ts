@@ -14,14 +14,8 @@ export class FinanceImportService {
     private excelParser: ExcelParserService,
   ) {}
 
-  // ... existing monthly pack and P&L methods ...
-
   /**
-   * Imports a detailed Cost Sheet from the "Cost Sheet-Master" folder style.
-   * File format example: "4169- Saud Bahwan Group- iCAUR Test drive- Cost Sheet.xlsx"
-   *
-   * These are the granular per-job cost breakdowns. Importing them at scale
-   * gives the AI Finance Controller deep actual vs sell data for analysis.
+   * Imports a single detailed Cost Sheet from the Cost Sheet-Master style.
    */
   async importCostSheetFromMaster(filePath: string) {
     this.logger.log(`Importing cost sheet: ${filePath}`);
@@ -50,33 +44,78 @@ export class FinanceImportService {
   }
 
   /**
-   * Bulk import the entire Cost Sheet-Master folder.
-   * This lets the user point at their desktop folder and suck in years of detailed cost data.
+   * Bulk import for historical data (2023 - present).
+   * Much more robust version for large historical imports.
    */
-  async importCostSheetMasterFolder(folderPath: string) {
-    this.logger.log(`Bulk importing Cost Sheet-Master folder: ${folderPath}`);
+  async importCostSheetMasterFolder(folderPath: string, options?: { skipDuplicates?: boolean }) {
+    this.logger.log(`Starting historical bulk import from: ${folderPath} (data from 2023+)`);
 
     const results: any[] = [];
+    let totalInserted = 0;
+    let skipped = 0;
+    let errors = 0;
+
     try {
       const files = fs.readdirSync(folderPath)
-        .filter((f: string) => f.endsWith('.xlsx') || f.endsWith('.xls'));
+        .filter((f: string) => f.toLowerCase().endsWith('.xlsx') || f.toLowerCase().endsWith('.xls'))
+        .sort(); // Sort for consistent processing
 
-      for (const file of files) {
+      this.logger.log(`Found ${files.length} cost sheet files`);
+
+      for (const [index, file] of files.entries()) {
         const fullPath = `${folderPath}/${file}`;
-        const res = await this.importCostSheetFromMaster(fullPath);
-        results.push({ file, ...res });
-      }
 
-      const totalInserted = results.reduce((sum, r) => sum + (r.rowsInserted || 0), 0);
+        try {
+          // Optional duplicate check based on filename/job number
+          if (options?.skipDuplicates) {
+            const { jobNumber } = this.extractJobFromFilename(file);
+            const existing = await this.prisma.costSheet.findFirst({
+              where: { jobNumber },
+            });
+            if (existing) {
+              this.logger.log(`Skipping duplicate: ${file} (job ${jobNumber} already exists)`);
+              skipped++;
+              continue;
+            }
+          }
+
+          const res = await this.importCostSheetFromMaster(fullPath);
+          results.push({ file, ...res });
+
+          if (res.success) {
+            totalInserted += res.rowsInserted || 0;
+          } else {
+            errors++;
+          }
+
+          // Progress log every 20 files
+          if ((index + 1) % 20 === 0) {
+            this.logger.log(`Progress: ${index + 1}/${files.length} files processed`);
+          }
+        } catch (err: any) {
+          this.logger.error(`Error on file ${file}: ${err.message}`);
+          errors++;
+          results.push({ file, success: false, error: err.message });
+        }
+      }
 
       return {
         success: true,
         totalFiles: files.length,
+        successfullyProcessed: results.filter(r => r.success).length,
         totalItemsImported: totalInserted,
-        results,
+        skipped,
+        errors,
+        results: results.slice(0, 50), // Return first 50 for review
       };
     } catch (error: any) {
       return { success: false, error: error.message, partialResults: results };
     }
+  }
+
+  private extractJobFromFilename(fileName: string) {
+    const withoutExt = fileName.replace(/\.xlsx?$/i, '');
+    const parts = withoutExt.split(/[-–—]/);
+    return { jobNumber: parts[0]?.trim() || 'Unknown' };
   }
 }
