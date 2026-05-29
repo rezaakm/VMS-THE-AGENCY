@@ -1,10 +1,12 @@
 import { Module } from '@nestjs/common';
-import { FinancialOversightController } from './financial-oversight.controller';
 import { FinancialOversightService } from './financial-oversight.service';
+import { FinancialOversightController } from './financial-oversight.controller';
 import { PrismaModule } from '../prisma/prisma.module';
+import { AuditLogModule } from '../audit-log/audit-log.module';
+import { ScheduleModule } from '@nestjs/schedule';
 
 @Module({
-  imports: [PrismaModule],
+  imports: [PrismaModule, AuditLogModule, ScheduleModule],
   controllers: [FinancialOversightController],
   providers: [FinancialOversightService],
   exports: [FinancialOversightService],
