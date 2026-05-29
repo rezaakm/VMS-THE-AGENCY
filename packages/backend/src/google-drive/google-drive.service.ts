@@ -150,12 +150,17 @@ export class GoogleDriveService {
     return Buffer.from(response.data as ArrayBuffer);
   }
 
+  getRedirectUri(): string {
+    return (
+      this.configService.get<string>('GOOGLE_REDIRECT_URI') ||
+      'http://localhost:3001/google-drive/auth/callback'
+    );
+  }
+
   async getAuthUrl(): Promise<string> {
     const clientId = this.configService.get<string>('GOOGLE_CLIENT_ID');
     const clientSecret = this.configService.get<string>('GOOGLE_CLIENT_SECRET');
-    const redirectUri =
-      this.configService.get<string>('GOOGLE_REDIRECT_URI') ||
-      'http://localhost:3001/google-drive/auth/callback';
+    const redirectUri = this.getRedirectUri();
 
     if (!clientId || !clientSecret) {
       throw new Error('GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET must be set');
@@ -172,9 +177,7 @@ export class GoogleDriveService {
   async exchangeCodeForToken(code: string): Promise<{ refresh_token: string }> {
     const clientId = this.configService.get<string>('GOOGLE_CLIENT_ID');
     const clientSecret = this.configService.get<string>('GOOGLE_CLIENT_SECRET');
-    const redirectUri =
-      this.configService.get<string>('GOOGLE_REDIRECT_URI') ||
-      'http://localhost:3001/google-drive/auth/callback';
+    const redirectUri = this.getRedirectUri();
 
     const oauth2Client = new google.auth.OAuth2(clientId, clientSecret, redirectUri);
     const { tokens } = await oauth2Client.getToken(code);

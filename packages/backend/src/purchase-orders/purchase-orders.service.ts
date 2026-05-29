@@ -130,7 +130,11 @@ export class PurchaseOrdersService {
     return po;
   }
 
-  async update(id: string, updateDto: UpdatePurchaseOrderDto) {
+  async update(
+    id: string,
+    updateDto: UpdatePurchaseOrderDto,
+    userId?: string,
+  ) {
     await this.findOne(id);
 
     const { items, ...orderData } = updateDto;
@@ -164,10 +168,16 @@ export class PurchaseOrdersService {
           vendor: true,
         },
       });
+      if (userId) {
+        await this.auditLog.log(userId, 'UPDATE', 'PURCHASE_ORDER', id, {
+          orderNumber: updated.orderNumber,
+          totalAmount: updated.totalAmount,
+        });
+      }
       return updated;
     }
 
-    return this.prisma.purchaseOrder.update({
+    const updated = await this.prisma.purchaseOrder.update({
       where: { id },
       data: orderData,
       include: {
@@ -175,6 +185,12 @@ export class PurchaseOrdersService {
         vendor: true,
       },
     });
+    if (userId) {
+      await this.auditLog.log(userId, 'UPDATE', 'PURCHASE_ORDER', id, {
+        orderNumber: updated.orderNumber,
+      });
+    }
+    return updated;
   }
 
   async updateStatus(

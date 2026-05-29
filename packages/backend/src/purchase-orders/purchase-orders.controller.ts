@@ -54,8 +54,13 @@ export class PurchaseOrdersController {
 
   @Patch(':id')
   @ApiOperation({ summary: 'Update purchase order' })
-  update(@Param('id') id: string, @Body() updateDto: UpdatePurchaseOrderDto) {
-    return this.service.update(id, updateDto);
+  @Roles(UserRole.ADMIN, UserRole.MANAGER, UserRole.BUYER)
+  update(
+    @Param('id') id: string,
+    @Body() updateDto: UpdatePurchaseOrderDto,
+    @Request() req: { user: { id: string } },
+  ) {
+    return this.service.update(id, updateDto, req.user.id);
   }
 
   @Patch(':id/status')

@@ -2,7 +2,7 @@
 
 ## Current State Summary
 
-The VMS is operational with core vendor management, procurement (POs, RFQs, contracts), and cost intelligence. The Financial Oversight module is being added following a real financial audit in March-April 2026 that exposed 12 critical issues in The Agency's financial operations.
+The VMS is operational for core vendor management, procurement (POs, RFQs, contracts), cost intelligence, and **financial oversight** (12 audit flags, checklist, processes). Phase 2 plan items are shipped: module wired, seeded, UI live, audit trail + RBAC on sensitive actions, and unit tests on critical paths.
 
 The project documentation has been upgraded to match the same constitutional structure used in Theagencyagents (NEO), ensuring consistent governance across Agency systems.
 
@@ -45,7 +45,7 @@ The project documentation has been upgraded to match the same constitutional str
 
 ## In Progress
 
-### Phase 4 — Zoho Books (partial)
+### Phase 4 — Integrations (partial)
 - [x] Prisma models (`ZohoConnection`, `ZohoSyncMap`) + migration
 - [x] OAuth connect (admin Settings), env-based refresh token connect
 - [x] Sync vendor → Zoho contact; PO → Zoho bill
@@ -53,7 +53,7 @@ The project documentation has been upgraded to match the same constitutional str
 - [ ] Auto journal entries / full chart-of-accounts mapping in reports UI
 - [ ] Scheduled sync jobs
 
-### Phase 2 — Financial Oversight Module (COMPLETED)
+### Phase 2 — Financial Oversight Module ✅ (plan complete)
 - [x] Prisma schema designed (5 new tables)
 - [x] SQL migration created (timestamped: `20260524120000_add_financial_oversight`)
 - [x] Backend module wired in `app.module.ts` with overdue cron + on-access escalation
@@ -130,4 +130,4 @@ Financial oversight follows the same NestJS module pattern as vendors, POs, etc.
 
 ## Warning
 
-Do not expand into Phase 3 (Reporting) or Phase 4 (Integrations) until the Financial Oversight module is fully operational and seeded with the 12 audit flags. The financial controls are the highest-priority gap in the system.
+Phase 2 financial oversight is operational. Phase 3 reporting and Phase 4 integrations continue incrementally; do not ship integrations that bypass approval or accountability.
