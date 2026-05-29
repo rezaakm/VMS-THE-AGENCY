@@ -1,12 +1,15 @@
 'use client';
 
+import { Suspense } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import api from '@/lib/api';
 import { useAuth } from '@/hooks/use-auth';
 import { formatDate } from '@/lib/utils';
+import { ZohoIntegrationCard } from '@/components/zoho-integration-card';
 
 export default function SettingsPage() {
   const { user } = useAuth();
+  const isAdmin = user?.role === 'ADMIN';
   const canViewAudit = user?.role === 'ADMIN' || user?.role === 'MANAGER';
 
   const { data: auditLogs } = useQuery({
@@ -45,6 +48,18 @@ export default function SettingsPage() {
           API URL: {process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}
         </p>
       </div>
+
+      {isAdmin && (
+        <Suspense
+          fallback={
+            <div className="bg-white rounded-lg shadow p-6 text-sm text-gray-500">
+              Loading integrations…
+            </div>
+          }
+        >
+          <ZohoIntegrationCard />
+        </Suspense>
+      )}
 
       {canViewAudit && (
         <div className="bg-white rounded-lg shadow p-6">

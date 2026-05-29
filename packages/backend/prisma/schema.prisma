@@ -299,6 +299,38 @@ model Invoice {
   @@map("invoices")
 }
 
+model ZohoConnection {
+  id               String   @id @default(uuid())
+  organizationId   String
+  organizationName String?
+  accessToken      String
+  refreshToken     String
+  expiresAt        DateTime
+  apiDomain        String   @default("https://www.zohoapis.com")
+  accountsDomain   String   @default("https://accounts.zoho.com")
+  dataCenter       String   @default("com")
+  scopes           String?
+  connectedById    String?
+  isActive         Boolean  @default(true)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@map("zoho_connections")
+}
+
+model ZohoSyncMap {
+  id           String   @id @default(uuid())
+  entityType   String
+  localId      String
+  zohoId       String
+  zohoEntity   String
+  lastSyncedAt DateTime @default(now())
+
+  @@unique([entityType, localId])
+  @@index([zohoId])
+  @@map("zoho_sync_maps")
+}
+
 model ClientReceivable {
   id            String        @id @default(uuid())
   clientName    String

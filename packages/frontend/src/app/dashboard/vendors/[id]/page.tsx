@@ -1,15 +1,25 @@
 'use client';
 
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery } from '@tanstack/react-query';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { ArrowLeft, Edit } from 'lucide-react';
 import api from '@/lib/api';
 import { formatCurrency, formatDate } from '@/lib/utils';
+import { useAuth } from '@/hooks/use-auth';
 
 export default function VendorDetailPage() {
   const params = useParams();
   const id = params.id as string;
+  const { user } = useAuth();
+  const canSyncZoho =
+    user?.role === 'ADMIN' ||
+    user?.role === 'MANAGER' ||
+    user?.role === 'BUYER';
+
+  const zohoSyncMutation = useMutation({
+    mutationFn: () => api.post(`/zoho/sync/vendor/${id}`),
+  });
 
   const { data: vendor, isLoading } = useQuery({
     queryKey: ['vendor', id],
@@ -38,13 +48,29 @@ export default function VendorDetailPage() {
             <p className="text-gray-500 font-mono">{vendor.code}</p>
           </div>
         </div>
-        <Link
-          href={`/dashboard/vendors/${id}/edit`}
-          className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg"
-        >
-          <Edit className="w-4 h-4" /> Edit
-        </Link>
+        <div className="flex items-center gap-2">
+          {canSyncZoho && (
+            <button
+              type="button"
+              onClick={() => zohoSyncMutation.mutate()}
+              disabled={zohoSyncMutation.isPending}
+              className="px-4 py-2 border border-indigo-200 text-indigo-700 rounded-lg text-sm hover:bg-indigo-50 disabled:opacity-50"
+            >
+              {zohoSyncMutation.isPending ? 'Syncing…' : 'Sync to Zoho'}
+            </button>
+          )}
+          <Link
+            href={`/dashboard/vendors/${id}/edit`}
+            className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg"
+          >
+            <Edit className="w-4 h-4" /> Edit
+          </Link>
+        </div>
       </div>
+
+      {zohoSyncMutation.isSuccess && (
+        <p className="text-sm text-green-700 mb-4">Vendor synced to Zoho Books.</p>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="bg-white rounded-lg shadow p-6">

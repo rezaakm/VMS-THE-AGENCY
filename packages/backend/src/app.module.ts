@@ -17,6 +17,7 @@ import { CostEngineModule } from './cost-engine/cost-engine.module';
 import { AiAssistantModule } from './ai-assistant/ai-assistant.module';
 import { RfqsModule } from './rfqs/rfqs.module';
 import { FinancialOversightModule } from './financial-oversight/financial-oversight.module';
+import { ZohoBooksModule } from './zoho-books/zoho-books.module';
 
 @Module({
   imports: [
@@ -38,6 +39,7 @@ import { FinancialOversightModule } from './financial-oversight/financial-oversi
     AiAssistantModule,
     RfqsModule,
     FinancialOversightModule,
+    ZohoBooksModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -45,7 +45,13 @@ The project documentation has been upgraded to match the same constitutional str
 
 ## In Progress
 
-_None — Phase 2 financial oversight is operational. Phase 3+ deferred per roadmap._
+### Phase 4 — Zoho Books (partial)
+- [x] Prisma models (`ZohoConnection`, `ZohoSyncMap`) + migration
+- [x] OAuth connect (admin Settings), env-based refresh token connect
+- [x] Sync vendor → Zoho contact; PO → Zoho bill
+- [x] API: chart of accounts, contacts, bills, invoices, P&L report
+- [ ] Auto journal entries / full chart-of-accounts mapping in reports UI
+- [ ] Scheduled sync jobs
 
 ### Phase 2 — Financial Oversight Module (COMPLETED)
 - [x] Prisma schema designed (5 new tables)
@@ -91,7 +97,7 @@ The Financial Oversight module was born from a real audit that found:
 - [ ] PDF export
 
 ### Integration
-- [ ] Zoho Books connection
+- [x] Zoho Books connection (OAuth, vendor/PO sync, P&L probe)
 - [ ] Bank statement import
 - [x] Email notifications for financial flag deadlines (SMTP)
 

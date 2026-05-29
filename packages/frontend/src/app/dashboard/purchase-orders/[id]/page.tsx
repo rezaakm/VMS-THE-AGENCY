@@ -25,6 +25,14 @@ export default function PurchaseOrderDetailPage() {
   });
 
   const canApprove = user?.role === 'ADMIN' || user?.role === 'MANAGER';
+  const canSyncZoho =
+    user?.role === 'ADMIN' ||
+    user?.role === 'MANAGER' ||
+    user?.role === 'BUYER';
+
+  const zohoBillMutation = useMutation({
+    mutationFn: () => api.post(`/zoho/sync/purchase-order/${id}`),
+  });
 
   if (isLoading) {
     return (
@@ -70,6 +78,31 @@ export default function PurchaseOrderDetailPage() {
           >
             Submit for approval
           </button>
+        </div>
+      )}
+
+      {canSyncZoho && (
+        <div className="mb-6">
+          <button
+            type="button"
+            onClick={() => zohoBillMutation.mutate()}
+            disabled={zohoBillMutation.isPending}
+            className="px-4 py-2 border border-indigo-200 text-indigo-700 rounded-lg text-sm hover:bg-indigo-50 disabled:opacity-50"
+          >
+            {zohoBillMutation.isPending
+              ? 'Syncing to Zoho…'
+              : 'Create bill in Zoho Books'}
+          </button>
+          {zohoBillMutation.isSuccess && (
+            <p className="text-xs text-green-700 mt-2">
+              Bill created in Zoho Books.
+            </p>
+          )}
+          {zohoBillMutation.isError && (
+            <p className="text-xs text-red-600 mt-2">
+              Sync failed. Connect Zoho in Settings (admin).
+            </p>
+          )}
         </div>
       )}
 

@@ -115,10 +115,11 @@ Transform raw data into actionable business intelligence.
 Connect VMS to external systems for automated data flow.
 
 ### Scope
-- [ ] Zoho Books integration (chart of accounts, journal entries)
+- [x] Zoho Books integration (OAuth, org selection, vendor/PO sync, P&L API) — partial
+- [ ] Zoho journal entries and automated COA mapping in monthly reports
 - [ ] Bank statement import (CSV/PDF from Bank Muscat)
 - [ ] Automated bank reconciliation matching
-- [ ] Email notifications for flag deadlines and overdue items
+- [x] Email notifications for flag deadlines and overdue items
 - [ ] ClickUp integration for task routing (from Theagencyagents)
 - [ ] Webhook endpoints for external triggers
 
