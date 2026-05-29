@@ -1,18 +1,22 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { AuditLogService } from '../audit-log/audit-log.service';
 import { CreateVendorDto } from './dto/create-vendor.dto';
 import { UpdateVendorDto } from './dto/update-vendor.dto';
 import { VendorStatus } from '@prisma/client';
 
 @Injectable()
 export class VendorsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private auditLog: AuditLogService,
+  ) {}
 
-  async create(createVendorDto: CreateVendorDto) {
+  async create(createVendorDto: CreateVendorDto, userId?: string) {
     // Generate unique vendor code
     const code = await this.generateVendorCode();
 
-    return this.prisma.vendor.create({
+    const vendor = await this.prisma.vendor.create({
       data: {
         ...createVendorDto,
         code,
@@ -22,6 +26,13 @@ export class VendorsService {
         documents: true,
       },
     });
+    if (userId) {
+      await this.auditLog.log(userId, 'CREATE', 'VENDOR', vendor.id, {
+        code: vendor.code,
+        name: vendor.name,
+      });
+    }
+    return vendor;
   }
 
   async findAll(filters?: any) {
@@ -89,10 +100,10 @@ export class VendorsService {
     return vendor;
   }
 
-  async update(id: string, updateVendorDto: UpdateVendorDto) {
+  async update(id: string, updateVendorDto: UpdateVendorDto, userId?: string) {
     await this.findOne(id);
 
-    return this.prisma.vendor.update({
+    const vendor = await this.prisma.vendor.update({
       where: { id },
       data: updateVendorDto,
       include: {
@@ -100,11 +111,20 @@ export class VendorsService {
         documents: true,
       },
     });
+    if (userId) {
+      await this.auditLog.log(userId, 'UPDATE', 'VENDOR', id, {
+        ...updateVendorDto,
+      });
+    }
+    return vendor;
   }
 
-  async remove(id: string) {
+  async remove(id: string, userId?: string) {
     await this.findOne(id);
     await this.prisma.vendor.delete({ where: { id } });
+    if (userId) {
+      await this.auditLog.log(userId, 'DELETE', 'VENDOR', id);
+    }
     return { message: 'Vendor deleted successfully' };
   }
 

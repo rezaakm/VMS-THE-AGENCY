@@ -1,33 +1,34 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
+import { UserRole } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { AuditLogService } from '../audit-log/audit-log.service';
+import { calculatePOTotals } from '../common/utils/po-totals.util';
 import { CreatePurchaseOrderDto } from './dto/create-purchase-order.dto';
 import { UpdatePurchaseOrderDto } from './dto/update-purchase-order.dto';
 import { POStatus } from '@prisma/client';
 
 @Injectable()
 export class PurchaseOrdersService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private auditLog: AuditLogService,
+  ) {}
 
   async create(createDto: CreatePurchaseOrderDto, userId: string) {
     const orderNumber = await this.generateOrderNumber();
 
-    // Calculate totals from items
-    const subtotal = createDto.items.reduce(
-      (sum, item) => sum + item.quantity * item.unitPrice * (1 - (item.discount || 0) / 100),
-      0,
+    const { subtotal, taxAmount, totalAmount } = calculatePOTotals(
+      createDto.items,
+      createDto.shippingCost || 0,
     );
-
-    const taxAmount = createDto.items.reduce(
-      (sum, item) =>
-        sum + (item.quantity * item.unitPrice * (1 - (item.discount || 0) / 100) * (item.taxRate || 0)) / 100,
-      0,
-    );
-
-    const totalAmount = subtotal + taxAmount + (createDto.shippingCost || 0);
 
     const { items, ...orderData } = createDto;
 
-    return this.prisma.purchaseOrder.create({
+    const po = await this.prisma.purchaseOrder.create({
       data: {
         ...orderData,
         orderNumber,
@@ -57,6 +58,11 @@ export class PurchaseOrdersService {
         },
       },
     });
+    await this.auditLog.log(userId, 'CREATE', 'PURCHASE_ORDER', po.id, {
+      orderNumber: po.orderNumber,
+      totalAmount: po.totalAmount,
+    });
+    return po;
   }
 
   async findAll(filters?: any) {
@@ -131,20 +137,12 @@ export class PurchaseOrdersService {
 
     // Recalculate if items are updated
     if (items) {
-      const subtotal = items.reduce(
-        (sum, item) => sum + item.quantity * item.unitPrice * (1 - (item.discount || 0) / 100),
-        0,
+      const { subtotal, taxAmount, totalAmount } = calculatePOTotals(
+        items,
+        orderData.shippingCost || 0,
       );
 
-      const taxAmount = items.reduce(
-        (sum, item) =>
-          sum + (item.quantity * item.unitPrice * (1 - (item.discount || 0) / 100) * (item.taxRate || 0)) / 100,
-        0,
-      );
-
-      const totalAmount = subtotal + taxAmount + (orderData.shippingCost || 0);
-
-      return this.prisma.purchaseOrder.update({
+      const updated = await this.prisma.purchaseOrder.update({
         where: { id },
         data: {
           ...orderData,
@@ -166,6 +164,7 @@ export class PurchaseOrdersService {
           vendor: true,
         },
       });
+      return updated;
     }
 
     return this.prisma.purchaseOrder.update({
@@ -178,18 +177,44 @@ export class PurchaseOrdersService {
     });
   }
 
-  async updateStatus(id: string, status: POStatus) {
+  async updateStatus(
+    id: string,
+    status: POStatus,
+    userId?: string,
+    userRole?: UserRole,
+  ) {
     await this.findOne(id);
 
-    return this.prisma.purchaseOrder.update({
+    const approvalStatuses: POStatus[] = ['APPROVED', 'COMPLETED'];
+    if (
+      approvalStatuses.includes(status) &&
+      userRole &&
+      userRole !== UserRole.ADMIN &&
+      userRole !== UserRole.MANAGER
+    ) {
+      throw new ForbiddenException(
+        'Only managers or admins can approve or complete purchase orders',
+      );
+    }
+
+    const po = await this.prisma.purchaseOrder.update({
       where: { id },
       data: { status },
     });
+    if (userId) {
+      await this.auditLog.log(userId, 'STATUS_CHANGE', 'PURCHASE_ORDER', id, {
+        status,
+      });
+    }
+    return po;
   }
 
-  async remove(id: string) {
+  async remove(id: string, userId?: string) {
     await this.findOne(id);
     await this.prisma.purchaseOrder.delete({ where: { id } });
+    if (userId) {
+      await this.auditLog.log(userId, 'DELETE', 'PURCHASE_ORDER', id);
+    }
     return { message: 'Purchase order deleted successfully' };
   }
 

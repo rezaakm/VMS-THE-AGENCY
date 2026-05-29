@@ -8,24 +8,32 @@ import {
   Delete,
   UseGuards,
   Query,
+  Request,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
+import { UserRole } from '@prisma/client';
 import { ContractsService } from './contracts.service';
 import { CreateContractDto } from './dto/create-contract.dto';
 import { UpdateContractDto } from './dto/update-contract.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../auth/guards/roles.guard';
+import { Roles } from '../auth/decorators/roles.decorator';
 
 @ApiTags('contracts')
 @Controller('contracts')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, RolesGuard)
 @ApiBearerAuth()
 export class ContractsController {
   constructor(private readonly service: ContractsService) {}
 
   @Post()
   @ApiOperation({ summary: 'Create a new contract' })
-  create(@Body() createDto: CreateContractDto) {
-    return this.service.create(createDto);
+  @Roles(UserRole.ADMIN, UserRole.MANAGER, UserRole.BUYER)
+  create(
+    @Body() createDto: CreateContractDto,
+    @Request() req: { user: { id: string } },
+  ) {
+    return this.service.create(createDto, req.user.id);
   }
 
   @Get()
@@ -51,14 +59,19 @@ export class ContractsController {
 
   @Patch(':id')
   @ApiOperation({ summary: 'Update contract' })
-  update(@Param('id') id: string, @Body() updateDto: UpdateContractDto) {
-    return this.service.update(id, updateDto);
+  update(
+    @Param('id') id: string,
+    @Body() updateDto: UpdateContractDto,
+    @Request() req: { user: { id: string } },
+  ) {
+    return this.service.update(id, updateDto, req.user.id);
   }
 
   @Delete(':id')
   @ApiOperation({ summary: 'Delete contract' })
-  remove(@Param('id') id: string) {
-    return this.service.remove(id);
+  @Roles(UserRole.ADMIN, UserRole.MANAGER)
+  remove(@Param('id') id: string, @Request() req: { user: { id: string } }) {
+    return this.service.remove(id, req.user.id);
   }
 }
 

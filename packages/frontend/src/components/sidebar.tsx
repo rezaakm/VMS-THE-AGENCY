@@ -10,6 +10,7 @@ import {
   FileQuestion,
   BarChart3,
   Settings,
+  Shield,
   Search,
   Calculator,
 } from 'lucide-react';
@@ -23,6 +24,7 @@ const navigation = [
   { name: 'Purchase Orders', href: '/dashboard/purchase-orders', icon: ShoppingCart },
   { name: 'RFQs', href: '/dashboard/rfqs', icon: FileQuestion },
   { name: 'Contracts', href: '/dashboard/contracts', icon: FileText },
+  { name: 'Financial Oversight', href: '/dashboard/financial-oversight', icon: Shield },
   { name: 'Reports', href: '/dashboard/reports', icon: BarChart3 },
   { name: 'Settings', href: '/dashboard/settings', icon: Settings },
 ];

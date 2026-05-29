@@ -7,8 +7,13 @@ import {
   Body,
   Query,
   UseGuards,
+  Request,
 } from '@nestjs/common';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import { UserRole } from '@prisma/client';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../auth/guards/roles.guard';
+import { Roles } from '../auth/decorators/roles.decorator';
 import { FinancialOversightService } from './financial-oversight.service';
 import { CreateFlagDto } from './dto/create-flag.dto';
 import { UpdateFlagDto } from './dto/update-flag.dto';
@@ -17,19 +22,17 @@ import { GradeResponseDto } from './dto/grade-response.dto';
 import { CreateChecklistItemDto } from './dto/create-checklist-item.dto';
 import { CreateProcessDto } from './dto/create-process.dto';
 
+@ApiTags('financial-oversight')
 @Controller('financial-oversight')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, RolesGuard)
+@ApiBearerAuth()
 export class FinancialOversightController {
   constructor(private readonly service: FinancialOversightService) {}
-
-  // ─── DASHBOARD ──────────────────────────────────────
 
   @Get('dashboard')
   getDashboard() {
     return this.service.getDashboard();
   }
-
-  // ─── FLAGS ──────────────────────────────────────────
 
   @Get('flags')
   findAllFlags(
@@ -46,31 +49,39 @@ export class FinancialOversightController {
   }
 
   @Post('flags')
-  createFlag(@Body() dto: CreateFlagDto) {
-    return this.service.createFlag(dto);
+  @Roles(UserRole.ADMIN, UserRole.MANAGER)
+  createFlag(@Body() dto: CreateFlagDto, @Request() req: { user: { id: string } }) {
+    return this.service.createFlag(dto, req.user.id);
   }
 
   @Patch('flags/:id')
-  updateFlag(@Param('id') id: string, @Body() dto: UpdateFlagDto) {
-    return this.service.updateFlag(id, dto);
+  @Roles(UserRole.ADMIN, UserRole.MANAGER)
+  updateFlag(
+    @Param('id') id: string,
+    @Body() dto: UpdateFlagDto,
+    @Request() req: { user: { id: string } },
+  ) {
+    return this.service.updateFlag(id, dto, req.user.id);
   }
-
-  // ─── FLAG RESPONSES ─────────────────────────────────
 
   @Post('flags/:id/responses')
   createResponse(
     @Param('id') flagId: string,
     @Body() dto: CreateResponseDto,
+    @Request() req: { user: { id: string } },
   ) {
-    return this.service.createResponse(flagId, dto);
+    return this.service.createResponse(flagId, dto, req.user.id);
   }
 
   @Patch('responses/:id/grade')
-  gradeResponse(@Param('id') id: string, @Body() dto: GradeResponseDto) {
-    return this.service.gradeResponse(id, dto);
+  @Roles(UserRole.ADMIN, UserRole.MANAGER)
+  gradeResponse(
+    @Param('id') id: string,
+    @Body() dto: GradeResponseDto,
+    @Request() req: { user: { id: string } },
+  ) {
+    return this.service.gradeResponse(id, dto, req.user.id);
   }
-
-  // ─── CHECKLIST ──────────────────────────────────────
 
   @Get('checklist')
   findAllChecklistItems(@Query('period') period?: string) {
@@ -78,6 +89,7 @@ export class FinancialOversightController {
   }
 
   @Post('checklist')
+  @Roles(UserRole.ADMIN, UserRole.MANAGER)
   createChecklistItem(@Body() dto: CreateChecklistItemDto) {
     return this.service.createChecklistItem(dto);
   }
@@ -95,19 +107,19 @@ export class FinancialOversightController {
     );
   }
 
-  // ─── PROCESSES ──────────────────────────────────────
-
   @Get('processes')
   findAllProcesses() {
     return this.service.findAllProcesses();
   }
 
   @Post('processes')
+  @Roles(UserRole.ADMIN, UserRole.MANAGER)
   createProcess(@Body() dto: CreateProcessDto) {
     return this.service.createProcess(dto);
   }
 
   @Patch('processes/:id')
+  @Roles(UserRole.ADMIN, UserRole.MANAGER)
   updateProcess(@Param('id') id: string, @Body() dto: Partial<CreateProcessDto>) {
     return this.service.updateProcess(id, dto);
   }

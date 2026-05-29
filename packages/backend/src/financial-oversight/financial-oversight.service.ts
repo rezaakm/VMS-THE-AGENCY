@@ -1,5 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { AuditLogService } from '../audit-log/audit-log.service';
 import { CreateFlagDto } from './dto/create-flag.dto';
 import { UpdateFlagDto } from './dto/update-flag.dto';
 import { CreateResponseDto } from './dto/create-response.dto';
@@ -9,7 +10,27 @@ import { CreateProcessDto } from './dto/create-process.dto';
 
 @Injectable()
 export class FinancialOversightService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private auditLog: AuditLogService,
+  ) {}
+
+  /** Mark open/in-progress flags past deadline as OVERDUE */
+  async escalateOverdueFlags(): Promise<number> {
+    const now = new Date();
+    const result = await this.prisma.financialFlag.updateMany({
+      where: {
+        status: { in: ['OPEN', 'IN_PROGRESS'] },
+        deadline: { lt: now },
+      },
+      data: { status: 'OVERDUE' },
+    });
+    return result.count;
+  }
+
+  private async ensureOverdueChecked() {
+    await this.escalateOverdueFlags();
+  }
 
   // ─── FLAGS ──────────────────────────────────────────
 
@@ -18,6 +39,7 @@ export class FinancialOversightService {
     severity?: string;
     category?: string;
   }) {
+    await this.ensureOverdueChecked();
     const where: any = {};
     if (filters?.status) where.status = filters.status;
     if (filters?.severity) where.severity = filters.severity;
@@ -48,8 +70,8 @@ export class FinancialOversightService {
     return flag;
   }
 
-  async createFlag(dto: CreateFlagDto) {
-    return this.prisma.financialFlag.create({
+  async createFlag(dto: CreateFlagDto, userId?: string) {
+    const flag = await this.prisma.financialFlag.create({
       data: {
         flagNumber: dto.flagNumber,
         title: dto.title,
@@ -60,11 +82,18 @@ export class FinancialOversightService {
         deadline: dto.deadline ? new Date(dto.deadline) : undefined,
       },
     });
+    if (userId) {
+      await this.auditLog.log(userId, 'CREATE', 'FINANCIAL_FLAG', flag.id, {
+        flagNumber: flag.flagNumber,
+        title: flag.title,
+      });
+    }
+    return flag;
   }
 
-  async updateFlag(id: string, dto: UpdateFlagDto) {
+  async updateFlag(id: string, dto: UpdateFlagDto, userId?: string) {
     await this.findFlagById(id);
-    return this.prisma.financialFlag.update({
+    const flag = await this.prisma.financialFlag.update({
       where: { id },
       data: {
         ...(dto.title && { title: dto.title }),
@@ -75,11 +104,17 @@ export class FinancialOversightService {
         ...(dto.deadline && { deadline: new Date(dto.deadline) }),
       },
     });
+    if (userId) {
+      await this.auditLog.log(userId, 'UPDATE', 'FINANCIAL_FLAG', id, {
+        ...dto,
+      });
+    }
+    return flag;
   }
 
   // ─── FLAG RESPONSES ─────────────────────────────────
 
-  async createResponse(flagId: string, dto: CreateResponseDto) {
+  async createResponse(flagId: string, dto: CreateResponseDto, userId?: string) {
     await this.findFlagById(flagId);
 
     // Auto-update flag status to IN_PROGRESS when response submitted
@@ -88,7 +123,7 @@ export class FinancialOversightService {
       data: { status: 'IN_PROGRESS' },
     });
 
-    return this.prisma.flagResponse.create({
+    const response = await this.prisma.flagResponse.create({
       data: {
         flagId,
         acknowledgement: dto.acknowledgement as any,
@@ -101,9 +136,15 @@ export class FinancialOversightService {
           : undefined,
       },
     });
+    if (userId) {
+      await this.auditLog.log(userId, 'CREATE', 'FLAG_RESPONSE', response.id, {
+        flagId,
+      });
+    }
+    return response;
   }
 
-  async gradeResponse(responseId: string, dto: GradeResponseDto) {
+  async gradeResponse(responseId: string, dto: GradeResponseDto, userId?: string) {
     const response = await this.prisma.flagResponse.findUnique({
       where: { id: responseId },
       include: { flag: true },
@@ -126,6 +167,12 @@ export class FinancialOversightService {
       await this.prisma.financialFlag.update({
         where: { id: response.flagId },
         data: { status: 'RESOLVED' },
+      });
+    }
+
+    if (userId) {
+      await this.auditLog.log(userId, 'GRADE', 'FLAG_RESPONSE', responseId, {
+        grade: dto.grade,
       });
     }
 
@@ -232,6 +279,7 @@ export class FinancialOversightService {
   // ─── DASHBOARD ──────────────────────────────────────
 
   async getDashboard() {
+    await this.ensureOverdueChecked();
     const now = new Date();
     const currentPeriod = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
 

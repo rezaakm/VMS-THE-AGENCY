@@ -233,7 +233,7 @@ export default function RfqDetailPage() {
           <h2 className="text-lg font-semibold text-gray-900">Vendor Bids</h2>
         </div>
         {rfq.vendorBids.length === 0 ? (
-          <div className="p-6 text-center text-gray-500">No vendors invited yet. Click "Send to Vendors" to get started.</div>
+          <div className="p-6 text-center text-gray-500">No vendors invited yet. Click Send to Vendors to get started.</div>
         ) : (
           <div className="divide-y divide-gray-200">
             {rfq.vendorBids.map((bid) => (

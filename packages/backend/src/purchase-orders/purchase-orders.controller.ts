@@ -14,11 +14,14 @@ import { ApiTags, ApiOperation, ApiBearerAuth, ApiQuery } from '@nestjs/swagger'
 import { PurchaseOrdersService } from './purchase-orders.service';
 import { CreatePurchaseOrderDto } from './dto/create-purchase-order.dto';
 import { UpdatePurchaseOrderDto } from './dto/update-purchase-order.dto';
+import { UserRole } from '@prisma/client';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../auth/guards/roles.guard';
+import { Roles } from '../auth/decorators/roles.decorator';
 
 @ApiTags('purchase-orders')
 @Controller('purchase-orders')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, RolesGuard)
 @ApiBearerAuth()
 export class PurchaseOrdersController {
   constructor(private readonly service: PurchaseOrdersService) {}
@@ -57,14 +60,24 @@ export class PurchaseOrdersController {
 
   @Patch(':id/status')
   @ApiOperation({ summary: 'Update purchase order status' })
-  updateStatus(@Param('id') id: string, @Body('status') status: any) {
-    return this.service.updateStatus(id, status);
+  updateStatus(
+    @Param('id') id: string,
+    @Body('status') status: any,
+    @Request() req: { user: { id: string; role: UserRole } },
+  ) {
+    return this.service.updateStatus(
+      id,
+      status,
+      req.user.id,
+      req.user.role,
+    );
   }
 
   @Delete(':id')
   @ApiOperation({ summary: 'Delete purchase order' })
-  remove(@Param('id') id: string) {
-    return this.service.remove(id);
+  @Roles(UserRole.ADMIN, UserRole.MANAGER)
+  remove(@Param('id') id: string, @Request() req: { user: { id: string } }) {
+    return this.service.remove(id, req.user.id);
   }
 }
 

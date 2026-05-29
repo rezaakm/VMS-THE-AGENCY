@@ -57,9 +57,9 @@ export default function AiAssistantPanel() {
     return () => window.removeEventListener('keydown', handler);
   }, [open]);
 
-  const getAuthHeader = () => {
+  const getAuthHeader = (): Record<string, string> => {
     const token = typeof window !== 'undefined' ? localStorage.getItem('token') : '';
-    return token ? `Bearer ${token}` : '';
+    return token ? { Authorization: `Bearer ${token}` } : {};
   };
 
   const handleToolResult = useCallback((tool: string, result: any) => {
@@ -69,7 +69,7 @@ export default function AiAssistantPanel() {
     if (result?.action === 'syncDrive') {
       fetch(`${API_URL}/cost-sheets/drive/sync`, {
         method: 'POST',
-        headers: { Authorization: getAuthHeader() },
+        headers: getAuthHeader(),
       }).then((r) => r.json()).then((data) => {
         setMessages((prev) => {
           const last = prev[prev.length - 1];
@@ -105,7 +105,7 @@ export default function AiAssistantPanel() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: getAuthHeader(),
+          ...getAuthHeader(),
         },
         body: JSON.stringify({
           messages: historyForApi,

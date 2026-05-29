@@ -571,3 +571,157 @@ model RFQBidItem {
   @@map("rfq_bid_items")
 }
 
+// ─── Financial Oversight ─────────────────────────────────────────────────────
+
+enum FlagSeverity {
+  CRITICAL
+  HIGH
+  MEDIUM
+  LOW
+}
+
+enum FlagStatus {
+  OPEN
+  IN_PROGRESS
+  RESOLVED
+  CLOSED
+  OVERDUE
+}
+
+enum FlagCategory {
+  BUDGET
+  REVENUE
+  COSTS
+  AR
+  STAFF
+  EXPENSES
+  RECONCILIATION
+  COMPLIANCE
+  PROCESSES
+}
+
+enum Acknowledgement {
+  YES
+  NO
+  PARTIALLY
+}
+
+enum ResponseGrade {
+  ADEQUATE
+  PARTIAL
+  INADEQUATE
+}
+
+enum ChecklistFrequency {
+  DAILY
+  WEEKLY
+  MONTHLY
+  QUARTERLY
+  ANNUAL
+}
+
+enum CompletionStatus {
+  PENDING
+  COMPLETED
+  OVERDUE
+  SKIPPED
+}
+
+enum ProcessStatus {
+  NOT_STARTED
+  IN_DEVELOPMENT
+  ACTIVE
+  NEEDS_UPDATE
+}
+
+model FinancialFlag {
+  id          String       @id @default(uuid())
+  flagNumber  Int
+  title       String
+  description String?
+  severity    FlagSeverity
+  status      FlagStatus   @default(OPEN)
+  category    FlagCategory
+  assignedTo  String?
+  deadline    DateTime?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  responses FlagResponse[]
+
+  @@index([status])
+  @@index([severity])
+  @@index([category])
+  @@map("financial_flags")
+}
+
+model FlagResponse {
+  id               String           @id @default(uuid())
+  flagId           String
+  acknowledgement  Acknowledgement?
+  rootCause        String?
+  currentStatus    String?
+  correctiveAction String?
+  evidence         Json?            @default("[]")
+  completionDate   DateTime?        @db.Date
+  grade            ResponseGrade?
+  reviewerNotes    String?
+  submittedAt      DateTime         @default(now())
+  reviewedAt       DateTime?
+
+  flag FinancialFlag @relation(fields: [flagId], references: [id], onDelete: Cascade)
+
+  @@index([flagId])
+  @@map("flag_responses")
+}
+
+model FinancialChecklistItem {
+  id          String             @id @default(uuid())
+  name        String
+  description String?
+  frequency   ChecklistFrequency
+  owner       String
+  dueDay      Int?
+  category    FlagCategory
+  isActive    Boolean            @default(true)
+  createdAt   DateTime           @default(now())
+
+  completions ChecklistCompletion[]
+
+  @@map("financial_checklist_items")
+}
+
+model ChecklistCompletion {
+  id              String           @id @default(uuid())
+  checklistItemId String
+  period          String
+  status          CompletionStatus @default(PENDING)
+  completedBy     String?
+  completedAt     DateTime?
+  notes           String?
+  evidence        String?
+
+  checklistItem FinancialChecklistItem @relation(fields: [checklistItemId], references: [id], onDelete: Cascade)
+
+  @@unique([checklistItemId, period])
+  @@index([period])
+  @@map("checklist_completions")
+}
+
+model FinancialProcess {
+  id               String             @id @default(uuid())
+  name             String
+  description      String?
+  owner            String
+  frequency        ChecklistFrequency
+  status           ProcessStatus      @default(NOT_STARTED)
+  templateUrl      String?
+  lastExecuted     DateTime?
+  nextDue          DateTime?
+  trainingRequired Boolean            @default(false)
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+
+  @@map("financial_processes")
+}
+

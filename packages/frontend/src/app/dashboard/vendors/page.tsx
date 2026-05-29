@@ -1,6 +1,6 @@
 'use client';
 
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import api from '@/lib/api';
 import Link from 'next/link';
 import { Plus, Eye, Edit, Trash2 } from 'lucide-react';
@@ -18,6 +18,13 @@ interface Vendor {
 }
 
 export default function VendorsPage() {
+  const queryClient = useQueryClient();
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => api.delete(`/vendors/${id}`),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['vendors'] }),
+  });
+
   const { data: vendors, isLoading } = useQuery<Vendor[]>({
     queryKey: ['vendors'],
     queryFn: async () => {
@@ -133,7 +140,15 @@ export default function VendorsPage() {
                     >
                       <Edit className="w-4 h-4" />
                     </Link>
-                    <button className="text-red-600 hover:text-red-900">
+                    <button
+                      type="button"
+                      className="text-red-600 hover:text-red-900"
+                      onClick={() => {
+                        if (confirm(`Delete vendor ${vendor.name}?`)) {
+                          deleteMutation.mutate(vendor.id);
+                        }
+                      }}
+                    >
                       <Trash2 className="w-4 h-4" />
                     </button>
                   </div>

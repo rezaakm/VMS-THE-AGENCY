@@ -8,7 +8,11 @@ import {
   Delete,
   UseGuards,
   Query,
+  Request,
 } from '@nestjs/common';
+import { UserRole } from '@prisma/client';
+import { RolesGuard } from '../auth/guards/roles.guard';
+import { Roles } from '../auth/decorators/roles.decorator';
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
 import { VendorsService } from './vendors.service';
 import { CreateVendorDto } from './dto/create-vendor.dto';
@@ -17,15 +21,19 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 
 @ApiTags('vendors')
 @Controller('vendors')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, RolesGuard)
 @ApiBearerAuth()
 export class VendorsController {
   constructor(private readonly vendorsService: VendorsService) {}
 
   @Post()
   @ApiOperation({ summary: 'Create a new vendor' })
-  create(@Body() createVendorDto: CreateVendorDto) {
-    return this.vendorsService.create(createVendorDto);
+  @Roles(UserRole.ADMIN, UserRole.MANAGER, UserRole.BUYER)
+  create(
+    @Body() createVendorDto: CreateVendorDto,
+    @Request() req: { user: { id: string } },
+  ) {
+    return this.vendorsService.create(createVendorDto, req.user.id);
   }
 
   @Get()
@@ -58,8 +66,12 @@ export class VendorsController {
 
   @Patch(':id')
   @ApiOperation({ summary: 'Update vendor' })
-  update(@Param('id') id: string, @Body() updateVendorDto: UpdateVendorDto) {
-    return this.vendorsService.update(id, updateVendorDto);
+  update(
+    @Param('id') id: string,
+    @Body() updateVendorDto: UpdateVendorDto,
+    @Request() req: { user: { id: string } },
+  ) {
+    return this.vendorsService.update(id, updateVendorDto, req.user.id);
   }
 
   @Patch(':id/status')
@@ -70,8 +82,9 @@ export class VendorsController {
 
   @Delete(':id')
   @ApiOperation({ summary: 'Delete vendor' })
-  remove(@Param('id') id: string) {
-    return this.vendorsService.remove(id);
+  @Roles(UserRole.ADMIN, UserRole.MANAGER)
+  remove(@Param('id') id: string, @Request() req: { user: { id: string } }) {
+    return this.vendorsService.remove(id, req.user.id);
   }
 }
 

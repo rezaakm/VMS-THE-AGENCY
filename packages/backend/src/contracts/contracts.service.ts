@@ -1,16 +1,20 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { AuditLogService } from '../audit-log/audit-log.service';
 import { CreateContractDto } from './dto/create-contract.dto';
 import { UpdateContractDto } from './dto/update-contract.dto';
 
 @Injectable()
 export class ContractsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private auditLog: AuditLogService,
+  ) {}
 
-  async create(createDto: CreateContractDto) {
+  async create(createDto: CreateContractDto, userId?: string) {
     const contractNumber = await this.generateContractNumber();
 
-    return this.prisma.contract.create({
+    const contract = await this.prisma.contract.create({
       data: {
         ...createDto,
         contractNumber,
@@ -25,6 +29,12 @@ export class ContractsService {
         },
       },
     });
+    if (userId) {
+      await this.auditLog.log(userId, 'CREATE', 'CONTRACT', contract.id, {
+        contractNumber: contract.contractNumber,
+      });
+    }
+    return contract;
   }
 
   async findAll(filters?: any) {
@@ -70,21 +80,30 @@ export class ContractsService {
     return contract;
   }
 
-  async update(id: string, updateDto: UpdateContractDto) {
+  async update(id: string, updateDto: UpdateContractDto, userId?: string) {
     await this.findOne(id);
 
-    return this.prisma.contract.update({
+    const contract = await this.prisma.contract.update({
       where: { id },
       data: updateDto,
       include: {
         vendor: true,
       },
     });
+    if (userId) {
+      await this.auditLog.log(userId, 'UPDATE', 'CONTRACT', id, {
+        ...updateDto,
+      });
+    }
+    return contract;
   }
 
-  async remove(id: string) {
+  async remove(id: string, userId?: string) {
     await this.findOne(id);
     await this.prisma.contract.delete({ where: { id } });
+    if (userId) {
+      await this.auditLog.log(userId, 'DELETE', 'CONTRACT', id);
+    }
     return { message: 'Contract deleted successfully' };
   }
 

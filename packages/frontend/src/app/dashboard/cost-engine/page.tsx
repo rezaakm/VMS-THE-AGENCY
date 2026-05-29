@@ -80,7 +80,7 @@ export default function CostEnginePage() {
   const [matForm, setMatForm] = useState({ materialName: '', unit: '', unitPrice: '', source: 'MANUAL', vendorName: '', category: '' });
   const [addingPrice, setAddingPrice] = useState(false);
 
-  const getAuthHeader = () => {
+  const getAuthHeader = (): Record<string, string> => {
     const token = typeof window !== 'undefined' ? localStorage.getItem('token') : '';
     return token ? { Authorization: `Bearer ${token}` } : {};
   };
@@ -356,7 +356,7 @@ export default function CostEnginePage() {
               </Card>
             ))}
             {(dashboard?.estimates || estimates).length === 0 && !loadingDash && (
-              <div className="text-center text-muted-foreground py-12">No estimates yet. Create one using the "New Estimate" tab.</div>
+              <div className="text-center text-muted-foreground py-12">No estimates yet. Create one using the New Estimate tab.</div>
             )}
           </div>
         </div>

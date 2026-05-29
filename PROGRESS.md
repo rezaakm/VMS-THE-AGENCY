@@ -47,12 +47,13 @@ The project documentation has been upgraded to match the same constitutional str
 
 ### Phase 2 — Financial Oversight Module
 - [x] Prisma schema designed (5 new tables)
-- [x] SQL migration created
-- [x] Backend module scaffolded (controller, service, DTOs)
-- [ ] Frontend pages (dashboard, flags, checklist, processes)
-- [ ] Seed data (12 real flags, checklist items, processes)
-- [ ] Integration testing
-- [ ] Push to GitHub
+- [x] SQL migration created (timestamped: `20260524120000_add_financial_oversight`)
+- [x] Backend module wired in `app.module.ts` with overdue cron + on-access escalation
+- [x] Frontend pages (dashboard, flags, checklist, processes)
+- [x] Seed data (12 audit flags, checklist items, processes)
+- [x] Unit tests (PO totals, financial grading/escalation)
+- [x] AuditLog writes on vendor/PO/contract/financial actions
+- [x] RolesGuard on sensitive endpoints (PO approve, flag grade, deletes)
 
 ### Origin: April 2026 Financial Audit
 The Financial Oversight module was born from a real audit that found:
@@ -74,12 +75,13 @@ The Financial Oversight module was born from a real audit that found:
 ## Main Gaps Remaining
 
 ### Financial Oversight Completion
-- [ ] Frontend pages for financial oversight dashboard
-- [ ] Seed data with real audit flags
-- [ ] Overdue flag auto-detection (scheduled job or on-access check)
+- [x] Frontend pages for financial oversight dashboard
+- [x] Seed data with real audit flags
+- [x] Overdue flag auto-detection (daily cron + on-access check)
 - [ ] Email notification for approaching deadlines
 
 ### Reporting Enhancement
+- [x] Reports page (spend by vendor/category, monthly spend, vendor performance)
 - [ ] AR aging dashboard
 - [ ] Client profitability view
 - [ ] Monthly P&L format report
@@ -91,8 +93,8 @@ The Financial Oversight module was born from a real audit that found:
 - [ ] Email notifications for deadlines
 
 ### Audit Hardening
-- [ ] AuditLog coverage review for all modules
-- [ ] PO approval threshold enforcement
+- [x] AuditLog coverage on vendors, POs, contracts, financial flags/responses
+- [x] PO approval restricted to MANAGER/ADMIN roles
 - [ ] Document version tracking
 
 ---
