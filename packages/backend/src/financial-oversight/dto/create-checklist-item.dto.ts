@@ -1,25 +1,25 @@
-import { IsString, IsEnum, IsOptional, IsInt, IsBoolean } from 'class-validator';
+import { IsString, IsInt, IsOptional, IsBoolean, IsEnum, MaxLength } from 'class-validator';
+import { UserRole } from '@prisma/client';
 
 export class CreateChecklistItemDto {
   @IsString()
+  @MaxLength(200)
   name: string;
 
   @IsOptional()
   @IsString()
+  @MaxLength(1000)
   description?: string;
 
-  @IsEnum(['DAILY', 'WEEKLY', 'MONTHLY', 'QUARTERLY', 'ANNUAL'])
+  @IsString()
   frequency: string;
 
-  @IsString()
-  owner: string;
+  @IsInt()
+  dueDay: number;
 
   @IsOptional()
-  @IsInt()
-  dueDay?: number;
-
-  @IsEnum(['BUDGET', 'REVENUE', 'COSTS', 'AR', 'STAFF', 'EXPENSES', 'RECONCILIATION', 'COMPLIANCE', 'PROCESSES'])
-  category: string;
+  @IsEnum(UserRole)
+  ownerRole?: UserRole;
 
   @IsOptional()
   @IsBoolean()
