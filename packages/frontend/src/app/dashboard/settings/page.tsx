@@ -6,10 +6,12 @@ import api from '@/lib/api';
 import { useAuth } from '@/hooks/use-auth';
 import { formatDate } from '@/lib/utils';
 import { ZohoIntegrationCard } from '@/components/zoho-integration-card';
+import { GoogleDriveFolderCard } from '@/components/google-drive-folder-card';
 
 export default function SettingsPage() {
   const { user } = useAuth();
   const isAdmin = user?.role === 'ADMIN';
+  const canManageDrive = user?.role === 'ADMIN' || user?.role === 'MANAGER';
   const canViewAudit = user?.role === 'ADMIN' || user?.role === 'MANAGER';
 
   const { data: auditLogs } = useQuery({
@@ -48,6 +50,8 @@ export default function SettingsPage() {
           API URL: {process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}
         </p>
       </div>
+
+      {canManageDrive && <GoogleDriveFolderCard />}
 
       {isAdmin && (
         <Suspense

@@ -5,7 +5,8 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiQuery, ApiConsumes } from '@nestjs/swagger';
 import { CostSheetsService } from './cost-sheets.service';
 import { AiService } from './ai.service';
-import { GoogleDriveService } from './google-drive.service';
+import { DriveCatalogService } from '../google-drive/drive-catalog.service';
+import { GoogleDriveService } from '../google-drive/google-drive.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { Public } from '../auth/decorators/public.decorator';
 
@@ -17,6 +18,7 @@ export class CostSheetsController {
   constructor(
     private readonly costSheetsService: CostSheetsService,
     private readonly aiService: AiService,
+    private readonly driveCatalog: DriveCatalogService,
     private readonly googleDriveService: GoogleDriveService,
   ) {}
 
@@ -120,9 +122,9 @@ export class CostSheetsController {
   // ─── Google Drive ──────────────────────────────────────────────────────────
 
   @Post('drive/sync')
-  @ApiOperation({ summary: 'Sync cost sheets from Google Drive folder' })
+  @ApiOperation({ summary: 'Sync assigned Drive folder (catalog + Excel cost sheets)' })
   async syncDrive() {
-    return this.googleDriveService.syncFolder();
+    return this.driveCatalog.syncCatalogAndCostSheets();
   }
 
   @Public()
@@ -135,11 +137,12 @@ export class CostSheetsController {
 
   @Public()
   @Get('drive/callback')
-  @ApiOperation({ summary: 'OAuth callback — exchanges code for refresh token' })
+  @ApiOperation({ summary: 'OAuth callback (legacy URI — use /google-drive/auth/callback)' })
   async driveCallback(@Query('code') code: string) {
     const result = await this.googleDriveService.exchangeCodeForToken(code);
     return {
-      message: 'Google Drive connected. Copy this refresh token into your .env as GOOGLE_REFRESH_TOKEN, then restart the backend.',
+      message:
+        'Google Drive connected. Copy this refresh token into packages/backend/.env as GOOGLE_REFRESH_TOKEN, then restart the backend.',
       refresh_token: result.refresh_token,
     };
   }

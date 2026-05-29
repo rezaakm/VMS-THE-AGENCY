@@ -14,12 +14,14 @@ import {
   Search,
   Calculator,
   Star,
+  HardDrive,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
   { name: 'Cost Sheets', href: '/dashboard/cost-sheets', icon: Search },
+  { name: 'Drive files', href: '/dashboard/google-drive', icon: HardDrive },
   { name: 'Cost Engine', href: '/dashboard/cost-engine', icon: Calculator },
   { name: 'Vendors', href: '/dashboard/vendors', icon: Users },
   { name: 'Evaluations', href: '/dashboard/evaluations', icon: Star },

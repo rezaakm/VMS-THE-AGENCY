@@ -98,6 +98,7 @@ The Financial Oversight module was born from a real audit that found:
 
 ### Integration
 - [x] Zoho Books connection (OAuth, vendor/PO sync, P&L probe)
+- [x] Google Drive folder catalog in database (`GoogleDriveFolder`, `GoogleDriveFile`)
 - [ ] Bank statement import
 - [x] Email notifications for financial flag deadlines (SMTP)
 

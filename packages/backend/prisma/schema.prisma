@@ -366,6 +366,47 @@ model AuditLog {
   @@map("audit_logs")
 }
 
+// Google Drive catalog (assigned folder → file index in database)
+model GoogleDriveFolder {
+  id           String    @id @default(uuid())
+  folderId     String    @unique
+  name         String?
+  isActive     Boolean   @default(true)
+  lastSyncedAt DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  files GoogleDriveFile[]
+
+  @@map("google_drive_folders")
+}
+
+model GoogleDriveFile {
+  id            String    @id @default(uuid())
+  folderRefId   String
+  driveFileId   String    @unique
+  name          String
+  mimeType      String
+  size          BigInt?
+  modifiedTime  DateTime
+  webViewLink   String?
+  subfolderPath String?
+  category      String
+  isInDrive     Boolean   @default(true)
+  costSheetId   String?   @unique
+  lastSyncedAt  DateTime  @default(now())
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  folder    GoogleDriveFolder @relation(fields: [folderRefId], references: [id], onDelete: Cascade)
+  costSheet CostSheet?        @relation(fields: [costSheetId], references: [id], onDelete: SetNull)
+
+  @@index([folderRefId])
+  @@index([category])
+  @@index([isInDrive])
+  @@map("google_drive_files")
+}
+
 // Cost Sheet Models (Excel parsing & vendor analytics)
 model CostSheet {
   id          String    @id @default(uuid())
@@ -379,7 +420,8 @@ model CostSheet {
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 
-  items CostSheetItem[]
+  items           CostSheetItem[]
+  googleDriveFile GoogleDriveFile?
 
   @@index([jobNumber])
   @@index([client])

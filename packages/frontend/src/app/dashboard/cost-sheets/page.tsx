@@ -210,7 +210,7 @@ export default function CostSheetsPage() {
 
   const handleDriveConnect = async () => {
     try {
-      const res = await fetch(`${API_URL}/cost-sheets/drive/auth`, {
+      const res = await fetch(`${API_URL}/google-drive/auth`, {
         headers: getAuthHeader(),
       });
       const { authUrl } = await res.json();
@@ -271,7 +271,9 @@ export default function CostSheetsPage() {
                 Drive Sync {syncResult.success ? 'Complete' : 'Failed'} — {syncResult.filesFound} files found, {syncResult.filesProcessed} processed, {syncResult.filesSkipped} skipped
               </span>
             </div>
-            <p className="text-xs text-muted-foreground mb-2">Auto-syncs every hour when Google Drive is connected.</p>
+            <p className="text-xs text-muted-foreground mb-2">
+              Catalogs all files in the assigned folder and parses Excel cost sheets. Auto-syncs hourly. See Drive files for the full catalog.
+            </p>
             {syncResult.errors.length > 0 && (
               <div className="text-sm text-red-600 mb-2 space-y-1">
                 {syncResult.errors.map((e, i) => <div key={i}>{e}</div>)}

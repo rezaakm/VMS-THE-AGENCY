@@ -1,17 +1,15 @@
-import { Module } from '@nestjs/common';
-import { ScheduleModule } from '@nestjs/schedule';
+import { Module, forwardRef } from '@nestjs/common';
 import { CostSheetsService } from './cost-sheets.service';
 import { CostSheetsController } from './cost-sheets.controller';
 import { ExcelParserService } from './excel-parser.service';
 import { AiService } from './ai.service';
-import { GoogleDriveService } from './google-drive.service';
-import { DriveSyncScheduler } from './drive-sync.scheduler';
 import { PrismaModule } from '../prisma/prisma.module';
+import { GoogleDriveModule } from '../google-drive/google-drive.module';
 
 @Module({
-  imports: [PrismaModule, ScheduleModule.forRoot()],
+  imports: [PrismaModule, forwardRef(() => GoogleDriveModule)],
   controllers: [CostSheetsController],
-  providers: [CostSheetsService, ExcelParserService, AiService, GoogleDriveService, DriveSyncScheduler],
-  exports: [CostSheetsService, ExcelParserService, AiService, GoogleDriveService],
+  providers: [CostSheetsService, ExcelParserService, AiService],
+  exports: [CostSheetsService, ExcelParserService, AiService],
 })
 export class CostSheetsModule {}
