@@ -1,5 +1,6 @@
-import { Controller, Get, UseGuards, Query } from '@nestjs/common';
+import { Controller, Get, UseGuards, Query, Res, Header } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
+import { Response } from 'express';
 import { ReportsService } from './reports.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 
@@ -53,6 +54,38 @@ export class ReportsController {
   @ApiOperation({ summary: 'Get vendor performance report' })
   getVendorPerformanceReport() {
     return this.service.getVendorPerformanceReport();
+  }
+
+  @Get('ar-aging')
+  @ApiOperation({ summary: 'Accounts receivable aging (client receivables)' })
+  getArAging() {
+    return this.service.getArAging();
+  }
+
+  @Get('monthly-pl-summary')
+  @ApiOperation({ summary: 'Monthly operational P&L-style summary' })
+  @ApiQuery({ name: 'year', required: false, type: Number })
+  @ApiQuery({ name: 'month', required: false, type: Number })
+  getMonthlyPlSummary(
+    @Query('year') year?: string,
+    @Query('month') month?: string,
+  ) {
+    return this.service.getMonthlyPlSummary(
+      year ? parseInt(year, 10) : undefined,
+      month ? parseInt(month, 10) : undefined,
+    );
+  }
+
+  @Get('export/spend-by-vendor.csv')
+  @Header('Content-Type', 'text/csv')
+  @ApiOperation({ summary: 'Export spend by vendor as CSV' })
+  async exportSpendByVendor(@Res() res: Response) {
+    const csv = await this.service.getSpendByVendorCsv();
+    res.setHeader(
+      'Content-Disposition',
+      'attachment; filename="spend-by-vendor.csv"',
+    );
+    res.send(csv);
   }
 }
 

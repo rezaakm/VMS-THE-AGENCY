@@ -1,10 +1,14 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { AuditLogService } from '../audit-log/audit-log.service';
 import { CreateEvaluationDto } from './dto/create-evaluation.dto';
 
 @Injectable()
 export class EvaluationsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private auditLog: AuditLogService,
+  ) {}
 
   async create(createDto: CreateEvaluationDto, evaluatorId: string) {
     // Calculate overall score
@@ -41,6 +45,11 @@ export class EvaluationsService {
 
     // Update vendor performance score
     await this.updateVendorPerformanceScore(createDto.vendorId);
+
+    await this.auditLog.log(evaluatorId, 'CREATE', 'EVALUATION', evaluation.id, {
+      vendorId: createDto.vendorId,
+      overallScore,
+    });
 
     return evaluation;
   }

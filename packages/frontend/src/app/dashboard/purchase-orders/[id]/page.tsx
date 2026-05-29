@@ -60,6 +60,19 @@ export default function PurchaseOrderDetailPage() {
         <div><span className="text-gray-500">Total</span><p className="font-bold">{formatCurrency(po.totalAmount)}</p></div>
       </div>
 
+      {po.status === 'DRAFT' && (
+        <div className="mb-6">
+          <button
+            type="button"
+            onClick={() => statusMutation.mutate('SUBMITTED')}
+            disabled={statusMutation.isPending}
+            className="px-4 py-2 bg-primary text-white rounded-lg"
+          >
+            Submit for approval
+          </button>
+        </div>
+      )}
+
       {canApprove && po.status === 'SUBMITTED' && (
         <div className="mb-6 flex gap-2">
           <button

@@ -33,4 +33,23 @@ export class AuditLogService {
       return null;
     }
   }
+
+  async findAll(entity?: string, limit = 50) {
+    return this.prisma.auditLog.findMany({
+      where: entity ? { entity } : undefined,
+      include: {
+        user: {
+          select: {
+            id: true,
+            email: true,
+            firstName: true,
+            lastName: true,
+            role: true,
+          },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+      take: Math.min(limit, 200),
+    });
+  }
 }

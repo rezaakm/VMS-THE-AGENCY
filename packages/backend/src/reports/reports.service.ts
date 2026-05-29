@@ -200,6 +200,112 @@ export class ReportsService {
     }));
   }
 
+  async getArAging() {
+    const receivables = await this.prisma.clientReceivable.findMany({
+      where: { status: { in: ['PENDING', 'OVERDUE'] } },
+      orderBy: { dueDate: 'asc' },
+    });
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const buckets = {
+      current: 0,
+      days1_30: 0,
+      days31_60: 0,
+      days61_90: 0,
+      days90_plus: 0,
+      total: 0,
+    };
+
+    const details = receivables
+      .map((r) => {
+        const outstanding = r.amount - r.paidAmount;
+        if (outstanding <= 0) return null;
+
+        const due = new Date(r.dueDate);
+        due.setHours(0, 0, 0, 0);
+        const daysPast = Math.floor(
+          (today.getTime() - due.getTime()) / 86400000,
+        );
+
+        let bucket: 'current' | 'days1_30' | 'days31_60' | 'days61_90' | 'days90_plus' =
+          'current';
+        if (daysPast <= 0) bucket = 'current';
+        else if (daysPast <= 30) bucket = 'days1_30';
+        else if (daysPast <= 60) bucket = 'days31_60';
+        else if (daysPast <= 90) bucket = 'days61_90';
+        else bucket = 'days90_plus';
+
+        buckets[bucket] += outstanding;
+        buckets.total += outstanding;
+
+        return {
+          id: r.id,
+          clientName: r.clientName,
+          reference: r.reference,
+          dueDate: r.dueDate,
+          outstanding,
+          daysPast: Math.max(0, daysPast),
+          bucket,
+        };
+      })
+      .filter(Boolean);
+
+    return {
+      asOf: today.toISOString(),
+      currency: 'OMR',
+      buckets,
+      details,
+    };
+  }
+
+  async getMonthlyPlSummary(year?: number, month?: number) {
+    const now = new Date();
+    const y = year ?? now.getFullYear();
+    const m = month ?? now.getMonth() + 1;
+    const start = new Date(y, m - 1, 1);
+    const end = new Date(y, m, 0, 23, 59, 59, 999);
+
+    const [poAgg, paidInvoices, ar] = await Promise.all([
+      this.prisma.purchaseOrder.aggregate({
+        _sum: { totalAmount: true },
+        where: {
+          status: 'COMPLETED',
+          orderDate: { gte: start, lte: end },
+        },
+      }),
+      this.prisma.invoice.aggregate({
+        _sum: { paidAmount: true },
+        where: {
+          status: 'PAID',
+          paidDate: { gte: start, lte: end },
+        },
+      }),
+      this.getArAging(),
+    ]);
+
+    return {
+      period: `${y}-${String(m).padStart(2, '0')}`,
+      currency: 'OMR',
+      procurementSpendCompleted: poAgg._sum.totalAmount || 0,
+      vendorPaymentsRecorded: paidInvoices._sum.paidAmount || 0,
+      outstandingReceivables: ar.buckets.total,
+      note:
+        'Operational summary from VMS procurement and AR data. Full revenue and OpEx P&L requires Zoho Books integration (Phase 4).',
+    };
+  }
+
+  async getSpendByVendorCsv(): Promise<string> {
+    const rows = await this.getSpendByVendor();
+    const header = 'Vendor,Code,Total Spent (OMR),Order Count';
+    const lines = rows.map(
+      (r) =>
+        `"${r.vendorName.replace(/"/g, '""')}",${r.vendorCode},${r.totalSpent},${r.orderCount}`,
+    );
+    return [header, ...lines].join('\n');
+  }
+
   private async getExpiringContractsCount(days: number): Promise<number> {
     const futureDate = new Date();
     futureDate.setDate(futureDate.getDate() + days);

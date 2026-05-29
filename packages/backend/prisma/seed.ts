@@ -1,6 +1,7 @@
 import { PrismaClient } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 import { seedFinancialOversight } from './seed-financial';
+import { seedClientReceivables } from './seed-receivables';
 
 const prisma = new PrismaClient();
 
@@ -326,6 +327,7 @@ async function main() {
   console.log('✅ Created invoice:', invoice1.invoiceNumber);
 
   await seedFinancialOversight(prisma);
+  await seedClientReceivables(prisma);
 
   console.log('🎉 Database seeding completed successfully!');
 }

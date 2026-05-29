@@ -299,6 +299,24 @@ model Invoice {
   @@map("invoices")
 }
 
+model ClientReceivable {
+  id            String        @id @default(uuid())
+  clientName    String
+  reference     String?
+  description   String?
+  invoiceDate   DateTime      @default(now())
+  dueDate       DateTime
+  amount        Float
+  paidAmount    Float         @default(0)
+  status        PaymentStatus @default(PENDING)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  @@index([status])
+  @@index([dueDate])
+  @@map("client_receivables")
+}
+
 model AuditLog {
   id        String   @id @default(uuid())
   userId    String

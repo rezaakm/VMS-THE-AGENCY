@@ -13,6 +13,7 @@ import {
   Shield,
   Search,
   Calculator,
+  Star,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -21,6 +22,7 @@ const navigation = [
   { name: 'Cost Sheets', href: '/dashboard/cost-sheets', icon: Search },
   { name: 'Cost Engine', href: '/dashboard/cost-engine', icon: Calculator },
   { name: 'Vendors', href: '/dashboard/vendors', icon: Users },
+  { name: 'Evaluations', href: '/dashboard/evaluations', icon: Star },
   { name: 'Purchase Orders', href: '/dashboard/purchase-orders', icon: ShoppingCart },
   { name: 'RFQs', href: '/dashboard/rfqs', icon: FileQuestion },
   { name: 'Contracts', href: '/dashboard/contracts', icon: FileText },

@@ -82,21 +82,25 @@ The Financial Oversight module was born from a real audit that found:
 - [x] Overdue flag auto-detection (daily cron + on-access check)
 - [x] Email notification for approaching deadlines (daily cron + SMTP)
 
-### Reporting Enhancement
+### Reporting Enhancement (Phase 3 — in progress)
 - [x] Reports page (spend by vendor/category, monthly spend, vendor performance)
-- [ ] AR aging dashboard
+- [x] AR aging dashboard (client receivables + seed data)
+- [x] Monthly operational P&L-style summary (procurement + AR; full P&L needs Zoho)
+- [x] CSV export (spend by vendor)
 - [ ] Client profitability view
-- [ ] Monthly P&L format report
-- [ ] Export functionality (PDF/Excel)
+- [ ] PDF export
 
 ### Integration
 - [ ] Zoho Books connection
 - [ ] Bank statement import
-- [ ] Email notifications for deadlines
+- [x] Email notifications for financial flag deadlines (SMTP)
 
 ### Audit Hardening
-- [x] AuditLog coverage on vendors, POs, contracts, financial flags/responses
+- [x] AuditLog coverage on vendors, POs, contracts, financial flags/responses, evaluations
 - [x] PO approval restricted to MANAGER/ADMIN roles
+- [x] Audit log viewer on Settings (admin/manager)
+- [x] PO submit-for-approval workflow on detail page
+- [x] Vendor evaluations UI
 - [ ] Document version tracking
 
 ---
