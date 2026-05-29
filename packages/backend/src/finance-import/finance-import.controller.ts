@@ -17,23 +17,38 @@ export class FinanceImportController {
   async importMonthlyPack(@UploadedFile() file: Express.Multer.File, @Body() body: { period: string }) {
     const tempPath = `./uploads/${Date.now()}-${file.originalname}`;
     require('fs').writeFileSync(tempPath, file.buffer);
-    return this.importService.ingestMonthlyFinancePack(tempPath, body.period, 'current-user'); // TODO: real user
+    return this.importService.ingestMonthlyFinancePack(tempPath, body.period, 'current-user');
   }
 
-  /**
-   * Upload P&L PDFs (the monthly reports the old accountant used to send).
-   * Example: "The Agency-P&L Dec'2025.pdf"
-   */
   @Post('pl-report')
   @Roles(UserRole.ADMIN, UserRole.MANAGER)
   @UseInterceptors(FileInterceptor('file'))
-  async importPLReport(
-    @UploadedFile() file: Express.Multer.File,
-    @Body() body: { period: string },
-  ) {
+  async importPLReport(@UploadedFile() file: Express.Multer.File, @Body() body: { period: string }) {
     const tempPath = `./uploads/${Date.now()}-${file.originalname}`;
     require('fs').writeFileSync(tempPath, file.buffer);
-
     return this.importService.ingestPLReportPdf(tempPath, body.period, 'current-user');
+  }
+
+  /**
+   * Import a single detailed cost sheet (from Cost Sheet-Master folder).
+   * Example: the Saud Bahwan iCAUR file the user just provided.
+   */
+  @Post('cost-sheet')
+  @Roles(UserRole.ADMIN, UserRole.MANAGER)
+  @UseInterceptors(FileInterceptor('file'))
+  async importCostSheet(@UploadedFile() file: Express.Multer.File) {
+    const tempPath = `./uploads/${Date.now()}-${file.originalname}`;
+    require('fs').writeFileSync(tempPath, file.buffer);
+    return this.importService.importCostSheetFromMaster(tempPath);
+  }
+
+  /**
+   * Bulk import the entire Cost Sheet-Master folder from the user's machine.
+   * This is powerful for sucking in years of detailed job cost data at once.
+   */
+  @Post('cost-sheet-master-folder')
+  @Roles(UserRole.ADMIN, UserRole.MANAGER)
+  async importCostSheetMasterFolder(@Body() body: { folderPath: string }) {
+    return this.importService.importCostSheetMasterFolder(body.folderPath);
   }
 }
