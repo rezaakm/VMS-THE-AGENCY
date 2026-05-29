@@ -119,6 +119,27 @@ export class CostSheetsController {
 
   // ─── Google Drive ──────────────────────────────────────────────────────────
 
+  @Get('drive/status')
+  @ApiOperation({ summary: 'Check if Google Drive is connected and working' })
+  async getDriveStatus() {
+    try {
+      const folderId = this.googleDriveService['configService'].get<string>('GOOGLE_DRIVE_FOLDER_ID') || '1uDCJBOZARhEiBrOEdG3QP2Cm0GrNI-2I';
+      // Try to list a few files as a health check
+      const files = await this.googleDriveService['listExcelFiles'](folderId);
+      return {
+        connected: true,
+        message: 'Google Drive is connected and working.',
+        sampleFilesFound: files.length,
+      };
+    } catch (err: any) {
+      return {
+        connected: false,
+        message: 'Google Drive connection failed. ' + err.message,
+        hint: 'Make sure GOOGLE_REFRESH_TOKEN is set in .env and is still valid.',
+      };
+    }
+  }
+
   @Post('drive/sync')
   @ApiOperation({ summary: 'Sync cost sheets from Google Drive folder (general)' })
   async syncDrive() {
@@ -140,6 +161,7 @@ export class CostSheetsController {
   /**
    * SUPER SIMPLE one-click endpoint for you.
    * Just call this (with auth) and it will sync your entire historical Cost Sheet Master archive from Drive.
+   * No folder ID needed - it's hardcoded to your actual archive.
    */
   @Post('drive/sync-my-historical-archive')
   @ApiOperation({ summary: 'One-click sync of your full historical Cost Sheet Master (2023+) from Google Drive' })
