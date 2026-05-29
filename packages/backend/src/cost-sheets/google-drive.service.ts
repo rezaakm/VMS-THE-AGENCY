@@ -93,6 +93,83 @@ export class GoogleDriveService {
     return Buffer.from(response.data as ArrayBuffer);
   }
 
+  /**
+   * NEW: Dedicated method to sync your entire historical Cost Sheet-Master archive from Google Drive.
+   * This is the best way to bring in all your 2023+ detailed cost sheets.
+   */
+  async syncCostSheetMasterArchive(masterFolderId: string): Promise<DriveSyncResult> {
+    this.logger.log(`Starting full historical Cost Sheet Master archive sync from Drive folder: ${masterFolderId}`);
+
+    const result: DriveSyncResult = {
+      success: true,
+      filesFound: 0,
+      filesProcessed: 0,
+      filesSkipped: 0,
+      errors: [],
+      details: [],
+    };
+
+    try {
+      // Recursively find all Excel files in the master archive folder
+      const files = await this.listSubfolderFiles(masterFolderId);
+      result.filesFound = files.length;
+
+      this.logger.log(`Found ${files.length} cost sheets in your historical archive`);
+
+      for (const file of files) {
+        try {
+          // Strong deduplication using Drive file ID
+          const existing = await this.prisma.costSheet.findUnique({
+            where: { driveFileId: file.id },
+          });
+
+          if (existing) {
+            this.logger.log(`Skipping already imported: ${file.name}`);
+            result.filesSkipped++;
+            continue;
+          }
+
+          this.logger.log(`Processing historical cost sheet: ${file.name}`);
+          const buffer = await this.downloadFile(file.id);
+          const parseResult = await this.excelParser.parseAndInsert(buffer, file.name, file.id);
+
+          result.details.push({
+            fileName: file.name,
+            driveFileId: file.id,
+            rowsInserted: parseResult.rowsInserted,
+            rowsSkipped: parseResult.rowsSkipped,
+            error: parseResult.error,
+          });
+
+          if (parseResult.success) {
+            result.filesProcessed++;
+          } else {
+            result.filesSkipped++;
+            if (parseResult.error) result.errors.push(`${file.name}: ${parseResult.error}`);
+          }
+        } catch (fileErr: any) {
+          this.logger.error(`Failed to process ${file.name}: ${fileErr.message}`);
+          result.filesSkipped++;
+          result.errors.push(`${file.name}: ${fileErr.message}`);
+          result.details.push({
+            fileName: file.name,
+            driveFileId: file.id,
+            rowsInserted: 0,
+            rowsSkipped: 0,
+            error: fileErr.message,
+          });
+        }
+      }
+    } catch (err: any) {
+      result.success = false;
+      result.errors.push(err.message);
+      this.logger.error(`Cost Sheet Master archive sync failed: ${err.message}`);
+    }
+
+    this.logger.log(`Historical archive sync complete: ${result.filesProcessed} new files processed from 2023+`);
+    return result;
+  }
+
   async syncFolder(): Promise<DriveSyncResult> {
     const folderId = this.configService.get<string>('GOOGLE_DRIVE_FOLDER_ID');
     if (!folderId) {
