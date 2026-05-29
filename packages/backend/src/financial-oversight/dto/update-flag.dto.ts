@@ -1,27 +1,30 @@
-import { IsString, IsEnum, IsOptional, IsDateString } from 'class-validator';
+import { IsString, IsEnum, IsOptional, IsDateString, MaxLength } from 'class-validator';
+import { FlagSeverity, FlagStatus } from '@prisma/client';
 
 export class UpdateFlagDto {
   @IsOptional()
   @IsString()
+  @MaxLength(200)
   title?: string;
 
   @IsOptional()
   @IsString()
+  @MaxLength(2000)
   description?: string;
 
   @IsOptional()
-  @IsEnum(['CRITICAL', 'HIGH', 'MEDIUM', 'LOW'])
-  severity?: string;
+  @IsEnum(FlagSeverity)
+  severity?: FlagSeverity;
 
   @IsOptional()
-  @IsEnum(['OPEN', 'IN_PROGRESS', 'RESOLVED', 'CLOSED', 'OVERDUE'])
-  status?: string;
+  @IsEnum(FlagStatus)
+  status?: FlagStatus;
 
   @IsOptional()
   @IsString()
-  assignedTo?: string;
+  assignedToId?: string;
 
   @IsOptional()
   @IsDateString()
-  deadline?: string;
+  dueDate?: string;
 }
