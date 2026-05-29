@@ -41,6 +41,7 @@ services:
       SMTP_USER: ${SMTP_USER:-}
       SMTP_PASS: ${SMTP_PASS:-}
       SMTP_FROM: ${SMTP_FROM:-}
+      FINANCIAL_ALERT_EMAILS: ${FINANCIAL_ALERT_EMAILS:-}
     ports:
       - "${BACKEND_PORT:-3001}:3001"
     depends_on:
