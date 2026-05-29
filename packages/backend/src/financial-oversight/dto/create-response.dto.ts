@@ -1,27 +1,33 @@
-import { IsString, IsEnum, IsOptional, IsDateString, IsArray } from 'class-validator';
+import { IsString, IsOptional, MaxLength } from 'class-validator';
 
 export class CreateResponseDto {
   @IsOptional()
-  @IsEnum(['YES', 'NO', 'PARTIALLY'])
-  acknowledgement?: string;
+  @IsString()
+  @MaxLength(1000)
+  acknowledge?: string;
 
   @IsOptional()
   @IsString()
+  @MaxLength(1000)
   rootCause?: string;
 
   @IsOptional()
   @IsString()
+  @MaxLength(1000)
   currentStatus?: string;
 
   @IsOptional()
   @IsString()
-  correctiveAction?: string;
+  @MaxLength(1000)
+  actionPlan?: string;
 
   @IsOptional()
-  @IsArray()
-  evidence?: string[];
+  @IsString()
+  @MaxLength(1000)
+  evidence?: string;
 
   @IsOptional()
-  @IsDateString()
+  @IsString()
+  @MaxLength(200)
   completionDate?: string;
 }
