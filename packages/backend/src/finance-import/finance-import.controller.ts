@@ -1,4 +1,4 @@
-import { Controller, Post, Body, UseGuards, UploadedFile, UseInterceptors } from '@nestjs/common';
+import { Controller, Post, UseGuards, UploadedFile, UseInterceptors, Body } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
@@ -15,11 +15,25 @@ export class FinanceImportController {
   @Roles(UserRole.ADMIN, UserRole.MANAGER)
   @UseInterceptors(FileInterceptor('file'))
   async importMonthlyPack(@UploadedFile() file: Express.Multer.File, @Body() body: { period: string }) {
-    // For now we save the file locally or to a temp path
-    // In production you'd use proper storage
+    const tempPath = `./uploads/${Date.now()}-${file.originalname}`;
+    require('fs').writeFileSync(tempPath, file.buffer);
+    return this.importService.ingestMonthlyFinancePack(tempPath, body.period, 'current-user'); // TODO: real user
+  }
+
+  /**
+   * Upload P&L PDFs (the monthly reports the old accountant used to send).
+   * Example: "The Agency-P&L Dec'2025.pdf"
+   */
+  @Post('pl-report')
+  @Roles(UserRole.ADMIN, UserRole.MANAGER)
+  @UseInterceptors(FileInterceptor('file'))
+  async importPLReport(
+    @UploadedFile() file: Express.Multer.File,
+    @Body() body: { period: string },
+  ) {
     const tempPath = `./uploads/${Date.now()}-${file.originalname}`;
     require('fs').writeFileSync(tempPath, file.buffer);
 
-    return this.importService.ingestMonthlyFinancePack(tempPath, body.period, 'current-user-id'); // TODO: get from request
+    return this.importService.ingestPLReportPdf(tempPath, body.period, 'current-user');
   }
 }
