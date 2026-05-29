@@ -45,7 +45,9 @@ The project documentation has been upgraded to match the same constitutional str
 
 ## In Progress
 
-### Phase 2 — Financial Oversight Module
+_None — Phase 2 financial oversight is operational. Phase 3+ deferred per roadmap._
+
+### Phase 2 — Financial Oversight Module (COMPLETED)
 - [x] Prisma schema designed (5 new tables)
 - [x] SQL migration created (timestamped: `20260524120000_add_financial_oversight`)
 - [x] Backend module wired in `app.module.ts` with overdue cron + on-access escalation
@@ -78,7 +80,7 @@ The Financial Oversight module was born from a real audit that found:
 - [x] Frontend pages for financial oversight dashboard
 - [x] Seed data with real audit flags
 - [x] Overdue flag auto-detection (daily cron + on-access check)
-- [ ] Email notification for approaching deadlines
+- [x] Email notification for approaching deadlines (daily cron + SMTP)
 
 ### Reporting Enhancement
 - [x] Reports page (spend by vendor/category, monthly spend, vendor performance)

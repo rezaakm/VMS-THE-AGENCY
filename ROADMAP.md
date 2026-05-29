@@ -49,23 +49,29 @@ Add structured procurement through RFQs and AI-powered cost intelligence.
 - RFQ workflow works end-to-end: create → invite vendors → receive bids → compare → award.
 - Cost engine provides meaningful analysis on uploaded cost sheets.
 
+### Phase 2 exit criteria (met)
+- All 12 audit flags trackable with responses and manager grading in the UI.
+- Monthly checklist and process registry seeded and visible on dashboard.
+- Overdue flags and checklist items escalate automatically; email digest when SMTP is configured.
+
 ---
 
-## Phase 2 — Financial Oversight Module (IN PROGRESS)
+## Phase 2 — Financial Oversight Module (COMPLETED)
 
 ### Goal
 Add financial controls born from the real April 2026 audit.
 
 ### Scope
-- [ ] Financial flags (audit issues with severity, assignment, deadlines)
-- [ ] Flag response system (A-F template: acknowledge, root cause, status, action, evidence, date)
-- [ ] Response grading (Adequate / Partial / Inadequate)
-- [ ] Auto-escalation of overdue flags
-- [ ] Monthly financial checklist (bank recon, P&L, AR aging, owner account)
-- [ ] Checklist completion tracking by period
-- [ ] Financial process registry (SOPs with ownership and status)
-- [ ] Financial oversight dashboard (open flags, checklist progress, process status)
-- [ ] Prisma migration and seed data with the 12 real flags from the audit
+- [x] Financial flags (audit issues with severity, assignment, deadlines)
+- [x] Flag response system (A-F template: acknowledge, root cause, status, action, evidence, date)
+- [x] Response grading (Adequate / Partial / Inadequate)
+- [x] Auto-escalation of overdue flags (cron + on-access)
+- [x] Email alerts for overdue and approaching-deadline flags (SMTP)
+- [x] Monthly financial checklist (bank recon, P&L, AR aging, owner account)
+- [x] Checklist completion tracking by period (with overdue by due day)
+- [x] Financial process registry (SOPs with ownership and status)
+- [x] Financial oversight dashboard (open flags, checklist progress, process status)
+- [x] Prisma migration and seed data with the 12 real flags from the audit
 
 ### Success Criteria
 - All 12 flags from the April 2026 audit are trackable in the system.

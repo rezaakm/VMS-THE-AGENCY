@@ -49,7 +49,9 @@ export default function FinancialChecklistPage() {
           dueDay?: number;
           completions: { status: string }[];
         }) => {
-          const done = item.completions?.[0]?.status === 'COMPLETED';
+          const status = item.completions?.[0]?.status;
+          const done = status === 'COMPLETED';
+          const overdue = status === 'OVERDUE';
           return (
             <div key={item.id} className="bg-white rounded-lg shadow p-4 flex justify-between items-center">
               <div>
@@ -59,6 +61,8 @@ export default function FinancialChecklistPage() {
               </div>
               {done ? (
                 <span className="text-green-600 text-sm font-semibold">Completed</span>
+              ) : overdue ? (
+                <span className="text-red-600 text-sm font-semibold">Overdue</span>
               ) : (
                 <button
                   type="button"

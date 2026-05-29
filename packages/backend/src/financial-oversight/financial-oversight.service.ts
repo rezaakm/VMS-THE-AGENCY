@@ -15,6 +15,32 @@ export class FinancialOversightService {
     private auditLog: AuditLogService,
   ) {}
 
+  /** Flags that will be escalated (for email digest before update). */
+  async findFlagsPastDeadline() {
+    const now = new Date();
+    return this.prisma.financialFlag.findMany({
+      where: {
+        status: { in: ['OPEN', 'IN_PROGRESS'] },
+        deadline: { lt: now },
+      },
+      orderBy: { flagNumber: 'asc' },
+    });
+  }
+
+  /** Open flags due within N days (inclusive). */
+  async getFlagsApproachingDeadline(withinDays = 3) {
+    const now = new Date();
+    const end = new Date();
+    end.setDate(end.getDate() + withinDays);
+    return this.prisma.financialFlag.findMany({
+      where: {
+        status: { in: ['OPEN', 'IN_PROGRESS'] },
+        deadline: { gte: now, lte: end },
+      },
+      orderBy: { deadline: 'asc' },
+    });
+  }
+
   /** Mark open/in-progress flags past deadline as OVERDUE */
   async escalateOverdueFlags(): Promise<number> {
     const now = new Date();
@@ -28,8 +54,56 @@ export class FinancialOversightService {
     return result.count;
   }
 
+  /** Mark monthly checklist items past due day as OVERDUE for the period */
+  async escalateOverdueChecklistItems(period?: string) {
+    const now = new Date();
+    const currentPeriod =
+      period ||
+      `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+    const dayOfMonth = now.getDate();
+
+    const items = await this.prisma.financialChecklistItem.findMany({
+      where: {
+        isActive: true,
+        dueDay: { not: null, lt: dayOfMonth },
+      },
+    });
+
+    let updated = 0;
+    for (const item of items) {
+      const completion = await this.prisma.checklistCompletion.findUnique({
+        where: {
+          checklistItemId_period: {
+            checklistItemId: item.id,
+            period: currentPeriod,
+          },
+        },
+      });
+      if (!completion) {
+        await this.prisma.checklistCompletion.create({
+          data: {
+            checklistItemId: item.id,
+            period: currentPeriod,
+            status: 'OVERDUE',
+          },
+        });
+        updated += 1;
+      } else if (completion.status === 'PENDING') {
+        await this.prisma.checklistCompletion.update({
+          where: { id: completion.id },
+          data: { status: 'OVERDUE' },
+        });
+        updated += 1;
+      }
+    }
+    return updated;
+  }
+
   private async ensureOverdueChecked() {
     await this.escalateOverdueFlags();
+    const now = new Date();
+    const period = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+    await this.escalateOverdueChecklistItems(period);
   }
 
   // ─── FLAGS ──────────────────────────────────────────
@@ -182,12 +256,16 @@ export class FinancialOversightService {
   // ─── CHECKLIST ──────────────────────────────────────
 
   async findAllChecklistItems(period?: string) {
+    const now = new Date();
+    const resolvedPeriod =
+      period ||
+      `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+    await this.escalateOverdueChecklistItems(resolvedPeriod);
+
     const items = await this.prisma.financialChecklistItem.findMany({
       where: { isActive: true },
       include: {
-        completions: period
-          ? { where: { period } }
-          : { orderBy: { period: 'desc' }, take: 1 },
+        completions: { where: { period: resolvedPeriod } },
       },
       orderBy: [{ dueDay: 'asc' }, { name: 'asc' }],
     });
