@@ -5,7 +5,7 @@ import { useState } from 'react';
 export default function FinanceImportPage() {
   const [uploading, setUploading] = useState(false);
   const [message, setMessage] = useState('');
-  const [masterFolderId, setMasterFolderId] = useState('');
+  const [masterFolderId, setMasterFolderId] = useState('1uDCJBOZARhEiBrOEdG3QP2Cm0GrNI-2I');
 
   const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
@@ -90,8 +90,9 @@ export default function FinanceImportPage() {
       <div className="border-2 border-blue-600 p-6 rounded-xl mb-8 bg-blue-50">
         <h2 className="font-semibold mb-2 text-blue-900">Sync Your Full Historical Cost Sheet Archive from Google Drive (2023+)</h2>
         <p className="text-sm text-blue-800 mb-4">
-          You mentioned you uploaded everything (including your Cost Sheet-Master folder with data from 2023) to Google Drive.
-          Use this to bulk import all your detailed historical cost sheets. This will massively power the AI pricing intelligence tools.
+          You put your entire Cost Sheet-Master (and other historical data) on Google Drive.
+          Use this to bulk import all your detailed historical cost sheets from 2023 onwards.
+          This will massively power the AI pricing intelligence tools.
         </p>
 
         <div className="space-y-3">
@@ -104,7 +105,7 @@ export default function FinanceImportPage() {
               placeholder="Paste the folder ID from the Drive URL"
               className="border p-2 w-full rounded text-sm"
             />
-            <p className="text-xs text-blue-700 mt-1">From the URL https://drive.google.com/drive/folders/1AbCdEf... use just 1AbCdEf...</p>
+            <p className="text-xs text-blue-700 mt-1">Example (your folder): 1uDCJBOZARhEiBrOEdG3QP2Cm0GrNI-2I</p>
           </div>
 
           <button
