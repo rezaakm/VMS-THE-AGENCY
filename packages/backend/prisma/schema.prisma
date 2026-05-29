@@ -62,6 +62,12 @@ model User {
   evaluations    Evaluation[]
   auditLogs      AuditLog[]
   rfqs           RFQ[]
+  flagsAssigned  FinancialFlag[] @relation("FlagAssignee")
+  flagsCreated   FinancialFlag[] @relation("FlagCreator")
+  responsesSubmitted FlagResponse[]
+  responsesGraded    FlagResponse[] @relation("ResponseGrader")
+  checklistCompletions ChecklistCompletion[]
+  financialProcessesOwned FinancialProcess[]
 
   @@map("users")
 }
@@ -303,7 +309,7 @@ model AuditLog {
   id        String   @id @default(uuid())
   userId    String
   action    String   // e.g., "CREATE", "UPDATE", "DELETE"
-  entity    String   // e.g., "VENDOR", "PO", "CONTRACT"
+  entity    String   // e.g., "VENDOR", "PO", "CONTRACT", "FINANCIAL_FLAG"
   entityId  String
   changes   Json?    // Store before/after values
   ipAddress String?
@@ -355,7 +361,7 @@ model CostSheetItem {
   @@map("cost_sheet_items")
 }
 
-// ─── AI Cost Intelligence Engine ──────────────────────────────────────────────
+// ─── AI Cost Intelligence Engine ─────────────────────────────────────────
 
 model RawMaterial {
   id          String   @id @default(uuid())
@@ -479,7 +485,7 @@ model EstimateLine {
   @@map("estimate_lines")
 }
 
-// ─── RFQ (Request for Quotation) ─────────────────────────────────────────────
+// ─── RFQ (Request for Quotation) ────────────────────────────────────────
 
 enum RFQStatus {
   DRAFT
@@ -571,3 +577,143 @@ model RFQBidItem {
   @@map("rfq_bid_items")
 }
 
+// ─── Financial Oversight (Phase 2 - Core) ─────────────────────────────────────────────────────
+// This module is the direct result of the real April 2026 financial audit.
+// It is NOT optional. Database is the source of truth.
+
+enum FlagSeverity {
+  CRITICAL
+  HIGH
+  MEDIUM
+  LOW
+}
+
+enum FlagStatus {
+  OPEN
+  IN_PROGRESS
+  RESOLVED
+  ESCALATED
+}
+
+enum FlagCategory {
+  BUDGET
+  REVENUE
+  COSTS
+  AR_COLLECTIONS
+  BANK_RECON
+  FINANCIAL_STATEMENTS
+  STAFF_SETTLEMENTS
+  OWNER_ACCOUNT
+  PROCESSES
+  OTHER
+}
+
+enum ResponseGrade {
+  ADEQUATE
+  PARTIAL
+  INADEQUATE
+}
+
+model FinancialFlag {
+  id          String       @id @default(uuid())
+  title       String
+  description String
+  severity    FlagSeverity
+  category    FlagCategory
+  status      FlagStatus   @default(OPEN)
+  
+  assignedToId String?
+  assignedTo   User?        @relation("FlagAssignee", fields: [assignedToId], references: [id])
+  
+  dueDate     DateTime?
+  createdById String
+  createdBy   User         @relation("FlagCreator", fields: [createdById], references: [id])
+  
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  responses   FlagResponse[]
+
+  @@index([status, severity])
+  @@index([assignedToId])
+  @@map("financial_flags")
+}
+
+model FlagResponse {
+  id          String    @id @default(uuid())
+  flagId      String
+  flag        FinancialFlag @relation(fields: [flagId], references: [id], onDelete: Cascade)
+  
+  // A-F Template (constitutional standard)
+  acknowledge     String?   // A
+  rootCause       String?   // B
+  currentStatus   String?   // C
+  actionPlan      String?   // D
+  evidence        String?   // E
+  completionDate  String?   // F
+
+  submittedById   String
+  submittedBy     User      @relation(fields: [submittedById], references: [id])
+  submittedAt     DateTime  @default(now())
+
+  grade           ResponseGrade?
+  gradedById      String?
+  gradedBy        User?     @relation("ResponseGrader", fields: [gradedById], references: [id])
+  gradedAt        DateTime?
+  gradeNotes      String?
+
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@map("flag_responses")
+}
+
+model FinancialChecklistItem {
+  id            String   @id @default(uuid())
+  name          String
+  description   String?
+  frequency     String   // "monthly", "weekly"
+  dueDay        Int
+  ownerRole     UserRole?
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  completions   ChecklistCompletion[]
+
+  @@map("financial_checklist_items")
+}
+
+model ChecklistCompletion {
+  id            String    @id @default(uuid())
+  itemId        String
+  item          FinancialChecklistItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  
+  period        String    // e.g. "2026-05"
+  completed     Boolean   @default(false)
+  completedById String?
+  completedBy   User?     @relation(fields: [completedById], references: [id])
+  completedAt   DateTime?
+  notes         String?
+
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@unique([itemId, period])
+  @@map("checklist_completions")
+}
+
+model FinancialProcess {
+  id            String   @id @default(uuid())
+  name          String
+  description   String?
+  sopLink       String?
+  ownerId       String?
+  owner         User?    @relation(fields: [ownerId], references: [id])
+  status        String   @default("ACTIVE")
+  lastReviewed  DateTime?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@map("financial_processes")
+}
