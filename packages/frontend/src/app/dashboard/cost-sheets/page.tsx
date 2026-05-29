@@ -22,7 +22,9 @@ interface SyncResult {
   }>;
 }
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+import { getApiUrl } from '@/lib/get-api-url';
+
+const API_URL = getApiUrl();
 
 interface LookupItem {
   id: string;

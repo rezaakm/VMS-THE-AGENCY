@@ -26,7 +26,7 @@ CREATE TABLE "google_drive_files" (
     "subfolderPath" TEXT,
     "category" TEXT NOT NULL,
     "isInDrive" BOOLEAN NOT NULL DEFAULT true,
-    "costSheetId" UUID,
+    "costSheetId" TEXT,
     "lastSyncedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,

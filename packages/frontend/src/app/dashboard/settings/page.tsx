@@ -47,7 +47,7 @@ export default function SettingsPage() {
           <p className="text-gray-500">Loading profile...</p>
         )}
         <p className="text-xs text-gray-400 pt-4 border-t">
-          API URL: {process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}
+          API: same-origin /api proxy (backend on port 3001)
         </p>
       </div>
 

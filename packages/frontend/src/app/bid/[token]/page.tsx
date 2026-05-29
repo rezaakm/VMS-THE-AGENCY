@@ -5,9 +5,10 @@ import { useParams } from 'next/navigation';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import axios from 'axios';
 import { CheckCircle, Clock, AlertCircle } from 'lucide-react';
+import { getApiUrl } from '@/lib/get-api-url';
 
 const publicApi = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001',
+  baseURL: getApiUrl(),
   headers: { 'Content-Type': 'application/json' },
 });
 

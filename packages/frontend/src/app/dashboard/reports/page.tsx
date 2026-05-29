@@ -5,7 +5,9 @@ import api from '@/lib/api';
 import { formatCurrency, formatDate } from '@/lib/utils';
 import { Download } from 'lucide-react';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+import { getApiUrl } from '@/lib/get-api-url';
+
+const API_URL = getApiUrl();
 
 export default function ReportsPage() {
   const { data: spendByVendor, isLoading: lv } = useQuery({

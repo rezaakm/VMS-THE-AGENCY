@@ -6,7 +6,9 @@ import ReactMarkdown from 'react-markdown';
 import { MessageSquare, X, Send, Loader2, Bot, User, ChevronDown, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+import { getApiUrl } from '@/lib/get-api-url';
+
+const API_URL = getApiUrl();
 
 interface Message {
   role: 'user' | 'assistant';
