@@ -137,6 +137,17 @@ export class CostSheetsController {
     return this.googleDriveService.syncCostSheetMasterArchive(folderId);
   }
 
+  /**
+   * SUPER SIMPLE one-click endpoint for you.
+   * Just call this (with auth) and it will sync your entire historical Cost Sheet Master archive from Drive.
+   */
+  @Post('drive/sync-my-historical-archive')
+  @ApiOperation({ summary: 'One-click sync of your full historical Cost Sheet Master (2023+) from Google Drive' })
+  async syncMyHistoricalArchive() {
+    // Hardcoded to your actual folder
+    return this.googleDriveService.syncCostSheetMasterArchive('1uDCJBOZARhEiBrOEdG3QP2Cm0GrNI-2I');
+  }
+
   @Public()
   @Get('drive/auth')
   @ApiOperation({ summary: 'Get Google OAuth URL to authorise Drive access' })
