@@ -120,9 +120,22 @@ export class CostSheetsController {
   // ─── Google Drive ──────────────────────────────────────────────────────────
 
   @Post('drive/sync')
-  @ApiOperation({ summary: 'Sync cost sheets from Google Drive folder' })
+  @ApiOperation({ summary: 'Sync cost sheets from Google Drive folder (general)' })
   async syncDrive() {
     return this.googleDriveService.syncFolder();
+  }
+
+  /**
+   * NEW: Dedicated endpoint to sync your entire historical Cost Sheet-Master archive (2023+).
+   * This is the recommended way to bring in all your old detailed cost sheets from Drive.
+   */
+  @Post('drive/sync-cost-sheet-master')
+  @ApiOperation({ summary: 'Sync entire historical Cost Sheet Master archive from a specific Drive folder (2023-present)' })
+  async syncCostSheetMasterArchive(@Body() body: { masterFolderId: string }) {
+    if (!body.masterFolderId) {
+      return { success: false, error: 'masterFolderId is required' };
+    }
+    return this.googleDriveService.syncCostSheetMasterArchive(body.masterFolderId);
   }
 
   @Public()
