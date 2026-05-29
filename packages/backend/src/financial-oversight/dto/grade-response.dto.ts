@@ -1,10 +1,12 @@
-import { IsEnum, IsOptional, IsString } from 'class-validator';
+import { IsEnum, IsOptional, IsString, MaxLength } from 'class-validator';
+import { ResponseGrade } from '@prisma/client';
 
 export class GradeResponseDto {
-  @IsEnum(['ADEQUATE', 'PARTIAL', 'INADEQUATE'])
-  grade: string;
+  @IsEnum(ResponseGrade)
+  grade: ResponseGrade;
 
   @IsOptional()
   @IsString()
-  reviewerNotes?: string;
+  @MaxLength(1000)
+  gradeNotes?: string;
 }
