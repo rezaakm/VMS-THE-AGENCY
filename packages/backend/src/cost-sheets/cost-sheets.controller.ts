@@ -126,16 +126,15 @@ export class CostSheetsController {
   }
 
   /**
-   * NEW: Dedicated endpoint to sync your entire historical Cost Sheet-Master archive (2023+).
-   * This is the recommended way to bring in all your old detailed cost sheets from Drive.
+   * Dedicated endpoint for your full historical Cost Sheet Master archive.
+   * This folder contains all your detailed cost sheets from 2023 onwards.
    */
   @Post('drive/sync-cost-sheet-master')
-  @ApiOperation({ summary: 'Sync entire historical Cost Sheet Master archive from a specific Drive folder (2023-present)' })
-  async syncCostSheetMasterArchive(@Body() body: { masterFolderId: string }) {
-    if (!body.masterFolderId) {
-      return { success: false, error: 'masterFolderId is required' };
-    }
-    return this.googleDriveService.syncCostSheetMasterArchive(body.masterFolderId);
+  @ApiOperation({ summary: 'Sync your full historical Cost Sheet Master archive (2023-present) from Google Drive' })
+  async syncCostSheetMasterArchive(@Body() body?: { masterFolderId?: string }) {
+    // Default to your main historical archive folder if not provided
+    const folderId = body?.masterFolderId || '1uDCJBOZARhEiBrOEdG3QP2Cm0GrNI-2I';
+    return this.googleDriveService.syncCostSheetMasterArchive(folderId);
   }
 
   @Public()
