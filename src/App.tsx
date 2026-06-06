@@ -22,7 +22,6 @@ import PurchaseOrders from "@/pages/purchase-orders";
 import Invoices from "@/pages/invoices";
 import Evaluations from "@/pages/evaluations";
 import Rfqs from "@/pages/rfqs";
-import FinancialOversight from "@/pages/financial-oversight";
 import Reports from "@/pages/reports";
 
 const queryClient = new QueryClient({
@@ -51,7 +50,6 @@ function Router() {
         <Route path="/invoices" component={Invoices} />
         <Route path="/rfqs" component={Rfqs} />
         <Route path="/evaluations" component={Evaluations} />
-        <Route path="/financial-oversight" component={FinancialOversight} />
         <Route path="/reports" component={Reports} />
         <Route path="/calculator" component={Calculator} />
         <Route path="/assistant" component={Assistant} />
