@@ -222,6 +222,28 @@ body::before {
   }
 }
 
+/* Finance: Chart card — gradient top border accent */
+.card-chart {
+  border-top: 2px solid transparent;
+  background-image:
+    linear-gradient(hsl(var(--card)), hsl(var(--card))),
+    linear-gradient(90deg, hsl(var(--chart-1) / 0.7), hsl(var(--chart-2) / 0.5), transparent);
+  background-origin: border-box;
+  background-clip: padding-box, border-box;
+}
+
+/* Finance: Recharts tooltip — dark frosted glass */
+.recharts-tooltip-wrapper .recharts-default-tooltip {
+  border-radius: 0.625rem !important;
+  border: 1px solid hsl(var(--border)) !important;
+  font-size: 0.8125rem !important;
+  background: hsl(var(--popover) / 0.92) !important;
+  backdrop-filter: blur(12px) saturate(1.4) !important;
+  -webkit-backdrop-filter: blur(12px) saturate(1.4) !important;
+  box-shadow: 0 4px 6px -1px rgba(0,0,0,0.3) !important;
+  color: hsl(var(--popover-foreground)) !important;
+}
+
 /* Smooth scrollbar */
 ::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }

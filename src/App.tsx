@@ -26,6 +26,14 @@ import Evaluations from "@/pages/evaluations";
 import Rfqs from "@/pages/rfqs";
 import Reports from "@/pages/reports";
 import QuoteWizard from "@/pages/quote-wizard";
+import FinanceOverview from "@/pages/finance/overview";
+import FinancePnl from "@/pages/finance/pnl";
+import FinanceReceivables from "@/pages/finance/receivables";
+import FinancePayables from "@/pages/finance/payables";
+import FinanceBank from "@/pages/finance/bank";
+import FinancePayroll from "@/pages/finance/payroll";
+import FinanceCashOutlook from "@/pages/finance/cash-outlook";
+import FinancePending from "@/pages/finance/pending";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -58,6 +66,14 @@ function Router() {
         <Route path="/calculator" component={Calculator} />
         <Route path="/assistant" component={Assistant} />
         <Route path="/import" component={ImportData} />
+        <Route path="/finance" component={FinanceOverview} />
+        <Route path="/finance/pnl" component={FinancePnl} />
+        <Route path="/finance/receivables" component={FinanceReceivables} />
+        <Route path="/finance/payables" component={FinancePayables} />
+        <Route path="/finance/bank" component={FinanceBank} />
+        <Route path="/finance/payroll" component={FinancePayroll} />
+        <Route path="/finance/cash-outlook" component={FinanceCashOutlook} />
+        <Route path="/finance/pending" component={FinancePending} />
         <Route component={NotFound} />
       </Switch>
     </Layout>

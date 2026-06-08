@@ -22,6 +22,10 @@ const badgeVariants = cva(
           "border-transparent bg-destructive text-destructive-foreground shadow-xs",
           // @replit shadow-xs" - use badge outline variable
         outline: "text-foreground border [border-color:var(--badge-outline)]",
+        success:
+          "border-transparent bg-emerald-500/20 text-emerald-400 border-emerald-500/30",
+        warning:
+          "border-transparent bg-amber-500/20 text-amber-400 border-amber-500/30",
       },
     },
     defaultVariants: {

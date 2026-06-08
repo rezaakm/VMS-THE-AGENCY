@@ -1,5 +1,5 @@
 import { Link, useLocation } from "wouter";
-import { LayoutDashboard, FileText, FileSpreadsheet, Users, Calculator, Bot, Menu, X, Plus, Upload, ShoppingCart, Receipt, FileSignature, ClipboardList, Star, BarChart3, Wand2 } from "lucide-react";
+import { LayoutDashboard, FileText, FileSpreadsheet, Users, Calculator, Bot, Menu, X, Plus, Upload, ShoppingCart, Receipt, FileSignature, ClipboardList, Star, BarChart3, Wand2, TrendingUp, Landmark, ArrowDownLeft, ArrowUpRight, Wallet, Clock } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 
@@ -14,6 +14,14 @@ const navItems = [
   { href: "/purchase-orders", label: "Purchase Orders", icon: ShoppingCart, group: "Procurement" },
   { href: "/contracts", label: "Contracts", icon: FileSignature, group: "Procurement" },
   { href: "/invoices", label: "Invoices", icon: Receipt, group: "Finance" },
+  { href: "/finance", label: "Overview", icon: LayoutDashboard, group: "Finance" },
+  { href: "/finance/receivables", label: "Receivables", icon: ArrowDownLeft, group: "Finance" },
+  { href: "/finance/payables", label: "Payables", icon: ArrowUpRight, group: "Finance" },
+  { href: "/finance/pnl", label: "P&L", icon: TrendingUp, group: "Finance" },
+  { href: "/finance/bank", label: "Bank & Loans", icon: Landmark, group: "Finance" },
+  { href: "/finance/cash-outlook", label: "Cash Outlook", icon: Wallet, group: "Finance" },
+  { href: "/finance/payroll", label: "Payroll", icon: Users, group: "Finance" },
+  { href: "/finance/pending", label: "Pending", icon: Clock, group: "Finance" },
   { href: "/vendors", label: "Vendors", icon: Users, group: "Vendors" },
   { href: "/evaluations", label: "Evaluations", icon: Star, group: "Vendors" },
   { href: "/calculator", label: "Calculator", icon: Calculator, group: "Tools" },
@@ -27,6 +35,7 @@ export function Sidebar() {
 
   const isActive = (href: string) => {
     if (href === "/" && location !== "/") return false;
+    if (href === "/finance") return location === "/finance";
     return location.startsWith(href);
   };
 
