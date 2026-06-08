@@ -20,7 +20,7 @@ function StatCard({ label, value, icon: Icon, tone = "default", sub }: StatCardP
     warning: "text-yellow-400",
   };
   return (
-    <div className="bg-card border border-card-border rounded-lg p-5 flex flex-col gap-2">
+    <div className="bg-card border border-card-border rounded-lg p-5 flex flex-col gap-2 transition-all hover:border-primary/30 hover:shadow-lg hover:shadow-primary/5">
       <div className="text-xs uppercase tracking-widest text-muted-foreground flex items-center gap-1.5">
         <Icon className="w-3.5 h-3.5" /> {label}
       </div>

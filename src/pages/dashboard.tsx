@@ -59,7 +59,7 @@ export default function Dashboard() {
             return (
               <div
                 key={card.label}
-                className="bg-card border border-card-border rounded-lg p-4 flex flex-col gap-2"
+                className="bg-card border border-card-border rounded-lg p-4 flex flex-col gap-2 transition-all hover:border-primary/30 hover:shadow-lg hover:shadow-primary/5"
                 data-testid={`card-stat-${card.label.toLowerCase().replace(/\s+/g, "-")}`}
               >
                 <div className="flex items-center justify-between">

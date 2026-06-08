@@ -127,7 +127,7 @@
   --app-font-serif: "Playfair Display", serif;
   --app-font-mono: "Space Mono", monospace;
   
-  --radius: 0.25rem;
+  --radius: 0.5rem;
 
   --sidebar-primary-border: hsl(var(--sidebar-primary));
   --sidebar-primary-border: hsl(from hsl(var(--sidebar-primary)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
@@ -167,3 +167,9 @@
     color: black !important;
   }
 }
+
+/* Smooth scrollbar */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: hsl(0 0% 20%); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: hsl(0 0% 30%); }

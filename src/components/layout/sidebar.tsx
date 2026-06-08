@@ -69,7 +69,7 @@ export function Sidebar() {
                       className={`
                         flex items-center gap-3 px-3 py-1.5 rounded-md text-sm font-medium transition-colors
                         ${active
-                          ? "bg-sidebar-accent text-sidebar-accent-foreground"
+                          ? "bg-primary/15 text-sidebar-accent-foreground border-l-2 border-primary"
                           : "text-sidebar-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground"
                         }
                       `}
