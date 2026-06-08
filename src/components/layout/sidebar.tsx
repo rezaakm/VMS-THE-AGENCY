@@ -49,7 +49,10 @@ export function Sidebar() {
         transition-transform duration-200 ease-in-out
         ${mobileOpen ? "translate-x-0 mt-16 md:mt-0" : "-translate-x-full md:translate-x-0"}
       `}>
-        <div className="px-4 py-5 hidden md:flex items-center">
+        {/* Gradient shine at top */}
+        <div className="absolute top-0 left-0 right-0 h-32 bg-gradient-to-b from-primary/8 via-primary/3 to-transparent pointer-events-none" />
+
+        <div className="px-4 py-5 hidden md:flex items-center relative z-10">
           <img src="/logo.png" alt="The Agency" className="h-14 w-auto object-contain" />
         </div>
 
@@ -86,7 +89,7 @@ export function Sidebar() {
 
         <div className="p-4 border-t border-sidebar-border">
           <Link href="/enquiries" className="w-full">
-            <Button className="w-full justify-start gap-2 bg-primary text-primary-foreground hover:bg-primary/90 font-bold uppercase tracking-wider text-xs">
+            <Button className="w-full justify-start gap-2 bg-primary text-primary-foreground hover:bg-primary/90 font-bold uppercase tracking-wider text-xs" style={{ animation: "pulse-glow 3s ease-in-out infinite" }}>
               <Plus className="w-4 h-4" />
               New Enquiry
             </Button>

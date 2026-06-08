@@ -118,10 +118,10 @@
   --ring: 217 100% 60%;
   
   --chart-1: 217 100% 60%;
-  --chart-2: 0 0% 80%;
-  --chart-3: 0 0% 50%;
-  --chart-4: 0 0% 30%;
-  --chart-5: 0 0% 20%;
+  --chart-2: 174 72% 52%;
+  --chart-3: 160 60% 45%;
+  --chart-4: 270 60% 58%;
+  --chart-5: 38 92% 60%;
 
   --app-font-sans: "Inter", sans-serif;
   --app-font-serif: "Playfair Display", serif;
@@ -165,6 +165,60 @@
   body {
     background: white !important;
     color: black !important;
+  }
+}
+
+/* Background noise texture overlay */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  pointer-events: none;
+  opacity: 0.035;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-repeat: repeat;
+  background-size: 256px 256px;
+}
+
+/* Utility: Glass panel */
+.glass {
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+/* Utility: Blue glow */
+.glow-blue {
+  box-shadow:
+    0 0 12px hsl(217 100% 60% / 0.25),
+    0 0 32px hsl(217 100% 60% / 0.10);
+}
+
+/* Stagger animation for dashboard cards */
+@keyframes card-rise {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-card-rise {
+  animation: card-rise 0.4s ease-out both;
+}
+
+/* Sidebar New Enquiry button pulse glow */
+@keyframes pulse-glow {
+  0%, 100% {
+    box-shadow: 0 0 8px hsl(217 100% 60% / 0.3);
+  }
+  50% {
+    box-shadow: 0 0 20px hsl(217 100% 60% / 0.5), 0 0 40px hsl(217 100% 60% / 0.15);
   }
 }
 

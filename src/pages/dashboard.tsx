@@ -24,12 +24,12 @@ export default function Dashboard() {
   const { data: recentQuotations, isLoading: quotationsLoading } = useGetRecentQuotations();
 
   const statCards = [
-    { label: "Total Enquiries", value: stats?.total ?? 0, icon: FileText, color: "text-primary" },
-    { label: "New", value: stats?.new ?? 0, icon: AlertCircle, color: "text-blue-400" },
-    { label: "In Progress", value: stats?.inProgress ?? 0, icon: Clock, color: "text-blue-400" },
-    { label: "Quoted", value: stats?.quoted ?? 0, icon: TrendingUp, color: "text-orange-400" },
-    { label: "Won", value: stats?.won ?? 0, icon: CheckCircle, color: "text-green-400" },
-    { label: "Lost", value: stats?.lost ?? 0, icon: XCircle, color: "text-red-400" },
+    { label: "Total Enquiries", value: stats?.total ?? 0, icon: FileText, color: "text-primary", glow: "hover:shadow-[0_0_20px_hsl(217_100%_60%/0.2)]" },
+    { label: "New", value: stats?.new ?? 0, icon: AlertCircle, color: "text-blue-400", glow: "hover:shadow-[0_0_20px_hsl(217_80%_60%/0.2)]" },
+    { label: "In Progress", value: stats?.inProgress ?? 0, icon: Clock, color: "text-blue-400", glow: "hover:shadow-[0_0_20px_hsl(217_80%_60%/0.2)]" },
+    { label: "Quoted", value: stats?.quoted ?? 0, icon: TrendingUp, color: "text-orange-400", glow: "hover:shadow-[0_0_20px_hsl(30_90%_50%/0.2)]" },
+    { label: "Won", value: stats?.won ?? 0, icon: CheckCircle, color: "text-green-400", glow: "hover:shadow-[0_0_20px_hsl(142_70%_45%/0.2)]" },
+    { label: "Lost", value: stats?.lost ?? 0, icon: XCircle, color: "text-red-400", glow: "hover:shadow-[0_0_20px_hsl(0_80%_50%/0.2)]" },
   ];
 
   const quickLinks = [
@@ -54,12 +54,13 @@ export default function Dashboard() {
       <section>
         <h2 className="text-xs uppercase tracking-widest text-muted-foreground mb-4">Enquiry Overview</h2>
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-          {statCards.map((card) => {
+          {statCards.map((card, index) => {
             const Icon = card.icon;
             return (
               <div
                 key={card.label}
-                className="bg-card border border-card-border rounded-lg p-4 flex flex-col gap-2 transition-all hover:border-primary/30 hover:shadow-lg hover:shadow-primary/5"
+                className={`bg-card border border-card-border rounded-lg p-4 flex flex-col gap-2 transition-all duration-300 hover:border-primary/30 ${card.glow} animate-card-rise`}
+                style={{ animationDelay: `${index * 80}ms` }}
                 data-testid={`card-stat-${card.label.toLowerCase().replace(/\s+/g, "-")}`}
               >
                 <div className="flex items-center justify-between">
@@ -81,11 +82,11 @@ export default function Dashboard() {
       <section>
         <h2 className="text-xs uppercase tracking-widest text-muted-foreground mb-4">Quick Actions</h2>
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-          {quickLinks.map((item) => {
+          {quickLinks.map((item, index) => {
             const Icon = item.icon;
             return (
               <Link key={item.href} href={item.href}>
-                <div className="bg-card border border-card-border rounded-lg p-4 hover:border-primary/40 hover:bg-card/80 transition-all cursor-pointer group" data-testid={`link-quick-${item.label.toLowerCase().replace(/\s+/g, "-")}`}>
+                <div className="bg-card border border-card-border rounded-lg p-4 hover:border-primary/40 hover:bg-card/80 hover:shadow-[0_0_20px_hsl(217_100%_60%/0.15)] transition-all duration-300 cursor-pointer group animate-card-rise" style={{ animationDelay: `${(index + 6) * 80}ms` }} data-testid={`link-quick-${item.label.toLowerCase().replace(/\s+/g, "-")}`}>
                   <Icon className="w-6 h-6 text-primary mb-2 group-hover:scale-110 transition-transform" />
                   <div className="text-sm font-semibold text-foreground">{item.label}</div>
                   <div className="text-xs text-muted-foreground mt-1">{item.desc}</div>
