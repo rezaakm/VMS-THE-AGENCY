@@ -3,6 +3,8 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Layout } from "@/components/layout/layout";
+import { AuthProvider } from "@/hooks/useAuth";
+import { AuthGate } from "@/components/layout/AuthGate";
 import { useEffect } from "react";
 import { setBaseUrl } from "@workspace/api-client-react";
 import NotFound from "@/pages/not-found";
@@ -23,6 +25,7 @@ import Invoices from "@/pages/invoices";
 import Evaluations from "@/pages/evaluations";
 import Rfqs from "@/pages/rfqs";
 import Reports from "@/pages/reports";
+import QuoteWizard from "@/pages/quote-wizard";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -51,6 +54,7 @@ function Router() {
         <Route path="/rfqs" component={Rfqs} />
         <Route path="/evaluations" component={Evaluations} />
         <Route path="/reports" component={Reports} />
+        <Route path="/quote-wizard" component={QuoteWizard} />
         <Route path="/calculator" component={Calculator} />
         <Route path="/assistant" component={Assistant} />
         <Route path="/import" component={ImportData} />
@@ -71,12 +75,16 @@ function App() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
-          <Router />
-        </WouterRouter>
-        <Toaster />
-      </TooltipProvider>
+      <AuthProvider>
+        <TooltipProvider>
+          <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
+            <AuthGate>
+              <Router />
+            </AuthGate>
+          </WouterRouter>
+          <Toaster />
+        </TooltipProvider>
+      </AuthProvider>
     </QueryClientProvider>
   );
 }

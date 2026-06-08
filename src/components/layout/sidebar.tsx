@@ -1,5 +1,5 @@
 import { Link, useLocation } from "wouter";
-import { LayoutDashboard, FileText, FileSpreadsheet, Users, Calculator, Bot, Menu, X, Plus, Upload, ShoppingCart, Receipt, FileSignature, ClipboardList, Star, BarChart3 } from "lucide-react";
+import { LayoutDashboard, FileText, FileSpreadsheet, Users, Calculator, Bot, Menu, X, Plus, Upload, ShoppingCart, Receipt, FileSignature, ClipboardList, Star, BarChart3, Wand2 } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 
@@ -9,6 +9,7 @@ const navItems = [
   { href: "/enquiries", label: "Enquiries", icon: FileText, group: "Sales" },
   { href: "/cost-sheets", label: "Cost Sheets", icon: FileSpreadsheet, group: "Sales" },
   { href: "/quotations", label: "Quotations", icon: FileText, group: "Sales" },
+  { href: "/quote-wizard", label: "Quote Wizard", icon: Wand2, group: "Sales" },
   { href: "/rfqs", label: "RFQs", icon: ClipboardList, group: "Procurement" },
   { href: "/purchase-orders", label: "Purchase Orders", icon: ShoppingCart, group: "Procurement" },
   { href: "/contracts", label: "Contracts", icon: FileSignature, group: "Procurement" },
