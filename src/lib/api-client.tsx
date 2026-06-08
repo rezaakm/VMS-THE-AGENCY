@@ -268,37 +268,54 @@ export function useGetReportsOverview(): UseQueryResult<Row> {
   return useQuery({
     queryKey: ["reports", "overview"],
     queryFn: async () => {
-      const [v, po, inv, c, rfq, enq, q] = await Promise.all([
+      const now = Date.now();
+      const [v, po, inv, c, rfq, q, ev, vlist] = await Promise.all([
         supabase.from("vendors").select("id", { count: "exact", head: true }),
-        supabase.from("purchase_orders").select("totalAmount,status"),
+        supabase.from("purchase_orders").select("totalAmount"),
         supabase.from("invoices").select("totalAmount,paidAmount,status"),
-        supabase.from("contracts").select("id,status,contractValue"),
-        supabase.from("rfqs").select("id", { count: "exact", head: true }),
-        supabase.from("enquiries").select("id", { count: "exact", head: true }),
-        supabase.from("quotations").select("id,totalAmount", { count: "exact" }),
+        supabase.from("contracts").select("id,status,endDate"),
+        supabase.from("rfqs").select("id,status"),
+        supabase.from("quotations").select("totalAmount", { count: "exact" }),
+        supabase.from("evaluations").select("vendorId,overallScore"),
+        supabase.from("vendors").select("id,name"),
       ]);
       const poRows = po.data ?? [];
       const invRows = inv.data ?? [];
       const cRows = c.data ?? [];
-      const totalSpend = poRows.reduce((s, r) => s + num(r.totalAmount), 0);
-      const invoicedTotal = invRows.reduce((s, r) => s + num(r.totalAmount), 0);
-      const paidTotal = invRows.reduce((s, r) => s + num(r.paidAmount), 0);
-      const pendingInvoices = invRows.filter((r) => (r.status ?? "").toLowerCase() !== "paid").length;
+      const rfqRows = rfq.data ?? [];
+      const qRows = q.data ?? [];
+      const names = new Map((vlist.data ?? []).map((x) => [x.id, x.name]));
+      const invoicedAmount = invRows.reduce((s, r) => s + num(r.totalAmount), 0);
+      const paidAmount = invRows.reduce((s, r) => s + num(r.paidAmount), 0);
+      const evAgg = new Map<number, { vendorId: number; company: string; sum: number; evalCount: number }>();
+      for (const e of ev.data ?? []) {
+        const id = e.vendorId; if (id == null) continue;
+        const cur = evAgg.get(id) ?? { vendorId: id, company: names.get(id) ?? `Vendor ${id}`, sum: 0, evalCount: 0 };
+        cur.sum += num(e.overallScore); cur.evalCount += 1; evAgg.set(id, cur);
+      }
+      const topVendorsByEvalScore = Array.from(evAgg.values())
+        .map((e) => ({ vendorId: e.vendorId, company: e.company, evalCount: e.evalCount, avgScore: e.evalCount ? e.sum / e.evalCount : 0 }))
+        .sort((a, b) => b.avgScore - a.avgScore).slice(0, 6);
+      const expiringContracts = cRows.filter((r) => {
+        const d = r.endDate ? new Date(r.endDate).getTime() : 0;
+        return d > now && d < now + 30 * 864e5;
+      }).length;
       return {
-        totalVendors: v.count ?? 0,
+        totalQuotations: q.count ?? qRows.length,
+        totalQuotationValue: qRows.reduce((s, r) => s + num(r.totalAmount), 0),
         totalPurchaseOrders: poRows.length,
+        totalPurchaseOrderValue: poRows.reduce((s, r) => s + num(r.totalAmount), 0),
         totalInvoices: invRows.length,
-        totalRfqs: rfq.count ?? 0,
-        totalEnquiries: enq.count ?? 0,
-        totalQuotations: q.count ?? 0,
-        totalContracts: cRows.length,
+        invoicedAmount,
+        paidAmount,
+        outstandingAmount: invoicedAmount - paidAmount,
         activeContracts: cRows.filter((r) => (r.status ?? "").toLowerCase() === "active").length,
-        totalSpend,
-        invoicedTotal,
-        paidTotal,
-        outstanding: invoicedTotal - paidTotal,
-        pendingInvoices,
-        paidInvoices: invRows.length - pendingInvoices,
+        expiringContracts,
+        activeRfqs: rfqRows.filter((r) => (r.status ?? "").toLowerCase() !== "closed").length,
+        openFlags: 0,
+        criticalFlags: 0,
+        vendorsCount: v.count ?? 0,
+        topVendorsByEvalScore,
       };
     },
   });
@@ -323,7 +340,9 @@ export function useGetSpendByVendor(): UseQueryResult<Row[]> {
         cur.orderCount += 1;
         agg.set(id, cur);
       }
-      return Array.from(agg.values()).sort((a, b) => b.totalSpend - a.totalSpend);
+      return Array.from(agg.values())
+        .map((a) => ({ vendorId: a.vendorId, company: a.vendorName, totalSpend: a.totalSpend, poCount: a.orderCount }))
+        .sort((a, b) => b.totalSpend - a.totalSpend);
     },
   });
 }
@@ -333,17 +352,23 @@ export function useGetMonthlySpend(): UseQueryResult<Row[]> {
   return useQuery({
     queryKey: ["reports", "monthlySpend"],
     queryFn: async () => {
-      const { data } = await supabase.from("purchase_orders").select("orderDate,totalAmount");
-      const agg = new Map<string, number>();
-      for (const r of data ?? []) {
-        const d = r.orderDate ? new Date(r.orderDate) : null;
-        if (!d || isNaN(d.getTime())) continue;
+      const [{ data: pos }, { data: invs }] = await Promise.all([
+        supabase.from("purchase_orders").select("orderDate,totalAmount"),
+        supabase.from("invoices").select("invoiceDate,totalAmount"),
+      ]);
+      const agg = new Map<string, { invoiced: number; spend: number }>();
+      const bump = (dateStr: string | null | undefined, field: "invoiced" | "spend", amt: number) => {
+        const d = dateStr ? new Date(dateStr) : null;
+        if (!d || isNaN(d.getTime())) return;
         const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
-        agg.set(key, (agg.get(key) ?? 0) + num(r.totalAmount));
-      }
+        const cur = agg.get(key) ?? { invoiced: 0, spend: 0 };
+        cur[field] += amt; agg.set(key, cur);
+      };
+      for (const p of pos ?? []) bump(p.orderDate, "spend", num(p.totalAmount));
+      for (const i of invs ?? []) bump(i.invoiceDate, "invoiced", num(i.totalAmount));
       return Array.from(agg.entries())
         .sort((a, b) => a[0].localeCompare(b[0]))
-        .map(([month, total]) => ({ month, total }));
+        .map(([month, vv]) => ({ month, invoiced: vv.invoiced, spend: vv.spend }));
     },
   });
 }
