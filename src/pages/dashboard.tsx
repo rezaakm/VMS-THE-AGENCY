@@ -25,25 +25,28 @@ function useDashboardData() {
   return useQuery({
     queryKey: ["dashboard", scope],
     queryFn: async () => {
-      // Bank balance
-      let bankQ = supabase.from("bank_accounts").select("current_balance, entity");
-      const { data: bankRows } = await bankQ;
-      const filteredBank = entityFilter
-        ? (bankRows ?? []).filter((r) => r.entity === entityFilter)
-        : (bankRows ?? []);
-      const bankBalance = filteredBank.reduce((s, r) => s + num(r.current_balance), 0);
+      // Bank balance — table has no entity column, so fetch all and never entity-filter
+      const { data: bankRows } = await supabase
+        .from("bank_accounts")
+        .select("*");
+      const bankBalance = (bankRows ?? []).reduce(
+        (s, r) => s + num(r.current_balance),
+        0,
+      );
 
-      // AR
-      let arQ = supabase.from("ar_entries").select("balance, entity");
-      const { data: arRows } = await arQ;
+      // AR — has entity column
+      const { data: arRows } = await supabase
+        .from("ar_entries")
+        .select("*");
       const filteredAr = entityFilter
         ? (arRows ?? []).filter((r) => r.entity === entityFilter)
         : (arRows ?? []);
       const totalAR = filteredAr.reduce((s, r) => s + num(r.balance), 0);
 
-      // AP
-      let apQ = supabase.from("ap_entries").select("balance, entity");
-      const { data: apRows } = await apQ;
+      // AP — has entity column
+      const { data: apRows } = await supabase
+        .from("ap_entries")
+        .select("*");
       const filteredAp = entityFilter
         ? (apRows ?? []).filter((r) => r.entity === entityFilter)
         : (apRows ?? []);
@@ -52,21 +55,31 @@ function useDashboardData() {
       // Net position = bank + AR - AP
       const netPosition = bankBalance + totalAR - totalAP;
 
-      // Quotations count + value
-      const { data: qRows } = await supabase.from("quotations").select("totalAmount");
+      // Quotations count + value — table has no entity column
+      const { data: qRows } = await supabase
+        .from("quotations")
+        .select("*");
       const quotationCount = qRows?.length ?? 0;
-      const quotationValue = (qRows ?? []).reduce((s, r) => s + num(r.totalAmount), 0);
+      const quotationValue = (qRows ?? []).reduce(
+        (s, r) => s + num(r.totalAmount),
+        0,
+      );
 
       // Monthly financial snapshots for YTD revenue + chart
       const year = new Date().getFullYear();
-      let snapQ = supabase
+      const { data: snapRows } = await supabase
         .from("monthly_financial_snapshots")
-        .select("month, revenue, net_income, expenses, entity")
-        .gte("month", `${year}-01-01`);
-      const { data: snapRows } = await snapQ;
-      const filteredSnaps = entityFilter
-        ? (snapRows ?? []).filter((r) => r.entity === entityFilter)
-        : (snapRows ?? []);
+        .select("*")
+        .order("month", { ascending: true });
+      const allSnaps = snapRows ?? [];
+      // Entity filter only for non-group scopes (snapshots DO have entity column)
+      const entitySnaps = entityFilter
+        ? allSnaps.filter((r) => r.entity === entityFilter)
+        : allSnaps;
+      // Then filter to current year
+      const filteredSnaps = entitySnaps.filter((r) =>
+        r.month?.startsWith(String(year)),
+      );
 
       const ytdRevenue = filteredSnaps.reduce((s, r) => s + num(r.revenue), 0);
       const ytdNet = filteredSnaps.reduce((s, r) => s + num(r.net_income), 0);
