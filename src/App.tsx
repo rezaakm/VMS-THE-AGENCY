@@ -7,6 +7,7 @@ import { AuthProvider } from "@/hooks/useAuth";
 import { AuthGate } from "@/components/layout/AuthGate";
 import { useEffect } from "react";
 import { setBaseUrl } from "@workspace/api-client-react";
+import { EntityScopeProvider } from "@/hooks/use-entity-scope";
 import NotFound from "@/pages/not-found";
 import Dashboard from "@/pages/dashboard";
 import Enquiries from "@/pages/enquiries";
@@ -34,6 +35,8 @@ import FinanceBank from "@/pages/finance/bank";
 import FinancePayroll from "@/pages/finance/payroll";
 import FinanceCashOutlook from "@/pages/finance/cash-outlook";
 import FinancePending from "@/pages/finance/pending";
+import Clients from "@/pages/clients";
+import FitnessBay from "@/pages/fitness-bay";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -74,6 +77,8 @@ function Router() {
         <Route path="/finance/payroll" component={FinancePayroll} />
         <Route path="/finance/cash-outlook" component={FinanceCashOutlook} />
         <Route path="/finance/pending" component={FinancePending} />
+        <Route path="/clients" component={Clients} />
+        <Route path="/fitness-bay" component={FitnessBay} />
         <Route component={NotFound} />
       </Switch>
     </Layout>
@@ -92,14 +97,16 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <TooltipProvider>
-          <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
-            <AuthGate>
-              <Router />
-            </AuthGate>
-          </WouterRouter>
-          <Toaster />
-        </TooltipProvider>
+        <EntityScopeProvider>
+          <TooltipProvider>
+            <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
+              <AuthGate>
+                <Router />
+              </AuthGate>
+            </WouterRouter>
+            <Toaster />
+          </TooltipProvider>
+        </EntityScopeProvider>
       </AuthProvider>
     </QueryClientProvider>
   );

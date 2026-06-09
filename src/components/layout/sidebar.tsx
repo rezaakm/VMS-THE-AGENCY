@@ -1,7 +1,18 @@
 import { Link, useLocation } from "wouter";
-import { LayoutDashboard, FileText, FileSpreadsheet, Users, Calculator, Bot, Menu, X, Plus, Upload, ShoppingCart, Receipt, FileSignature, ClipboardList, Star, BarChart3, Wand2, TrendingUp, Landmark, ArrowDownLeft, ArrowUpRight, Wallet, Clock } from "lucide-react";
+import {
+  LayoutDashboard, FileText, FileSpreadsheet, Users, Calculator, Bot,
+  Menu, X, Plus, Upload, ShoppingCart, Receipt, FileSignature,
+  ClipboardList, Star, BarChart3, Wand2, TrendingUp, Landmark,
+  ArrowDownLeft, ArrowUpRight, Wallet, Clock, Building2, Dumbbell,
+  ChevronsUpDown, UserCircle,
+} from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import {
+  useEntityScope,
+  ENTITY_LABELS,
+  type EntityScope,
+} from "@/hooks/use-entity-scope";
 
 const navItems = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard, group: "Overview" },
@@ -13,15 +24,16 @@ const navItems = [
   { href: "/rfqs", label: "RFQs", icon: ClipboardList, group: "Procurement" },
   { href: "/purchase-orders", label: "Purchase Orders", icon: ShoppingCart, group: "Procurement" },
   { href: "/contracts", label: "Contracts", icon: FileSignature, group: "Procurement" },
-  { href: "/invoices", label: "Invoices", icon: Receipt, group: "Finance" },
-  { href: "/finance", label: "Overview", icon: LayoutDashboard, group: "Finance" },
-  { href: "/finance/receivables", label: "Receivables", icon: ArrowDownLeft, group: "Finance" },
-  { href: "/finance/payables", label: "Payables", icon: ArrowUpRight, group: "Finance" },
+  { href: "/clients", label: "Clients", icon: UserCircle, group: "Accounts" },
+  { href: "/finance/receivables", label: "Receivables", icon: ArrowDownLeft, group: "Accounts" },
+  { href: "/finance/payables", label: "Payables", icon: ArrowUpRight, group: "Accounts" },
+  { href: "/invoices", label: "Invoices", icon: Receipt, group: "Accounts" },
+  { href: "/finance/bank", label: "Bank", icon: Landmark, group: "Finance" },
   { href: "/finance/pnl", label: "P&L", icon: TrendingUp, group: "Finance" },
-  { href: "/finance/bank", label: "Bank & Loans", icon: Landmark, group: "Finance" },
+  { href: "/finance/payroll", label: "HR / Payroll", icon: Users, group: "Finance" },
   { href: "/finance/cash-outlook", label: "Cash Outlook", icon: Wallet, group: "Finance" },
-  { href: "/finance/payroll", label: "Payroll", icon: Users, group: "Finance" },
   { href: "/finance/pending", label: "Pending", icon: Clock, group: "Finance" },
+  { href: "/fitness-bay", label: "Fitness Bay", icon: Dumbbell, group: "Fitness Bay" },
   { href: "/vendors", label: "Vendors", icon: Users, group: "Vendors" },
   { href: "/evaluations", label: "Evaluations", icon: Star, group: "Vendors" },
   { href: "/calculator", label: "Calculator", icon: Calculator, group: "Tools" },
@@ -29,15 +41,26 @@ const navItems = [
   { href: "/import", label: "Import Data", icon: Upload, group: "Tools" },
 ];
 
+const SCOPE_OPTIONS: EntityScope[] = ["group", "agency", "fitnessbay"];
+const SCOPE_ICONS: Record<EntityScope, typeof Building2> = {
+  group: Building2,
+  agency: Building2,
+  fitnessbay: Dumbbell,
+};
+
 export function Sidebar() {
   const [location] = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [scopeOpen, setScopeOpen] = useState(false);
+  const { scope, setScope } = useEntityScope();
 
   const isActive = (href: string) => {
     if (href === "/" && location !== "/") return false;
     if (href === "/finance") return location === "/finance";
     return location.startsWith(href);
   };
+
+  const ScopeIcon = SCOPE_ICONS[scope];
 
   return (
     <>
@@ -62,12 +85,45 @@ export function Sidebar() {
         <div className="absolute top-0 left-0 right-0 h-32 bg-gradient-to-b from-primary/8 via-primary/3 to-transparent pointer-events-none" />
 
         <div className="px-4 py-5 hidden md:flex items-center relative z-10">
-          <img src="/logo.png" alt="The Agency" className="h-14 w-auto object-contain" />
+          <img src="/logo.png" alt="Modern Lifestyle" className="h-14 w-auto object-contain" />
         </div>
 
-        <nav className="flex-1 px-4 py-4 overflow-y-auto">
+        {/* Scope Switcher */}
+        <div className="px-4 pb-3 relative z-10">
+          <button
+            onClick={() => setScopeOpen(!scopeOpen)}
+            className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg border border-border/60 bg-card/50 hover:bg-card transition-colors text-sm"
+          >
+            <ScopeIcon className="w-4 h-4 text-primary shrink-0" />
+            <span className="flex-1 text-left font-medium text-foreground truncate">
+              {ENTITY_LABELS[scope]}
+            </span>
+            <ChevronsUpDown className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+          </button>
+          {scopeOpen && (
+            <div className="absolute left-4 right-4 mt-1 bg-popover border border-border rounded-lg shadow-lg z-50 overflow-hidden">
+              {SCOPE_OPTIONS.map((s) => {
+                const Icon = SCOPE_ICONS[s];
+                return (
+                  <button
+                    key={s}
+                    onClick={() => { setScope(s); setScopeOpen(false); }}
+                    className={`w-full flex items-center gap-2.5 px-3 py-2 text-sm transition-colors hover:bg-accent/50
+                      ${s === scope ? "bg-primary/10 text-primary font-medium" : "text-foreground"}
+                    `}
+                  >
+                    <Icon className="w-4 h-4 shrink-0" />
+                    {ENTITY_LABELS[s]}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        <nav className="flex-1 px-4 py-2 overflow-y-auto">
           {Array.from(new Set(navItems.map(i => i.group))).map(group => (
-            <div key={group} className="mb-4">
+            <div key={group} className="mb-3">
               <div className="text-[10px] uppercase tracking-widest text-muted-foreground/60 font-bold px-3 mb-1">{group}</div>
               <div className="space-y-0.5">
                 {navItems.filter(i => i.group === group).map(item => {
