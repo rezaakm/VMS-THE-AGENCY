@@ -16,7 +16,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { formatOMR } from "@/lib/utils";
 import { getOverviewMetrics, getRecentActivity } from "@/lib/queries/overview";
 import { getArAging } from "@/lib/queries/ar";
-import { useEntityScope, ENTITY_LABELS } from "@/hooks/use-entity-scope";
+import { useEntityScope } from "@/hooks/use-entity-scope";
 
 const AGING_COLORS = ["#10b981", "#f59e0b", "#f97316", "#ef4444", "#8b5cf6"];
 
@@ -53,7 +53,8 @@ export default function OverviewPanel() {
     <div className="space-y-6">
       <PageHeader
         title="Finance Overview"
-        description={`Financial summary — ${ENTITY_LABELS[scope]}`}
+        description="Financial summary at a glance"
+        showScope
       />
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">

@@ -12,7 +12,7 @@ import { StatCard } from "@/components/ui/stat-card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { formatOMR } from "@/lib/utils";
 import { getApSummary, getApEntries } from "@/lib/queries/ap";
-import { useEntityScope, ENTITY_LABELS } from "@/hooks/use-entity-scope";
+import { useEntityScope } from "@/hooks/use-entity-scope";
 
 export default function PayablesPanel() {
   const { entityFilter, scope } = useEntityScope();
@@ -33,7 +33,8 @@ export default function PayablesPanel() {
     <div className="space-y-6">
       <PageHeader
         title="Payables"
-        description={`Vendor invoices and payments — ${ENTITY_LABELS[scope]}`}
+        description="Vendor invoices and payments"
+        showScope
       />
 
       <div className="grid gap-4 sm:grid-cols-3">

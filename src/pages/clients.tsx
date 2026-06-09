@@ -113,6 +113,7 @@ export default function Clients() {
       <PageHeader
         title="Clients"
         description="Derived from quotations and invoices"
+        showScope
       />
 
       {/* KPIs */}

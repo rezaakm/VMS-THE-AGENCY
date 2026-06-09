@@ -21,7 +21,7 @@ import { StatCard } from "@/components/ui/stat-card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { formatOMR } from "@/lib/utils";
 import { getArSummary, getArAging, getSalesInvoices } from "@/lib/queries/ar";
-import { useEntityScope, ENTITY_LABELS } from "@/hooks/use-entity-scope";
+import { useEntityScope } from "@/hooks/use-entity-scope";
 
 export default function ReceivablesPanel() {
   const { entityFilter, scope } = useEntityScope();
@@ -56,7 +56,8 @@ export default function ReceivablesPanel() {
     <div className="space-y-6">
       <PageHeader
         title="Receivables"
-        description={`Outstanding invoices and aging — ${ENTITY_LABELS[scope]}`}
+        description="Outstanding invoices and aging"
+        showScope
       />
 
       <div className="grid gap-4 sm:grid-cols-3">

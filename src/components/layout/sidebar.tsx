@@ -6,7 +6,7 @@ import {
   ArrowDownLeft, ArrowUpRight, Wallet, Clock, Building2, Dumbbell,
   ChevronsUpDown, UserCircle,
 } from "lucide-react";
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import {
   useEntityScope,
@@ -52,7 +52,20 @@ export function Sidebar() {
   const [location] = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [scopeOpen, setScopeOpen] = useState(false);
+  const scopeRef = useRef<HTMLDivElement>(null);
   const { scope, setScope } = useEntityScope();
+
+  // Close scope dropdown on outside click
+  useEffect(() => {
+    if (!scopeOpen) return;
+    const handler = (e: MouseEvent) => {
+      if (scopeRef.current && !scopeRef.current.contains(e.target as Node)) {
+        setScopeOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [scopeOpen]);
 
   const isActive = (href: string) => {
     if (href === "/" && location !== "/") return false;
@@ -89,7 +102,7 @@ export function Sidebar() {
         </div>
 
         {/* Scope Switcher */}
-        <div className="px-4 pb-3 relative z-10">
+        <div className="px-4 pb-3 relative z-10" ref={scopeRef}>
           <button
             onClick={() => setScopeOpen(!scopeOpen)}
             className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg border border-border/60 bg-card/50 hover:bg-card transition-colors text-sm"

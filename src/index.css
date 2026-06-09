@@ -244,8 +244,35 @@ body::before {
   color: hsl(var(--popover-foreground)) !important;
 }
 
+/* Page entrance animation */
+@keyframes page-enter {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-page-enter {
+  animation: page-enter 0.3s ease-out both;
+}
+
+/* Table row hover highlight */
+table tbody tr {
+  transition: background-color 0.15s ease;
+}
+
+/* Mobile: horizontal table scroll indicator */
+.overflow-x-auto {
+  -webkit-overflow-scrolling: touch;
+}
+
 /* Smooth scrollbar */
 ::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: hsl(0 0% 20%); border-radius: 3px; }
 ::-webkit-scrollbar-thumb:hover { background: hsl(0 0% 30%); }
+
+/* Focus visible ring for accessibility */
+:focus-visible {
+  outline: 2px solid hsl(var(--ring));
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}

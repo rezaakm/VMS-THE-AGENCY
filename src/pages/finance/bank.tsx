@@ -12,7 +12,7 @@ import { StatCard } from "@/components/ui/stat-card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { formatOMR } from "@/lib/utils";
 import { getBankAccounts, getBankTransactions } from "@/lib/queries/bank";
-import { useEntityScope, ENTITY_LABELS } from "@/hooks/use-entity-scope";
+import { useEntityScope } from "@/hooks/use-entity-scope";
 
 export default function BankPanel() {
   const { entityFilter, scope } = useEntityScope();
@@ -36,7 +36,8 @@ export default function BankPanel() {
     <div className="space-y-6">
       <PageHeader
         title="Bank"
-        description={`Account balances and transactions — ${ENTITY_LABELS[scope]}`}
+        description="Account balances and transactions"
+        showScope
       />
 
       {/* Total Balance Card */}

@@ -12,7 +12,7 @@ import { StatCard } from "@/components/ui/stat-card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { formatOMR } from "@/lib/utils";
 import { getPayrollEntries } from "@/lib/queries/payroll";
-import { useEntityScope, ENTITY_LABELS } from "@/hooks/use-entity-scope";
+import { useEntityScope } from "@/hooks/use-entity-scope";
 
 export default function PayrollPanel() {
   const { entityFilter, scope } = useEntityScope();
@@ -33,7 +33,8 @@ export default function PayrollPanel() {
     <div className="space-y-6">
       <PageHeader
         title="HR / Payroll"
-        description={`Staff and monthly salaries — ${ENTITY_LABELS[scope]}`}
+        description="Staff and monthly salaries"
+        showScope
       />
 
       <div className="grid gap-4 sm:grid-cols-3">

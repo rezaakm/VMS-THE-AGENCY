@@ -14,7 +14,7 @@ import { StatCard } from "@/components/ui/stat-card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { formatOMR } from "@/lib/utils";
 import { supabase } from "@/lib/supabase";
-import { useEntityScope, ENTITY_LABELS } from "@/hooks/use-entity-scope";
+import { useEntityScope } from "@/hooks/use-entity-scope";
 
 function num(v: any): number {
   const n = typeof v === "string" ? parseFloat(v) : v;
@@ -67,7 +67,8 @@ export default function PnlPanel() {
     <div className="space-y-6">
       <PageHeader
         title="Profit & Loss"
-        description={`Monthly P&L — ${ENTITY_LABELS[scope]}`}
+        description="Monthly P&L"
+        showScope
       />
 
       <div className="grid gap-4 sm:grid-cols-3">
