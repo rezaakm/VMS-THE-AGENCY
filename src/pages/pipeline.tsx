@@ -15,6 +15,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { PageHeader } from "@/components/ui/page-header";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { formatOMR } from "@/lib/utils";
 import { supabase } from "@/lib/supabase";
@@ -264,6 +266,115 @@ function useApproveCostSheet() {
   });
 }
 
+/* ─── Send quotation via Gmail ─── */
+
+function buildGmailComposeUrl(to: string, subject: string, body: string): string {
+  const params = new URLSearchParams({ to, su: subject, body });
+  return `https://mail.google.com/mail/?view=cm&fs=1&tf=1&${params.toString()}`;
+}
+
+function buildQuoteEmailBody(sheet: any, items: any[], totals: { subtotal: number; vat: number; total: number }): string {
+  const fmt = (n: number) => (n || 0).toLocaleString("en-US", { minimumFractionDigits: 3, maximumFractionDigits: 3 });
+  const lines = items.map((it: any, i: number) =>
+    `${i + 1}. ${it.description} — ${fmt(it.unitSellingPrice ?? 0)} OMR × ${it.days ?? 1} = ${fmt(it.totalSellingPrice ?? 0)} OMR`
+  ).join("\n");
+
+  return [
+    `Dear ${sheet.client || "Client"},`,
+    "",
+    `Please find below our quotation for: ${sheet.event || "your enquiry"}`,
+    `Reference: ${sheet.jobNumber || "—"}`,
+    "",
+    "─── Line Items ───",
+    lines,
+    "",
+    `Sub Total: ${fmt(totals.subtotal)} OMR`,
+    `VAT (5%): ${fmt(totals.vat)} OMR`,
+    `Total: ${fmt(totals.total)} OMR`,
+    "",
+    "Payment Terms: 50% advance with LPO as confirmation. Remaining 50% payable on day of delivery.",
+    "Quotation Validity: 7 Working Days",
+    "",
+    "All cheques payable to Modern Lifestyle.",
+    "IBAN: OM110270323021625490018 | SWIFT: BMUSOMRXXXX",
+    "",
+    "Best regards,",
+    "The Agency Oman",
+    "info@theagencyoman.com | +968 9317 1717",
+  ].join("\n");
+}
+
+function useSendQuotation() {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  return useMutation({
+    mutationFn: async ({ sheet, email, accountOwner }: { sheet: any; email: string; accountOwner: string }) => {
+      // Find the linked quotation
+      const { data: quotation } = await supabase
+        .from("quotations")
+        .select("*")
+        .eq("cost_sheet_id", sheet.id)
+        .single();
+      if (!quotation) throw new Error("No quotation found for this cost sheet");
+
+      // Get items for email body
+      const { data: items } = await supabase
+        .from("quotation_items")
+        .select("*")
+        .eq("quotationId", quotation.id)
+        .order("itemNumber", { ascending: true });
+
+      const subtotal = Number(quotation.subtotal) || 0;
+      const vat = Number(quotation.taxAmount) || 0;
+      const total = Number(quotation.totalAmount) || 0;
+
+      // Open Gmail compose
+      const subject = `Quotation — ${sheet.event || sheet.jobNumber || "The Agency Oman"}`;
+      const body = buildQuoteEmailBody(sheet, items ?? [], { subtotal, vat, total });
+      const gmailUrl = buildGmailComposeUrl(email, subject, body);
+      window.open(gmailUrl, "_blank");
+
+      // Log the send on the quotation
+      const { error } = await supabase
+        .from("quotations")
+        .update({
+          sent_at: new Date().toISOString(),
+          sent_to: email,
+          account_owner: accountOwner,
+          status: "sent",
+        })
+        .eq("id", quotation.id);
+      if (error) throw error;
+
+      // Update enquiry status to "sent" if linked
+      if (sheet.enquiry_id) {
+        await supabase
+          .from("enquiries")
+          .update({ status: "sent" })
+          .eq("id", sheet.enquiry_id);
+      }
+
+      // Update cost sheet status
+      await supabase
+        .from("cost_sheets")
+        .update({ status: "quoted" })
+        .eq("id", sheet.id);
+
+      return { quotation };
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["pipeline-cost-sheets"] });
+      queryClient.invalidateQueries({ queryKey: ["pipeline-enquiries"] });
+      queryClient.invalidateQueries({ queryKey: ["quotations"] });
+      toast({ title: "Gmail draft opened", description: "Review the email and click Send in Gmail." });
+    },
+    onError: (err: any) => {
+      toast({ title: "Error preparing send", description: err.message, variant: "destructive" });
+    },
+  });
+}
+
 /* ─── Page ─── */
 
 export default function Pipeline() {
@@ -271,7 +382,11 @@ export default function Pipeline() {
   const sheetsQ = useDraftCostSheets();
   const buildMutation = useBuildCostSheet();
   const approveMutation = useApproveCostSheet();
+  const sendMutation = useSendQuotation();
   const [reviewSheet, setReviewSheet] = useState<any | null>(null);
+  const [sendSheet, setSendSheet] = useState<any | null>(null);
+  const [sendEmail, setSendEmail] = useState("");
+  const [sendOwner, setSendOwner] = useState("");
 
   const newEnquiries = (enquiriesQ.data ?? []).filter((e) => e.status === "new");
   const draftSheets = (sheetsQ.data ?? []).filter((s) => s.status === "draft");
@@ -441,13 +556,13 @@ export default function Pipeline() {
         </CardContent>
       </Card>
 
-      {/* Stage 3: Approved — Quotations ready */}
+      {/* Stage 3: Approved — Quotations ready to send */}
       {approvedSheets.length > 0 && (
         <Card>
           <CardHeader>
             <CardTitle className="text-base flex items-center gap-2">
               <Send className="w-4 h-4 text-emerald-400" />
-              Approved — Quotations Ready
+              Approved — Ready to Send
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -472,11 +587,20 @@ export default function Pipeline() {
                         <Badge variant="success" className="text-[10px]">{sheet.sheetConfidence}%</Badge>
                       </TableCell>
                       <TableCell className="text-right">
-                        <Link href="/quotations">
-                          <Button size="sm" variant="outline" className="text-xs">
-                            <FileText className="w-3.5 h-3.5 mr-1" /> View Quotation
+                        <div className="flex items-center justify-end gap-2">
+                          <Link href="/quotations">
+                            <Button size="sm" variant="outline" className="text-xs">
+                              <FileText className="w-3.5 h-3.5 mr-1" /> View
+                            </Button>
+                          </Link>
+                          <Button
+                            size="sm"
+                            className="text-xs bg-blue-600 hover:bg-blue-500"
+                            onClick={() => { setSendSheet(sheet); setSendEmail(""); setSendOwner(""); }}
+                          >
+                            <Send className="w-3.5 h-3.5 mr-1" /> Send Quote
                           </Button>
-                        </Link>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -557,6 +681,54 @@ export default function Pipeline() {
                 </Button>
               </>
             )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Send Dialog */}
+      <Dialog open={!!sendSheet} onOpenChange={() => setSendSheet(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Send Quotation — {sendSheet?.client}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <p className="text-sm text-muted-foreground">
+              This opens a Gmail compose window pre-filled with the quote details.
+              <strong> You must click Send in Gmail</strong> — nothing is sent automatically.
+            </p>
+            <div className="space-y-2">
+              <Label htmlFor="send-email">Recipient Email</Label>
+              <Input
+                id="send-email"
+                type="email"
+                placeholder="client@example.com"
+                value={sendEmail}
+                onChange={(e) => setSendEmail(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="send-owner">Account Owner</Label>
+              <Input
+                id="send-owner"
+                placeholder="e.g. Reza, Zara, Vijesh…"
+                value={sendOwner}
+                onChange={(e) => setSendOwner(e.target.value)}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setSendSheet(null)}>Cancel</Button>
+            <Button
+              className="bg-blue-600 hover:bg-blue-500"
+              disabled={!sendEmail.includes("@") || sendMutation.isPending}
+              onClick={() => {
+                sendMutation.mutate({ sheet: sendSheet, email: sendEmail, accountOwner: sendOwner });
+                setSendSheet(null);
+              }}
+            >
+              <Send className="w-3.5 h-3.5 mr-1" />
+              {sendMutation.isPending ? "Opening…" : "Open Gmail Draft"}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

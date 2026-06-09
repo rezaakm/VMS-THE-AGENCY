@@ -1,5 +1,6 @@
 -- Pipeline: schema additions for enquiry → quote automation
 -- Run in Supabase SQL Editor (Dashboard > SQL Editor > New Query)
+-- Types: enquiries.id=bigint, cost_sheets.id=text, quotations.id=bigint
 
 -- ─── cost_sheets: pipeline status + approval tracking ───
 ALTER TABLE cost_sheets
@@ -31,7 +32,7 @@ COMMENT ON COLUMN enquiries.source_email_id IS 'Gmail message ID for dedup on ho
 
 -- ─── quotations: link to cost sheet + send tracking ───
 ALTER TABLE quotations
-  ADD COLUMN IF NOT EXISTS cost_sheet_id bigint REFERENCES cost_sheets(id),
+  ADD COLUMN IF NOT EXISTS cost_sheet_id text REFERENCES cost_sheets(id),
   ADD COLUMN IF NOT EXISTS sent_at timestamptz,
   ADD COLUMN IF NOT EXISTS sent_to text,
   ADD COLUMN IF NOT EXISTS account_owner text;
