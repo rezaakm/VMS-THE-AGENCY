@@ -71,10 +71,10 @@ export default function Pipeline() {
 
   return (
     <ErrorBoundary>
-      <div className="flex flex-col gap-5 sm:gap-8 animate-in fade-in duration-300">
+      <div className="flex flex-col gap-5 animate-in fade-in duration-300">
         <PageHeader
           title="Quote Pipeline"
-          description="Enquiry to quotation automation"
+          description="Enquiry → cost sheet → quotation automation"
         />
 
         {/* Pipeline Stats */}
@@ -147,10 +147,11 @@ function NewEnquiriesSection({
   buildMutation: any;
 }) {
   return (
-    <Card>
+    <Card className="border-l-2 border-l-blue-500/50">
       <CardHeader>
-        <CardTitle className="text-base flex items-center gap-2">
-          <Wand2 className="w-4 h-4 text-primary" />
+        <CardTitle className="t-card-title flex items-center gap-2">
+          <span className="t-label text-muted-foreground">Stage 1</span>
+          <Wand2 className="w-4 h-4 text-blue-400" />
           New Enquiries — Ready to Build
         </CardTitle>
       </CardHeader>
@@ -234,9 +235,10 @@ function DraftCostSheetsSection({
   hasZeroConfidenceLines: (sheet: CostSheet) => boolean;
 }) {
   return (
-    <Card>
+    <Card className="border-l-2 border-l-amber-500/50">
       <CardHeader>
-        <CardTitle className="text-base flex items-center gap-2">
+        <CardTitle className="t-card-title flex items-center gap-2">
+          <span className="t-label text-muted-foreground">Stage 2</span>
           <Eye className="w-4 h-4 text-amber-400" />
           Draft Cost Sheets — Review & Approve
         </CardTitle>
@@ -305,7 +307,7 @@ function DraftCostSheetsSection({
                             size="sm"
                             onClick={() => onApproval(sheet.id, 'approved')}
                             disabled={approveMutation.isPending || hasZero}
-                            className="text-xs bg-emerald-600 hover:bg-emerald-500"
+                            className="text-xs bg-emerald-600/90 hover:bg-emerald-600"
                             title={hasZero ? "Price all lines before approving" : "Approve and generate quotation"}
                           >
                             <CheckCircle className="w-3.5 h-3.5 sm:mr-1" />
@@ -344,9 +346,10 @@ function ApprovedSheetsSection({
   if (sheets.length === 0) return null;
 
   return (
-    <Card>
+    <Card className="border-l-2 border-l-emerald-500/50">
       <CardHeader>
-        <CardTitle className="text-base flex items-center gap-2">
+        <CardTitle className="t-card-title flex items-center gap-2">
+          <span className="t-label text-muted-foreground">Stage 3</span>
           <Send className="w-4 h-4 text-emerald-400" />
           Approved — Ready to Send
         </CardTitle>
@@ -383,7 +386,7 @@ function ApprovedSheetsSection({
                       </Link>
                       <Button
                         size="sm"
-                        className="text-xs bg-blue-600 hover:bg-blue-500"
+                        className="text-xs bg-primary text-primary-foreground"
                         onClick={() => onSend(sheet)}
                       >
                         <Send className="w-3.5 h-3.5 mr-1" /> Send Quote
@@ -449,10 +452,10 @@ function ReviewDialog({
                     {item.description}
                   </TableCell>
                   <TableCell className="text-sm">{item.vendor || "—"}</TableCell>
-                  <TableCell className="text-right font-mono text-sm">
+                  <TableCell className="text-right font-mono text-sm tabular-nums">
                     {item.unitCost?.toFixed(3) || "0.000"}
                   </TableCell>
-                  <TableCell className="text-right font-mono text-sm">
+                  <TableCell className="text-right font-mono text-sm tabular-nums">
                     {item.unitSellingPrice?.toFixed(3) || "0.000"}
                   </TableCell>
                   <TableCell>
@@ -474,7 +477,7 @@ function ReviewDialog({
                 Reject
               </Button>
               <Button
-                className="bg-emerald-600 hover:bg-emerald-500"
+                className="bg-emerald-600/90 hover:bg-emerald-600"
                 disabled={hasZero}
                 onClick={() => { onApproval(sheet.id, 'approved'); onClose(); }}
               >
@@ -543,7 +546,7 @@ function SendDialog({
         <DialogFooter>
           <Button variant="outline" onClick={onClose}>Cancel</Button>
           <Button
-            className="bg-blue-600 hover:bg-blue-500"
+            className="bg-primary text-primary-foreground"
             disabled={!email.includes("@") || sendMutation.isPending}
             onClick={onSend}
           >

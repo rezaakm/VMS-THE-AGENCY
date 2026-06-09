@@ -43,9 +43,9 @@ export default function PayrollPanel() {
         <StatCard loading={payrollQ.isLoading} title="Staff Members" value={String(employees.size)} icon={Users} />
       </div>
 
-      <Card className="hover:shadow-md transition-shadow">
+      <Card>
         <CardHeader>
-          <CardTitle className="text-base">Payroll Entries</CardTitle>
+          <CardTitle className="t-card-title">Payroll Entries</CardTitle>
         </CardHeader>
         <CardContent>
           {payrollQ.isLoading ? (
@@ -74,9 +74,9 @@ export default function PayrollPanel() {
                     <TableRow key={e.id}>
                       <TableCell className="font-medium">{e.employee_name ?? "-"}</TableCell>
                       <TableCell>{e.period ?? "-"}</TableCell>
-                      <TableCell className="text-right font-mono">{formatOMR(e.gross_pay)}</TableCell>
-                      <TableCell className="text-right font-mono">{formatOMR(e.net_pay)}</TableCell>
-                      <TableCell>
+                      <TableCell className="text-right font-mono tabular-nums">{formatOMR(e.gross_pay)}</TableCell>
+                      <TableCell className="text-right font-mono tabular-nums">{formatOMR(e.net_pay)}</TableCell>
+                      <TableCell className="whitespace-nowrap">
                         {e.pay_date ? format(new Date(e.pay_date), "dd MMM yyyy") : "-"}
                       </TableCell>
                       <TableCell>

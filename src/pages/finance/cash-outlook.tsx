@@ -9,7 +9,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { PageHeader } from "@/components/ui/page-header";
 import { StatCard } from "@/components/ui/stat-card";
 import { EmptyState } from "@/components/ui/empty-state";
-import { formatOMR } from "@/lib/utils";
+import { formatOMR, CHART_TOOLTIP } from "@/lib/utils";
 import { getOverviewMetrics } from "@/lib/queries/overview";
 import { getBankAccounts } from "@/lib/queries/bank";
 import { useEntityScope } from "@/hooks/use-entity-scope";
@@ -52,9 +52,9 @@ export default function CashOutlookPanel() {
         <StatCard loading={metricsQ.isLoading} title="AP Due" value={formatOMR(m?.totalAP)} icon={ArrowUpRight} trend="down" />
       </div>
 
-      <Card chart className="hover:shadow-md transition-shadow">
+      <Card chart>
         <CardHeader>
-          <CardTitle className="text-base">Cash Flow Projection</CardTitle>
+          <CardTitle className="t-card-title">Cash Flow Projection</CardTitle>
         </CardHeader>
         <CardContent>
           {metricsQ.isLoading || bankQ.isLoading ? (
@@ -65,15 +65,16 @@ export default function CashOutlookPanel() {
             <ResponsiveContainer width="100%" height={260}>
               <BarChart data={chartData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" vertical={false} />
-                <XAxis dataKey="label" tick={{ fontSize: 12, fill: "#888" }} />
-                <YAxis tick={{ fontSize: 12, fill: "#888" }} tickFormatter={(v: number) => `${(v / 1000).toFixed(0)}k`} />
+                <XAxis dataKey="label" tick={{ fontSize: 11, fill: "#888" }} axisLine={false} tickLine={false} />
+                <YAxis tick={{ fontSize: 11, fill: "#888" }} axisLine={false} tickLine={false} tickFormatter={(v: number) => `${(v / 1000).toFixed(0)}k`} />
                 <Tooltip
+                  cursor={{ fill: "rgba(255,255,255,0.03)" }}
                   formatter={(val: number) => formatOMR(val)}
-                  contentStyle={{ background: "rgba(20,20,30,0.95)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 8, fontSize: 12 }}
+                  contentStyle={CHART_TOOLTIP}
                 />
-                <Legend />
-                <Bar dataKey="inflow" name="Inflow" fill="#10b981" radius={[4, 4, 0, 0]} maxBarSize={40} />
-                <Bar dataKey="outflow" name="Outflow" fill="#f43f5e" radius={[4, 4, 0, 0]} maxBarSize={40} />
+                <Legend iconType="circle" wrapperStyle={{ fontSize: 12 }} />
+                <Bar dataKey="inflow" name="Inflow" fill="hsl(158 64% 52%)" radius={[3, 3, 0, 0]} maxBarSize={40} />
+                <Bar dataKey="outflow" name="Outflow" fill="hsl(0 84% 60%)" radius={[3, 3, 0, 0]} maxBarSize={40} />
               </BarChart>
             </ResponsiveContainer>
           )}

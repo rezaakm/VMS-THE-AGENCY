@@ -1,20 +1,13 @@
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
-import { Link } from "wouter";
 import {
-  UserCircle, FileText, ArrowDownLeft, Search,
-  ChevronRight, Building2,
+  UserCircle, FileText, ArrowDownLeft, Search, Building2,
 } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
-} from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Skeleton } from "@/components/ui/skeleton";
 import { PageHeader } from "@/components/ui/page-header";
 import { StatCard } from "@/components/ui/stat-card";
-import { EmptyState } from "@/components/ui/empty-state";
+import { TableEmpty, TableSkeleton } from "@/components/table-controls";
 import { formatOMR } from "@/lib/utils";
 import { supabase } from "@/lib/supabase";
 
@@ -126,15 +119,15 @@ export default function Clients() {
   const totalAR = (clients ?? []).reduce((s, c) => s + c.arOutstanding, 0);
 
   return (
-    <div className="flex flex-col gap-6 animate-in fade-in duration-300">
+    <div className="flex flex-col gap-4 animate-in fade-in duration-300">
       <PageHeader
         title="Clients"
-        description="Derived from quotations and invoices"
+        description="Account list derived from quotations and invoices"
         showScope
       />
 
       {/* KPIs */}
-      <div className="grid gap-4 sm:grid-cols-3">
+      <div className="grid gap-3 sm:grid-cols-3">
         <StatCard
           loading={isLoading}
           title="Total Clients"
@@ -152,6 +145,7 @@ export default function Clients() {
           title="Total AR Outstanding"
           value={formatOMR(totalAR)}
           icon={ArrowDownLeft}
+          accent={totalAR > 0 ? "negative" : "default"}
         />
       </div>
 
@@ -167,92 +161,77 @@ export default function Clients() {
       </div>
 
       {/* Client Table */}
-      <Card className="hover:shadow-md transition-shadow">
-        <CardHeader>
-          <CardTitle className="text-base">
-            Client Directory
-            {!isLoading && <span className="text-muted-foreground font-normal text-sm ml-2">({filtered.length})</span>}
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {isLoading ? (
-            <div className="space-y-2">
-              {Array.from({ length: 8 }).map((_, i) => (
-                <Skeleton key={i} className="h-10 w-full" />
-              ))}
-            </div>
-          ) : filtered.length === 0 ? (
-            <EmptyState
-              icon={UserCircle}
-              title={search ? "No matching clients" : "No clients yet"}
-            />
-          ) : (
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Client</TableHead>
-                    <TableHead className="text-right">Enquiries</TableHead>
-                    <TableHead className="text-right">Quotations</TableHead>
-                    <TableHead className="text-right">Quoted Value</TableHead>
-                    <TableHead className="text-right hidden sm:table-cell">Invoices</TableHead>
-                    <TableHead className="text-right hidden sm:table-cell">AR Outstanding</TableHead>
-                    <TableHead className="hidden md:table-cell">Last Activity</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filtered.map((client) => (
-                    <TableRow key={client.name} className="cursor-pointer hover:bg-accent/20">
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <Building2 className="w-4 h-4 text-muted-foreground shrink-0" />
-                          <span className="font-medium">{client.name}</span>
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        {client.activeEnquiries > 0 ? (
-                          <Badge className="tabular-nums bg-blue-600/20 text-blue-400 border-blue-700 text-[10px]">
-                            {client.activeEnquiries} active
-                          </Badge>
-                        ) : client.enquiryCount > 0 ? (
-                          <span className="text-muted-foreground text-xs">{client.enquiryCount}</span>
-                        ) : (
-                          <span className="text-muted-foreground">—</span>
-                        )}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <Badge variant="secondary" className="tabular-nums">
-                          {client.quotationCount}
+      <div className="bg-card border border-card-border rounded-lg overflow-hidden">
+        {isLoading ? (
+          <TableSkeleton rows={8} cols={6} />
+        ) : filtered.length === 0 ? (
+          <TableEmpty
+            icon={UserCircle}
+            title={search ? "No matching clients" : "No clients yet"}
+            description={search ? "Try a different search term." : "Clients appear here once quotations or invoices exist."}
+          />
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="bg-card/95 backdrop-blur sticky top-0 z-10">
+                <tr className="border-b border-card-border">
+                  <th className="text-left px-3 py-2.5 text-[11px] uppercase tracking-wider text-muted-foreground font-medium">Client</th>
+                  <th className="text-right px-3 py-2.5 text-[11px] uppercase tracking-wider text-muted-foreground font-medium">Enquiries</th>
+                  <th className="text-right px-3 py-2.5 text-[11px] uppercase tracking-wider text-muted-foreground font-medium">Quotations</th>
+                  <th className="text-right px-3 py-2.5 text-[11px] uppercase tracking-wider text-muted-foreground font-medium">Quoted Value</th>
+                  <th className="text-right px-3 py-2.5 text-[11px] uppercase tracking-wider text-muted-foreground font-medium hidden sm:table-cell">Invoices</th>
+                  <th className="text-right px-3 py-2.5 text-[11px] uppercase tracking-wider text-muted-foreground font-medium hidden sm:table-cell">AR Outstanding</th>
+                  <th className="text-left px-3 py-2.5 text-[11px] uppercase tracking-wider text-muted-foreground font-medium hidden md:table-cell">Last Activity</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filtered.map((client) => (
+                  <tr key={client.name} className="border-b border-border/40 hover:bg-muted/40 transition-colors">
+                    <td className="px-3 py-2.5">
+                      <div className="flex items-center gap-2">
+                        <Building2 className="w-4 h-4 text-muted-foreground shrink-0" />
+                        <span className="font-medium text-foreground">{client.name}</span>
+                      </div>
+                    </td>
+                    <td className="px-3 py-2.5 text-right">
+                      {client.activeEnquiries > 0 ? (
+                        <Badge variant="info" className="tabular-nums text-[10px]">
+                          {client.activeEnquiries} active
                         </Badge>
-                      </TableCell>
-                      <TableCell className="text-right font-mono text-sm">
-                        {formatOMR(client.quotationValue)}
-                      </TableCell>
-                      <TableCell className="text-right hidden sm:table-cell">
-                        <Badge variant="outline" className="tabular-nums">
-                          {client.invoiceCount}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className={`text-right font-mono text-sm hidden sm:table-cell ${client.arOutstanding > 0 ? "text-amber-400" : "text-muted-foreground"}`}>
-                        {client.arOutstanding > 0 ? formatOMR(client.arOutstanding) : "—"}
-                      </TableCell>
-                      <TableCell className="text-muted-foreground text-sm hidden md:table-cell">
-                        {client.lastActivity
-                          ? new Date(client.lastActivity).toLocaleDateString("en-GB", {
-                              day: "2-digit",
-                              month: "short",
-                              year: "numeric",
-                            })
-                          : "—"}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+                      ) : client.enquiryCount > 0 ? (
+                        <span className="text-muted-foreground text-xs tabular-nums">{client.enquiryCount}</span>
+                      ) : (
+                        <span className="text-muted-foreground">—</span>
+                      )}
+                    </td>
+                    <td className="px-3 py-2.5 text-right text-muted-foreground tabular-nums text-xs">
+                      {client.quotationCount || "—"}
+                    </td>
+                    <td className="px-3 py-2.5 text-right font-mono text-sm tabular-nums text-foreground whitespace-nowrap">
+                      {formatOMR(client.quotationValue)}
+                    </td>
+                    <td className="px-3 py-2.5 text-right text-muted-foreground tabular-nums text-xs hidden sm:table-cell">
+                      {client.invoiceCount || "—"}
+                    </td>
+                    <td className={`px-3 py-2.5 text-right font-mono text-sm tabular-nums whitespace-nowrap hidden sm:table-cell ${client.arOutstanding > 0 ? "text-amber-400" : "text-muted-foreground"}`}>
+                      {client.arOutstanding > 0 ? formatOMR(client.arOutstanding) : "—"}
+                    </td>
+                    <td className="px-3 py-2.5 text-muted-foreground text-xs whitespace-nowrap hidden md:table-cell">
+                      {client.lastActivity
+                        ? new Date(client.lastActivity).toLocaleDateString("en-GB", {
+                            day: "2-digit",
+                            month: "short",
+                            year: "numeric",
+                          })
+                        : "—"}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

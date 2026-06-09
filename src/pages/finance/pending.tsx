@@ -10,7 +10,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
+import { StatusBadge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { PageHeader } from "@/components/ui/page-header";
 import { StatCard } from "@/components/ui/stat-card";
@@ -49,9 +49,9 @@ export default function PendingPanel() {
         />
       </div>
 
-      <Card className="hover:shadow-md transition-shadow">
+      <Card>
         <CardHeader>
-          <CardTitle className="text-base">
+          <CardTitle className="t-card-title">
             Pending Journal Entries
           </CardTitle>
         </CardHeader>
@@ -81,15 +81,9 @@ export default function PendingPanel() {
                         {e.description || "Untitled Entry"}
                       </TableCell>
                       <TableCell>
-                        <Badge
-                          variant={
-                            e.status === "PENDING_REVIEW" ? "warning" : "secondary"
-                          }
-                        >
-                          {e.status}
-                        </Badge>
+                        <StatusBadge status={e.status} />
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="whitespace-nowrap">
                         {e.created_at
                           ? format(new Date(e.created_at), "dd MMM yyyy")
                           : "-"}

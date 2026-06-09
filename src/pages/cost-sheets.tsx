@@ -4,15 +4,15 @@ import { useQueryClient } from "@tanstack/react-query";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Trash2, ChevronRight, Pencil } from "lucide-react";
+import { Plus, Trash2, Eye, Pencil, FileSpreadsheet } from "lucide-react";
+import { PageHeader } from "@/components/ui/page-header";
 import { useTableControls } from "@/hooks/use-table-controls";
-import { TableToolbar, FilterSelect, SortHeader, Pagination } from "@/components/table-controls";
+import { TableToolbar, FilterSelect, SortHeader, Pagination, RowAction, TableSkeleton, TableEmpty } from "@/components/table-controls";
 
 interface FormData { title: string; enquiryId: string; notes: string; }
 const emptyForm: FormData = { title: "", enquiryId: "", notes: "" };
@@ -78,16 +78,12 @@ export default function CostSheets() {
   const hasFilters = !!ctl.filters.linked && ctl.filters.linked !== "all";
 
   return (
-    <div className="flex flex-col gap-6 animate-in fade-in duration-300">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold uppercase tracking-tight" data-testid="text-cost-sheets-title">Cost Sheets</h1>
-          <p className="text-muted-foreground text-sm mt-1 uppercase tracking-widest">Vendor Costing</p>
-        </div>
-        <Button onClick={openCreate} className="gap-2 bg-primary text-primary-foreground uppercase tracking-wider text-xs font-bold" data-testid="button-create-cost-sheet">
+    <div className="flex flex-col gap-4 animate-in fade-in duration-300">
+      <PageHeader title="Cost Sheets" description="Internal vendor costing">
+        <Button onClick={openCreate} size="sm" className="gap-1.5 bg-primary text-primary-foreground text-xs font-semibold" data-testid="button-create-cost-sheet">
           <Plus className="w-4 h-4" /> New Cost Sheet
         </Button>
-      </div>
+      </PageHeader>
 
       <TableToolbar
         search={ctl.search}
@@ -108,44 +104,49 @@ export default function CostSheets() {
 
       <div className="bg-card border border-card-border rounded-lg overflow-hidden">
         {isLoading ? (
-          <div className="p-6 space-y-3">{[1, 2, 3].map((i) => <Skeleton key={i} className="h-12 w-full" />)}</div>
+          <TableSkeleton rows={6} cols={4} />
         ) : ctl.rows.length === 0 ? (
-          <div className="py-20 text-center text-muted-foreground text-sm">{ctl.totalCount === 0 ? "No cost sheets yet." : "No matches."}</div>
+          <TableEmpty
+            icon={FileSpreadsheet}
+            title={ctl.totalCount === 0 ? "No cost sheets yet" : "No matches found"}
+            description={ctl.totalCount === 0 ? "Create your first cost sheet to start costing." : "Try adjusting your search or filters."}
+          />
         ) : (
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-card-border">
-                <SortHeader label="Title" sortKey="title" current={ctl.sort} onToggle={(k) => ctl.toggleSort(k as "title")} />
-                <SortHeader label="Linked Enquiry" sortKey="enquiry" current={ctl.sort} onToggle={(k) => ctl.toggleSort(k as "enquiry")} className="hidden md:table-cell" />
-                <SortHeader label="Created" sortKey="createdAt" current={ctl.sort} onToggle={(k) => ctl.toggleSort(k as "createdAt")} className="hidden lg:table-cell" />
-                <th className="px-6 py-3 w-28"></th>
-              </tr>
-            </thead>
-            <tbody>
-              {ctl.rows.map((s) => (
-                <tr key={s.id} className="border-b border-card-border/50 hover:bg-accent/20 transition-colors" data-testid={`row-cost-sheet-${s.id}`}>
-                  <td className="px-6 py-4">
-                    <Link href={`/cost-sheets/${s.id}`} className="font-semibold text-foreground hover:text-primary transition-colors">{s.title}</Link>
-                  </td>
-                  <td className="px-6 py-4 text-muted-foreground text-sm hidden md:table-cell">
-                    {s.enquiryId && enquiryMap[s.enquiryId] ? (
-                      <Link href={`/enquiries/${s.enquiryId}`} className="hover:text-primary transition-colors">{enquiryMap[s.enquiryId]}</Link>
-                    ) : "—"}
-                  </td>
-                  <td className="px-6 py-4 text-muted-foreground font-mono text-xs hidden lg:table-cell">{new Date(s.createdAt).toLocaleDateString()}</td>
-                  <td className="px-6 py-4">
-                    <div className="flex items-center gap-1">
-                      <Link href={`/cost-sheets/${s.id}`}>
-                        <Button variant="ghost" size="icon" className="h-8 w-8" data-testid={`button-view-cost-sheet-${s.id}`}><ChevronRight className="w-4 h-4" /></Button>
-                      </Link>
-                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(s)} data-testid={`button-edit-cost-sheet-${s.id}`}><Pencil className="w-3.5 h-3.5" /></Button>
-                      <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => setDeleteId(s.id)} data-testid={`button-delete-cost-sheet-${s.id}`}><Trash2 className="w-3.5 h-3.5" /></Button>
-                    </div>
-                  </td>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="bg-card/95 backdrop-blur sticky top-0 z-10">
+                <tr className="border-b border-card-border">
+                  <SortHeader label="Title" sortKey="title" current={ctl.sort} onToggle={(k) => ctl.toggleSort(k as "title")} />
+                  <SortHeader label="Linked Enquiry" sortKey="enquiry" current={ctl.sort} onToggle={(k) => ctl.toggleSort(k as "enquiry")} className="hidden md:table-cell" />
+                  <SortHeader label="Created" sortKey="createdAt" current={ctl.sort} onToggle={(k) => ctl.toggleSort(k as "createdAt")} className="hidden lg:table-cell" />
+                  <th className="px-3 py-2.5 w-24 text-right text-[11px] uppercase tracking-wider text-muted-foreground font-medium">Actions</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {ctl.rows.map((s) => (
+                  <tr key={s.id} className="border-b border-border/40 hover:bg-muted/40 transition-colors group" data-testid={`row-cost-sheet-${s.id}`}>
+                    <td className="px-3 py-2.5">
+                      <Link href={`/cost-sheets/${s.id}`} className="font-medium text-foreground hover:text-primary transition-colors">{s.title}</Link>
+                      {s.notes && <div className="text-xs text-muted-foreground truncate max-w-[280px]">{s.notes}</div>}
+                    </td>
+                    <td className="px-3 py-2.5 text-muted-foreground text-sm hidden md:table-cell">
+                      {s.enquiryId && enquiryMap[s.enquiryId] ? (
+                        <Link href={`/enquiries/${s.enquiryId}`} className="hover:text-primary transition-colors">{enquiryMap[s.enquiryId]}</Link>
+                      ) : "—"}
+                    </td>
+                    <td className="px-3 py-2.5 text-muted-foreground font-mono text-xs whitespace-nowrap hidden lg:table-cell">{new Date(s.createdAt).toLocaleDateString()}</td>
+                    <td className="px-3 py-2.5">
+                      <div className="flex items-center justify-end gap-0.5">
+                        <RowAction icon={Eye} label="View" href={`/cost-sheets/${s.id}`} />
+                        <RowAction icon={Pencil} label="Edit" onClick={() => openEdit(s)} />
+                        <RowAction icon={Trash2} label="Delete" destructive onClick={() => setDeleteId(s.id)} />
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
       </div>
 

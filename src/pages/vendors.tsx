@@ -10,8 +10,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { Plus, Pencil, Trash2, Phone, Mail, Tag, Building2, LayoutGrid, List } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { PageHeader } from "@/components/ui/page-header";
 import { useTableControls } from "@/hooks/use-table-controls";
-import { TableToolbar, FilterSelect, SortHeader, Pagination } from "@/components/table-controls";
+import { TableToolbar, FilterSelect, SortHeader, Pagination, RowAction, TableEmpty } from "@/components/table-controls";
 
 interface VendorFormData {
   name: string; company: string; email: string; phone: string; specialty: string; notes: string;
@@ -99,21 +100,15 @@ export default function Vendors() {
   const hasFilters = !!ctl.filters.specialty && ctl.filters.specialty !== "all";
 
   return (
-    <div className="flex flex-col gap-6 animate-in fade-in duration-300">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold uppercase tracking-tight" data-testid="text-vendors-title">Vendors</h1>
-          <p className="text-muted-foreground text-sm mt-1 uppercase tracking-widest">Contact Directory</p>
-        </div>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" onClick={() => { setQuickAddOpen((o) => !o); setQuickForm({ name: "", company: "", phone: "", specialty: "" }); }} className="gap-2 uppercase tracking-wider text-xs font-bold" data-testid="button-quick-add-vendor">
-            <Plus className="w-4 h-4" /> Quick Add
-          </Button>
-          <Button onClick={openCreate} className="gap-2 bg-primary text-primary-foreground uppercase tracking-wider text-xs font-bold" data-testid="button-create-vendor">
-            <Plus className="w-4 h-4" /> Full Form
-          </Button>
-        </div>
-      </div>
+    <div className="flex flex-col gap-4 animate-in fade-in duration-300">
+      <PageHeader title="Vendors" description="Supplier contact directory">
+        <Button variant="outline" size="sm" onClick={() => { setQuickAddOpen((o) => !o); setQuickForm({ name: "", company: "", phone: "", specialty: "" }); }} className="gap-1.5 text-xs font-semibold" data-testid="button-quick-add-vendor">
+          <Plus className="w-4 h-4" /> Quick Add
+        </Button>
+        <Button onClick={openCreate} size="sm" className="gap-1.5 bg-primary text-primary-foreground text-xs font-semibold" data-testid="button-create-vendor">
+          <Plus className="w-4 h-4" /> Full Form
+        </Button>
+      </PageHeader>
 
       {quickAddOpen && (
         <form onSubmit={handleQuickAdd} className="bg-card border border-primary/30 rounded-lg p-4 animate-in fade-in duration-150">
@@ -172,7 +167,13 @@ export default function Vendors() {
           {[1, 2, 3, 4, 5, 6].map((i) => <Skeleton key={i} className="h-44 rounded-lg" />)}
         </div>
       ) : ctl.rows.length === 0 ? (
-        <div className="text-center py-20 text-muted-foreground">{ctl.totalCount === 0 ? "No vendors yet. Add one to get started." : "No vendors match your filters."}</div>
+        <div className="bg-card border border-card-border rounded-lg">
+          <TableEmpty
+            icon={Building2}
+            title={ctl.totalCount === 0 ? "No vendors yet" : "No matches found"}
+            description={ctl.totalCount === 0 ? "Add a vendor to get started." : "Try adjusting your search or filters."}
+          />
+        </div>
       ) : view === "grid" ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {ctl.rows.map((v) => (
@@ -198,36 +199,38 @@ export default function Vendors() {
         </div>
       ) : (
         <div className="bg-card border border-card-border rounded-lg overflow-hidden">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-card-border">
-                <SortHeader label="Name" sortKey="name" current={ctl.sort} onToggle={(k) => ctl.toggleSort(k as "name")} />
-                <SortHeader label="Company" sortKey="company" current={ctl.sort} onToggle={(k) => ctl.toggleSort(k as "company")} />
-                <SortHeader label="Specialty" sortKey="specialty" current={ctl.sort} onToggle={(k) => ctl.toggleSort(k as "specialty")} className="hidden md:table-cell" />
-                <th className="text-left px-6 py-3 text-xs uppercase tracking-wider text-muted-foreground font-medium hidden lg:table-cell">Contact</th>
-                <th className="px-6 py-3 w-20"></th>
-              </tr>
-            </thead>
-            <tbody>
-              {ctl.rows.map((v) => (
-                <tr key={v.id} className="border-b border-card-border/50 hover:bg-accent/20 transition-colors" data-testid={`row-vendor-${v.id}`}>
-                  <td className="px-6 py-4 font-semibold">{v.name}</td>
-                  <td className="px-6 py-4 text-muted-foreground">{v.company}</td>
-                  <td className="px-6 py-4 hidden md:table-cell">{v.specialty && <span className="text-primary text-xs">{v.specialty}</span>}</td>
-                  <td className="px-6 py-4 text-muted-foreground text-xs hidden lg:table-cell">
-                    {v.phone && <div>{v.phone}</div>}
-                    {v.email && <div className="truncate max-w-[180px]">{v.email}</div>}
-                  </td>
-                  <td className="px-6 py-4">
-                    <div className="flex items-center gap-1">
-                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(v)} data-testid={`button-edit-vendor-${v.id}`}><Pencil className="w-3.5 h-3.5" /></Button>
-                      <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => setDeleteConfirmId(v.id)} data-testid={`button-delete-vendor-${v.id}`}><Trash2 className="w-3.5 h-3.5" /></Button>
-                    </div>
-                  </td>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="bg-card/95 backdrop-blur sticky top-0 z-10">
+                <tr className="border-b border-card-border">
+                  <SortHeader label="Name" sortKey="name" current={ctl.sort} onToggle={(k) => ctl.toggleSort(k as "name")} />
+                  <SortHeader label="Company" sortKey="company" current={ctl.sort} onToggle={(k) => ctl.toggleSort(k as "company")} />
+                  <SortHeader label="Specialty" sortKey="specialty" current={ctl.sort} onToggle={(k) => ctl.toggleSort(k as "specialty")} className="hidden md:table-cell" />
+                  <th className="text-left px-3 py-2.5 text-[11px] uppercase tracking-wider text-muted-foreground font-medium hidden lg:table-cell">Contact</th>
+                  <th className="px-3 py-2.5 w-20 text-right text-[11px] uppercase tracking-wider text-muted-foreground font-medium">Actions</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {ctl.rows.map((v) => (
+                  <tr key={v.id} className="border-b border-border/40 hover:bg-muted/40 transition-colors group" data-testid={`row-vendor-${v.id}`}>
+                    <td className="px-3 py-2.5 font-medium text-foreground">{v.name}</td>
+                    <td className="px-3 py-2.5 text-muted-foreground">{v.company}</td>
+                    <td className="px-3 py-2.5 hidden md:table-cell">{v.specialty && <span className="text-primary text-xs">{v.specialty}</span>}</td>
+                    <td className="px-3 py-2.5 text-muted-foreground text-xs hidden lg:table-cell">
+                      {v.phone && <div>{v.phone}</div>}
+                      {v.email && <div className="truncate max-w-[180px]">{v.email}</div>}
+                    </td>
+                    <td className="px-3 py-2.5">
+                      <div className="flex items-center justify-end gap-0.5">
+                        <RowAction icon={Pencil} label="Edit" onClick={() => openEdit(v)} />
+                        <RowAction icon={Trash2} label="Delete" destructive onClick={() => setDeleteConfirmId(v.id)} />
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
 

@@ -16,7 +16,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { PageHeader } from "@/components/ui/page-header";
 import { StatCard } from "@/components/ui/stat-card";
 import { EmptyState } from "@/components/ui/empty-state";
-import { formatOMR } from "@/lib/utils";
+import { formatOMR, CHART_TOOLTIP } from "@/lib/utils";
 import { supabase } from "@/lib/supabase";
 import {
   snapRevenue, snapNet, snapExpenses, snapYear, snapMonthKey, snapMonthLabel,
@@ -112,9 +112,11 @@ export default function FitnessBay() {
   const year = new Date().getFullYear();
 
   return (
-    <div className="flex flex-col gap-8 animate-in fade-in duration-300">
-      <div className="flex items-center gap-3">
-        <Dumbbell className="w-7 h-7 text-primary" />
+    <div className="flex flex-col gap-6 animate-in fade-in duration-300">
+      <div className="flex items-center gap-2.5 rounded-lg border-l-2 border-emerald-500/60 bg-card/40 pl-3 py-1">
+        <div className="flex h-8 w-8 items-center justify-center rounded-md bg-emerald-500/10 text-emerald-400 shrink-0">
+          <Dumbbell className="w-4 h-4" />
+        </div>
         <PageHeader
           title="Fitness Bay"
           description="P&L, Virtual Bank, and Partner Split"
@@ -123,10 +125,10 @@ export default function FitnessBay() {
 
       {/* P&L KPIs */}
       <section>
-        <h2 className="text-xs uppercase tracking-widest text-muted-foreground mb-4">
+        <h2 className="t-section-title text-muted-foreground mb-3">
           Profit & Loss ({year} YTD)
         </h2>
-        <div className="grid gap-4 sm:grid-cols-3">
+        <div className="grid gap-3 sm:grid-cols-3">
           <StatCard loading={isLoading} title="YTD Revenue" value={formatOMR(data?.ytdRevenue)} icon={TrendingUp} trend="up" />
           <StatCard loading={isLoading} title="YTD Expenses" value={formatOMR(data?.ytdExpenses)} icon={TrendingDown} trend="down" />
           <StatCard
@@ -140,9 +142,9 @@ export default function FitnessBay() {
       </section>
 
       {/* Revenue vs Expenses Chart */}
-      <Card className="hover:shadow-md transition-shadow">
+      <Card>
         <CardHeader>
-          <CardTitle className="text-base">Monthly Revenue & Expenses</CardTitle>
+          <CardTitle className="t-card-title">Monthly Revenue & Expenses</CardTitle>
         </CardHeader>
         <CardContent>
           {isLoading ? (
@@ -152,16 +154,17 @@ export default function FitnessBay() {
           ) : (
             <ResponsiveContainer width="100%" height={280}>
               <BarChart data={data.chartData} barGap={2}>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
-                <XAxis dataKey="month" tick={{ fontSize: 11, fill: "#888" }} />
-                <YAxis tick={{ fontSize: 11, fill: "#888" }} tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`} />
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" vertical={false} />
+                <XAxis dataKey="month" tick={{ fontSize: 11, fill: "#888" }} axisLine={false} tickLine={false} />
+                <YAxis tick={{ fontSize: 11, fill: "#888" }} axisLine={false} tickLine={false} tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`} />
                 <Tooltip
+                  cursor={{ fill: "rgba(255,255,255,0.03)" }}
                   formatter={(val: number) => formatOMR(val)}
-                  contentStyle={{ background: "rgba(20,20,30,0.95)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 8, fontSize: 12 }}
+                  contentStyle={CHART_TOOLTIP}
                 />
-                <Legend />
-                <Bar dataKey="revenue" fill="#10b981" radius={[3, 3, 0, 0]} name="Revenue" />
-                <Bar dataKey="expenses" fill="#f43f5e" radius={[3, 3, 0, 0]} name="Expenses" />
+                <Legend iconType="circle" wrapperStyle={{ fontSize: 12 }} />
+                <Bar dataKey="revenue" fill="hsl(158 64% 52%)" radius={[3, 3, 0, 0]} name="Revenue" maxBarSize={32} />
+                <Bar dataKey="expenses" fill="hsl(0 84% 60%)" radius={[3, 3, 0, 0]} name="Expenses" maxBarSize={32} />
               </BarChart>
             </ResponsiveContainer>
           )}
@@ -169,38 +172,38 @@ export default function FitnessBay() {
       </Card>
 
       {/* Virtual Bank + Partner Split side by side */}
-      <div className="grid lg:grid-cols-2 gap-6">
+      <div className="grid lg:grid-cols-2 gap-4">
         {/* Virtual Bank */}
         <section>
-          <h2 className="text-xs uppercase tracking-widest text-muted-foreground mb-4">
+          <h2 className="t-section-title text-muted-foreground mb-3">
             Virtual Bank (Gym Slice)
           </h2>
           <div className="grid gap-3 sm:grid-cols-3">
             <div className="bg-card border border-card-border rounded-lg p-4">
-              <div className="flex items-center gap-2 mb-1">
+              <div className="flex items-center gap-2 mb-1.5">
                 <ArrowDownLeft className="w-4 h-4 text-emerald-400" />
-                <span className="text-[10px] uppercase tracking-wider text-muted-foreground">Money In</span>
+                <span className="t-label text-muted-foreground">Money In</span>
               </div>
               {isLoading ? <Skeleton className="h-6 w-20" /> : (
-                <span className="text-lg font-bold tabular-nums text-emerald-400">{formatOMR(data?.moneyIn)}</span>
+                <span className="t-value tabular-nums text-emerald-400">{formatOMR(data?.moneyIn)}</span>
               )}
             </div>
             <div className="bg-card border border-card-border rounded-lg p-4">
-              <div className="flex items-center gap-2 mb-1">
+              <div className="flex items-center gap-2 mb-1.5">
                 <ArrowUpRight className="w-4 h-4 text-rose-400" />
-                <span className="text-[10px] uppercase tracking-wider text-muted-foreground">Money Out</span>
+                <span className="t-label text-muted-foreground">Money Out</span>
               </div>
               {isLoading ? <Skeleton className="h-6 w-20" /> : (
-                <span className="text-lg font-bold tabular-nums text-rose-400">{formatOMR(data?.moneyOut)}</span>
+                <span className="t-value tabular-nums text-rose-400">{formatOMR(data?.moneyOut)}</span>
               )}
             </div>
             <div className="bg-card border border-card-border rounded-lg p-4">
-              <div className="flex items-center gap-2 mb-1">
+              <div className="flex items-center gap-2 mb-1.5">
                 <Landmark className="w-4 h-4 text-blue-400" />
-                <span className="text-[10px] uppercase tracking-wider text-muted-foreground">Retained</span>
+                <span className="t-label text-muted-foreground">Retained</span>
               </div>
               {isLoading ? <Skeleton className="h-6 w-20" /> : (
-                <span className={`text-lg font-bold tabular-nums ${(data?.retained ?? 0) >= 0 ? "text-blue-400" : "text-rose-400"}`}>
+                <span className={`t-value tabular-nums ${(data?.retained ?? 0) >= 0 ? "text-blue-400" : "text-rose-400"}`}>
                   {formatOMR(data?.retained)}
                 </span>
               )}
@@ -210,11 +213,11 @@ export default function FitnessBay() {
 
         {/* Partner Split */}
         <section>
-          <h2 className="text-xs uppercase tracking-widest text-muted-foreground mb-4">
+          <h2 className="t-section-title text-muted-foreground mb-3">
             Partner Split (Cumulative Net)
           </h2>
-          <Card className="hover:shadow-md transition-shadow">
-            <CardContent className="p-5 space-y-4">
+          <Card>
+            <CardContent className="p-4 space-y-4">
               <div className="flex items-center justify-between">
                 <span className="text-sm text-muted-foreground">Cumulative Net Income</span>
                 {isLoading ? <Skeleton className="h-6 w-24" /> : (
@@ -249,9 +252,9 @@ export default function FitnessBay() {
       </div>
 
       {/* Net Income Trend */}
-      <Card className="hover:shadow-md transition-shadow">
+      <Card>
         <CardHeader>
-          <CardTitle className="text-base">Net Income Trend</CardTitle>
+          <CardTitle className="t-card-title">Net Income Trend</CardTitle>
         </CardHeader>
         <CardContent>
           {isLoading ? (
@@ -261,14 +264,14 @@ export default function FitnessBay() {
           ) : (
             <ResponsiveContainer width="100%" height={220}>
               <LineChart data={data.chartData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
-                <XAxis dataKey="month" tick={{ fontSize: 11, fill: "#888" }} />
-                <YAxis tick={{ fontSize: 11, fill: "#888" }} tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`} />
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" vertical={false} />
+                <XAxis dataKey="month" tick={{ fontSize: 11, fill: "#888" }} axisLine={false} tickLine={false} />
+                <YAxis tick={{ fontSize: 11, fill: "#888" }} axisLine={false} tickLine={false} tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`} />
                 <Tooltip
                   formatter={(val: number) => formatOMR(val)}
-                  contentStyle={{ background: "rgba(20,20,30,0.95)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 8, fontSize: 12 }}
+                  contentStyle={CHART_TOOLTIP}
                 />
-                <Line type="monotone" dataKey="net" stroke="#8b5cf6" strokeWidth={2} dot={{ fill: "#8b5cf6", r: 3 }} name="Net Income" />
+                <Line type="monotone" dataKey="net" stroke="hsl(158 64% 52%)" strokeWidth={2} dot={{ fill: "hsl(158 64% 52%)", r: 3 }} name="Net Income" />
               </LineChart>
             </ResponsiveContainer>
           )}
@@ -276,11 +279,11 @@ export default function FitnessBay() {
       </Card>
 
       {/* Recent Transactions */}
-      <Card className="hover:shadow-md transition-shadow">
+      <Card>
         <CardHeader>
-          <CardTitle className="text-base">
+          <CardTitle className="t-card-title">
             Recent Transactions
-            {!isLoading && <span className="text-muted-foreground font-normal text-sm ml-2">({data?.transactionCount})</span>}
+            {!isLoading && <span className="text-muted-foreground font-normal text-xs ml-2">({data?.transactionCount})</span>}
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -306,13 +309,13 @@ export default function FitnessBay() {
                 <TableBody>
                   {data.transactions.slice(0, 50).map((t) => (
                     <TableRow key={t.id}>
-                      <TableCell className="text-sm">
+                      <TableCell className="text-sm whitespace-nowrap">
                         {t.transaction_date
                           ? new Date(t.transaction_date).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })
                           : "-"}
                       </TableCell>
                       <TableCell className="max-w-[300px] truncate">{t.description ?? "-"}</TableCell>
-                      <TableCell className={`text-right font-mono ${(num(t.credit) - num(t.debit)) < 0 ? "text-rose-400" : "text-emerald-400"}`}>
+                      <TableCell className={`text-right font-mono tabular-nums ${(num(t.credit) - num(t.debit)) < 0 ? "text-rose-400" : "text-emerald-400"}`}>
                         {formatOMR(num(t.credit) - num(t.debit))}
                       </TableCell>
                       <TableCell>

@@ -225,7 +225,7 @@ export default function CostSheetDetail() {
       }
       queryClient.invalidateQueries({ queryKey: getListQuotationsQueryKey() });
       queryClient.invalidateQueries({ queryKey: getListQuotationItemsQueryKey(q.id) });
-      toast({ 
+      toast({
         title: `Quotation created from Cost Sheet`,
         description: `All sell prices copied. Now edit/print using your provided template (logo, formatting) in the Quotation screen.`
       });
@@ -273,7 +273,7 @@ export default function CostSheetDetail() {
     lines.push([escape(""), escape("Total Sell Price"), "", "", "", "", "", "", totalSellCost.toFixed(3), "", ""].join(","));
     lines.push([escape(""), escape("VAT (5%)"), "", "", "", "", "", "", vatAmount.toFixed(3), "", ""].join(","));
     lines.push([escape(""), escape("Grand Total"), "", "", "", "", "", "", grandTotal.toFixed(3), "", ""].join(","));
-    const blob = new Blob(["\ufeff" + lines.join("\n")], { type: "text/csv;charset=utf-8;" });
+    const blob = new Blob(["﻿" + lines.join("\n")], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     const safeName = sheet.title.replace(/[^\w\-]+/g, "_").slice(0, 60);
@@ -294,30 +294,30 @@ export default function CostSheetDetail() {
   if (!sheet) return <div className="py-20 text-center text-muted-foreground">Cost sheet not found.</div>;
 
   return (
-    <div className="flex flex-col gap-6 animate-in fade-in duration-300">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <Button variant="ghost" size="icon" onClick={() => setLocation("/cost-sheets")} data-testid="button-back-cost-sheets">
+    <div className="flex flex-col gap-4 animate-in fade-in duration-300">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div className="flex items-start gap-2.5 min-w-0">
+          <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" onClick={() => setLocation("/cost-sheets")} data-testid="button-back-cost-sheets">
             <ArrowLeft className="w-4 h-4" />
           </Button>
-          <div>
-            <div className="text-xs uppercase tracking-widest text-muted-foreground mb-1">Step 1: Internal Cost Sheet (all details & vendor costs) → Step 2: Client Quotation/Estimate</div>
-            <h1 className="text-2xl font-bold uppercase tracking-tight" data-testid="text-cost-sheet-title">{sheet.title}</h1>
-            {sheet.notes && <p className="text-muted-foreground text-sm mt-0.5">{sheet.notes}</p>}
+          <div className="min-w-0">
+            <div className="t-label text-muted-foreground mb-1">Internal cost sheet · vendor costs → client quotation</div>
+            <h1 className="t-page-title text-foreground truncate" data-testid="text-cost-sheet-title">{sheet.title}</h1>
+            {sheet.notes && <p className="text-xs text-muted-foreground mt-0.5">{sheet.notes}</p>}
           </div>
         </div>
-        <div className="flex items-center gap-2 print:hidden">
-          <Button onClick={exportCsv} disabled={rows.length === 0} variant="outline" size="sm" className="gap-2 uppercase tracking-wider text-xs font-bold" data-testid="button-export-csv">
+        <div className="flex flex-wrap items-center gap-2 print:hidden shrink-0">
+          <Button onClick={exportCsv} disabled={rows.length === 0} variant="outline" size="sm" className="gap-1.5 text-xs font-semibold" data-testid="button-export-csv">
             <Download className="w-4 h-4" /> CSV
           </Button>
-          <Button onClick={printSheet} disabled={rows.length === 0} variant="outline" size="sm" className="gap-2 uppercase tracking-wider text-xs font-bold" data-testid="button-print-cost-sheet">
+          <Button onClick={printSheet} disabled={rows.length === 0} variant="outline" size="sm" className="gap-1.5 text-xs font-semibold" data-testid="button-print-cost-sheet">
             <Printer className="w-4 h-4" /> Print
           </Button>
-          <Button onClick={openCreate} variant="outline" className="gap-2 uppercase tracking-wider text-xs font-bold" data-testid="button-add-item">
+          <Button onClick={openCreate} variant="outline" size="sm" className="gap-1.5 text-xs font-semibold" data-testid="button-add-item">
             <Plus className="w-4 h-4" /> Add Item
           </Button>
-          <Button onClick={openGenDialog} disabled={rows.length === 0} className="gap-2 bg-primary text-primary-foreground uppercase tracking-wider text-xs font-bold" data-testid="button-generate-quotation">
-            <FileText className="w-4 h-4" /> Finish Cost Sheet &amp; Create Quotation / Estimate
+          <Button onClick={openGenDialog} disabled={rows.length === 0} size="sm" className="gap-1.5 bg-primary text-primary-foreground text-xs font-semibold" data-testid="button-generate-quotation">
+            <FileText className="w-4 h-4" /> Create Quotation
           </Button>
         </div>
       </div>
@@ -333,16 +333,16 @@ export default function CostSheetDetail() {
       {/* Totals */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
         {[
-          { label: "Items", value: String(rows.length), mono: false, highlight: false },
-          { label: "Total Vendor Cost", value: `OMR ${fmt(totalVendorCost)}`, mono: true, highlight: false },
-          { label: "Total Sell Price", value: `OMR ${fmt(totalSellCost)}`, mono: true, highlight: false },
-          { label: "Gross Margin", value: `${margin.toFixed(1)}%`, mono: true, highlight: false },
-          { label: "VAT (5%)", value: `OMR ${fmt(vatAmount)}`, mono: true, highlight: false },
-          { label: "Grand Total", value: `OMR ${fmt(grandTotal)}`, mono: true, highlight: true },
+          { label: "Items", value: String(rows.length), valueClass: "text-foreground" },
+          { label: "Total Vendor Cost", value: `OMR ${fmt(totalVendorCost)}`, valueClass: "text-foreground tabular-nums" },
+          { label: "Total Sell Price", value: `OMR ${fmt(totalSellCost)}`, valueClass: "text-foreground tabular-nums" },
+          { label: "Gross Margin", value: `${margin.toFixed(1)}%`, valueClass: `tabular-nums ${margin >= 0 ? "text-emerald-400" : "text-rose-400"}` },
+          { label: "VAT (5%)", value: `OMR ${fmt(vatAmount)}`, valueClass: "text-muted-foreground tabular-nums" },
+          { label: "Grand Total", value: `OMR ${fmt(grandTotal)}`, valueClass: "text-primary tabular-nums", highlight: true },
         ].map((s) => (
           <div key={s.label} className={`rounded-lg p-4 ${s.highlight ? "bg-primary/10 border border-primary/30" : "bg-card border border-card-border"}`}>
-            <div className="text-xs text-muted-foreground uppercase tracking-wider mb-1">{s.label}</div>
-            <div className={`text-xl font-bold ${s.highlight ? "text-primary" : "text-primary"} ${s.mono ? "font-mono" : ""}`}>{s.value}</div>
+            <div className="t-label text-muted-foreground mb-1.5">{s.label}</div>
+            <div className={`t-value ${s.valueClass}`}>{s.value}</div>
           </div>
         ))}
       </div>
@@ -355,10 +355,20 @@ export default function CostSheetDetail() {
           <div className="py-20 text-center text-muted-foreground text-sm">No items yet. Add one above.</div>
         ) : (
           <table className="w-full text-sm min-w-[700px]">
-            <thead>
+            <thead className="bg-card/95 backdrop-blur sticky top-0 z-10">
               <tr className="border-b border-card-border">
-                {["Description", "Qty", "Unit", "Vendor", "Vendor Cost", "Sell Price", "Total Sell", "Margin", ""].map((h) => (
-                  <th key={h} className="text-left px-4 py-3 text-xs uppercase tracking-wider text-muted-foreground font-medium whitespace-nowrap">{h}</th>
+                {[
+                  { h: "Description", align: "text-left" },
+                  { h: "Qty", align: "text-right" },
+                  { h: "Unit", align: "text-left" },
+                  { h: "Vendor", align: "text-left" },
+                  { h: "Vendor Cost", align: "text-right" },
+                  { h: "Sell Price", align: "text-right" },
+                  { h: "Total Sell", align: "text-right" },
+                  { h: "Margin", align: "text-right" },
+                  { h: "", align: "text-right" },
+                ].map((c, i) => (
+                  <th key={i} className={`${c.align} px-4 py-2.5 text-[11px] uppercase tracking-wider text-muted-foreground font-medium whitespace-nowrap`}>{c.h}</th>
                 ))}
               </tr>
             </thead>
@@ -396,12 +406,12 @@ export default function CostSheetDetail() {
                         <td className="px-2 py-2">
                           <Input type="number" step="0.001" value={inlineForm.sellUnitCost} onChange={(e) => setInlineForm((f: any) => ({ ...f, sellUnitCost: e.target.value }))} className="h-8 w-24 text-sm font-mono" />
                         </td>
-                        <td className="px-2 py-2 tabular-nums text-primary font-mono text-xs font-semibold">{fmt(sellTotal)}</td>
-                        <td className="px-2 py-2 tabular-nums text-xs">
-                          <span className={itemMargin >= 0 ? "text-green-400" : "text-red-400"}>{itemMargin.toFixed(1)}%</span>
+                        <td className="px-2 py-2 text-right tabular-nums text-primary font-mono text-xs font-semibold">{fmt(sellTotal)}</td>
+                        <td className="px-2 py-2 text-right tabular-nums text-xs">
+                          <span className={itemMargin >= 0 ? "text-emerald-400" : "text-rose-400"}>{itemMargin.toFixed(1)}%</span>
                         </td>
                         <td className="px-2 py-2">
-                          <div className="flex gap-1">
+                          <div className="flex justify-end gap-1">
                             <Button size="sm" className="h-7 text-xs" onClick={saveInlineEdit}>Save</Button>
                             <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={cancelInlineEdit}>Cancel</Button>
                           </div>
@@ -413,17 +423,17 @@ export default function CostSheetDetail() {
                           <div className="truncate">{item.description}</div>
                           {item.notes && <div className="text-xs text-muted-foreground truncate">{item.notes}</div>}
                         </td>
-                        <td className="px-4 py-3 tabular-nums text-muted-foreground">{item.qty}</td>
+                        <td className="px-4 py-3 text-right tabular-nums text-muted-foreground">{item.qty}</td>
                         <td className="px-4 py-3 text-muted-foreground">{item.unit ?? "—"}</td>
                         <td className="px-4 py-3 text-muted-foreground text-xs">{item.vendorId ? vendorMap[item.vendorId] ?? "—" : "—"}</td>
-                        <td className="px-4 py-3 tabular-nums text-muted-foreground font-mono text-xs">{fmt(item.vendorUnitCost)}</td>
-                        <td className="px-4 py-3 tabular-nums text-foreground font-mono text-xs">{fmt(item.sellUnitCost)}</td>
-                        <td className="px-4 py-3 tabular-nums text-primary font-mono text-xs font-semibold">{fmt(sellTotal)}</td>
-                        <td className="px-4 py-3 tabular-nums text-xs">
-                          <span className={itemMargin >= 0 ? "text-green-400" : "text-red-400"}>{itemMargin.toFixed(1)}%</span>
+                        <td className="px-4 py-3 text-right tabular-nums text-muted-foreground font-mono text-xs">{fmt(item.vendorUnitCost)}</td>
+                        <td className="px-4 py-3 text-right tabular-nums text-foreground font-mono text-xs">{fmt(item.sellUnitCost)}</td>
+                        <td className="px-4 py-3 text-right tabular-nums text-primary font-mono text-xs font-semibold">{fmt(sellTotal)}</td>
+                        <td className="px-4 py-3 text-right tabular-nums text-xs">
+                          <span className={itemMargin >= 0 ? "text-emerald-400" : "text-rose-400"}>{itemMargin.toFixed(1)}%</span>
                         </td>
                         <td className="px-4 py-3">
-                          <div className="flex items-center gap-1">
+                          <div className="flex items-center justify-end gap-1">
                             <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => startInlineEdit(item)} data-testid={`button-inline-edit-${item.id}`}><Pencil className="w-3 h-3" /></Button>
                             <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => setDeleteItemId(item.id)} data-testid={`button-delete-item-${item.id}`}><Trash2 className="w-3 h-3" /></Button>
                           </div>
@@ -488,8 +498,8 @@ export default function CostSheetDetail() {
               <div className="text-sm font-medium">Cost Sheet ready with {rows.length} items</div>
               <div className="text-xs text-muted-foreground">All internal costs captured. Ready for client quotation using your templates &amp; logos from Google Drive.</div>
             </div>
-            <Button 
-              onClick={openGenDialog} 
+            <Button
+              onClick={openGenDialog}
               className="gap-2 bg-primary text-primary-foreground uppercase tracking-wider text-sm font-bold px-8 py-3 h-auto"
               data-testid="button-finish-and-next"
             >

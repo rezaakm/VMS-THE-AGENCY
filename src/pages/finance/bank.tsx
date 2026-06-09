@@ -54,19 +54,19 @@ export default function BankPanel() {
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {accountsQ.isLoading
           ? Array.from({ length: 3 }).map((_, i) => (
-              <Card key={i}><CardContent className="p-5"><Skeleton className="h-5 w-24" /><Skeleton className="mt-2 h-7 w-32" /></CardContent></Card>
+              <Card key={i}><CardContent className="p-4"><Skeleton className="h-5 w-24" /><Skeleton className="mt-2 h-7 w-32" /></CardContent></Card>
             ))
           : (accountsQ.data ?? []).length === 0
           ? (
-            <Card className="col-span-full"><CardContent className="p-5"><EmptyState title="No bank accounts" /></CardContent></Card>
+            <Card className="col-span-full"><CardContent className="p-4"><EmptyState title="No bank accounts" /></CardContent></Card>
           )
           : (accountsQ.data ?? []).map((acct) => (
-              <Card key={acct.id} className="hover:shadow-md transition-shadow">
-                <CardContent className="p-5">
-                  <p className="text-xs font-medium text-muted-foreground">{acct.name}</p>
-                  <p className="mt-1 text-xl font-bold tabular-nums">{formatOMR(acct.current_balance ?? acct.balance)}</p>
-                  <div className="flex gap-2 mt-2">
-                    {acct.bank_name && <span className="text-[10px] text-muted-foreground">{acct.bank_name}</span>}
+              <Card key={acct.id} className="hover:border-primary/25">
+                <CardContent className="p-4">
+                  <p className="t-label text-muted-foreground">{acct.name}</p>
+                  <p className="mt-1.5 t-value tabular-nums">{formatOMR(acct.current_balance ?? acct.balance)}</p>
+                  <div className="flex items-center gap-2 mt-2">
+                    {acct.bank_name && <span className="t-caption text-muted-foreground">{acct.bank_name}</span>}
                     {acct.entity && (
                       <Badge variant="outline" className="text-[10px]">{acct.entity}</Badge>
                     )}
@@ -77,9 +77,9 @@ export default function BankPanel() {
       </div>
 
       {/* Transaction Ledger */}
-      <Card className="hover:shadow-md transition-shadow">
+      <Card>
         <CardHeader>
-          <CardTitle className="text-base">Transaction Ledger</CardTitle>
+          <CardTitle className="t-card-title">Transaction Ledger</CardTitle>
         </CardHeader>
         <CardContent>
           {txnQ.isLoading ? (
@@ -106,12 +106,12 @@ export default function BankPanel() {
                 <TableBody>
                   {(txnQ.data ?? []).map((t) => (
                     <TableRow key={t.id}>
-                      <TableCell>
+                      <TableCell className="whitespace-nowrap">
                         {t.transaction_date ? format(new Date(t.transaction_date), "dd MMM yyyy") : "-"}
                       </TableCell>
                       <TableCell>{t.bank_accounts?.name ?? "-"}</TableCell>
                       <TableCell className="max-w-[250px] truncate">{t.description ?? "-"}</TableCell>
-                      <TableCell className={`text-right font-mono ${(t.amount ?? 0) < 0 ? "text-rose-400" : "text-emerald-400"}`}>
+                      <TableCell className={`text-right font-mono tabular-nums ${(t.amount ?? 0) < 0 ? "text-rose-400" : "text-emerald-400"}`}>
                         {formatOMR(t.amount)}
                       </TableCell>
                       <TableCell><Badge variant="outline">{t.type ?? "-"}</Badge></TableCell>

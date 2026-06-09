@@ -8,6 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
+import { StatusBadge } from "@/components/ui/badge";
 import { Plus, Pencil, Trash2, Receipt, Calendar, ArrowUpRight, ArrowDownLeft } from "lucide-react";
 
 interface Form {
@@ -29,13 +30,6 @@ interface Form {
 const empty: Form = { invoiceNumber: "", type: "client", vendorId: "", clientName: "", clientCompany: "", description: "", amount: "0", vatAmount: "0", totalAmount: "0", status: "draft", issueDate: "", dueDate: "", paidDate: "", notes: "" };
 
 function fmtOMR(v: number) { return `OMR ${v.toLocaleString("en-US", { minimumFractionDigits: 3, maximumFractionDigits: 3 })}`; }
-const STATUS_COLORS: Record<string, string> = {
-  draft: "bg-muted text-muted-foreground",
-  sent: "bg-blue-500/15 text-blue-400",
-  paid: "bg-emerald-500/15 text-emerald-400",
-  overdue: "bg-red-500/15 text-red-400",
-  cancelled: "bg-muted text-muted-foreground",
-};
 
 export default function InvoicesPage() {
   const { data: invoices, isLoading } = useListInvoices();
@@ -184,8 +178,8 @@ export default function InvoicesPage() {
                   <td className="px-4 py-3 text-muted-foreground truncate max-w-[200px]">{i.type === "client" ? (i.clientCompany ?? i.clientName ?? "—") : vendorName(i.vendorId)}</td>
                   <td className="px-4 py-3 text-muted-foreground"><span className="inline-flex items-center gap-1"><Calendar className="w-3 h-3" />{i.issueDate}</span></td>
                   <td className="px-4 py-3 text-muted-foreground">{i.dueDate ?? "—"}</td>
-                  <td className="px-4 py-3 text-right font-semibold">{fmtOMR(i.totalAmount)}</td>
-                  <td className="px-4 py-3"><span className={`text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded ${STATUS_COLORS[i.status] ?? "bg-muted text-muted-foreground"}`}>{i.status}</span></td>
+                  <td className="px-4 py-3 text-right font-semibold tabular-nums">{fmtOMR(i.totalAmount)}</td>
+                  <td className="px-4 py-3"><StatusBadge status={i.status} /></td>
                   <td className="px-4 py-3 text-right">
                     <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(i)}><Pencil className="w-3.5 h-3.5" /></Button>
                     <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => setDelId(i.id)}><Trash2 className="w-3.5 h-3.5" /></Button>

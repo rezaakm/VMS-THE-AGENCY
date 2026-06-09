@@ -14,12 +14,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
+import { StatusBadge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { PageHeader } from "@/components/ui/page-header";
 import { StatCard } from "@/components/ui/stat-card";
 import { EmptyState } from "@/components/ui/empty-state";
-import { formatOMR } from "@/lib/utils";
+import { formatOMR, CHART_TOOLTIP } from "@/lib/utils";
 import { getArSummary, getArAging, getSalesInvoices } from "@/lib/queries/ar";
 import { useEntityScope } from "@/hooks/use-entity-scope";
 
@@ -81,9 +81,9 @@ export default function ReceivablesPanel() {
         />
       </div>
 
-      <Card className="hover:shadow-md transition-shadow">
+      <Card>
         <CardHeader>
-          <CardTitle className="text-base">Aging Breakdown</CardTitle>
+          <CardTitle className="t-card-title">Aging Breakdown</CardTitle>
         </CardHeader>
         <CardContent>
           {agingQ.isLoading ? (
@@ -94,22 +94,23 @@ export default function ReceivablesPanel() {
             <ResponsiveContainer width="100%" height={240}>
               <BarChart data={agingChartData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" vertical={false} />
-                <XAxis dataKey="bucket" tick={{ fontSize: 12, fill: "#888" }} tickLine={false} axisLine={false} />
-                <YAxis tick={{ fontSize: 12, fill: "#888" }} tickLine={false} axisLine={false} tickFormatter={(v: number) => `${(v / 1000).toFixed(0)}k`} />
+                <XAxis dataKey="bucket" tick={{ fontSize: 11, fill: "#888" }} tickLine={false} axisLine={false} />
+                <YAxis tick={{ fontSize: 11, fill: "#888" }} tickLine={false} axisLine={false} tickFormatter={(v: number) => `${(v / 1000).toFixed(0)}k`} />
                 <Tooltip
+                  cursor={{ fill: "rgba(255,255,255,0.03)" }}
                   formatter={(val: number) => formatOMR(val)}
-                  contentStyle={{ background: "rgba(20,20,30,0.95)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 8, fontSize: 12 }}
+                  contentStyle={CHART_TOOLTIP}
                 />
-                <Bar dataKey="amount" fill="#f59e0b" radius={[4, 4, 0, 0]} maxBarSize={48} />
+                <Bar dataKey="amount" fill="hsl(38 92% 55%)" radius={[3, 3, 0, 0]} maxBarSize={40} />
               </BarChart>
             </ResponsiveContainer>
           )}
         </CardContent>
       </Card>
 
-      <Card className="hover:shadow-md transition-shadow">
+      <Card>
         <CardHeader>
-          <CardTitle className="text-base">Sales Invoices</CardTitle>
+          <CardTitle className="t-card-title">Sales Invoices</CardTitle>
         </CardHeader>
         <CardContent>
           {invoicesQ.isLoading ? (
@@ -142,16 +143,14 @@ export default function ReceivablesPanel() {
                       <TableRow key={inv.id}>
                         <TableCell className="font-medium">{inv.invoice_number}</TableCell>
                         <TableCell>{inv.client_name}</TableCell>
-                        <TableCell className="text-right font-mono">{formatOMR(inv.amount)}</TableCell>
-                        <TableCell>
+                        <TableCell className="text-right font-mono tabular-nums">{formatOMR(inv.amount)}</TableCell>
+                        <TableCell className="whitespace-nowrap">
                           {inv.due_date ? format(new Date(inv.due_date), "dd MMM yyyy") : "-"}
                         </TableCell>
                         <TableCell>
-                          <Badge variant={inv.status === "PAID" ? "success" : inv.status === "OVERDUE" ? "destructive" : "secondary"}>
-                            {inv.status}
-                          </Badge>
+                          <StatusBadge status={inv.status} />
                         </TableCell>
-                        <TableCell className="text-right font-mono">
+                        <TableCell className="text-right font-mono tabular-nums">
                           {daysOut > 0 ? daysOut : "-"}
                         </TableCell>
                       </TableRow>

@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
+import { StatusBadge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { PageHeader } from "@/components/ui/page-header";
 import { StatCard } from "@/components/ui/stat-card";
@@ -43,9 +43,9 @@ export default function PayablesPanel() {
         <StatCard loading={summaryQ.isLoading} title="Entries Count" value={String(s?.count ?? 0)} icon={FileText} />
       </div>
 
-      <Card className="hover:shadow-md transition-shadow">
+      <Card>
         <CardHeader>
-          <CardTitle className="text-base">AP Entries</CardTitle>
+          <CardTitle className="t-card-title">AP Entries</CardTitle>
         </CardHeader>
         <CardContent>
           {entriesQ.isLoading ? (
@@ -74,12 +74,12 @@ export default function PayablesPanel() {
                     <TableRow key={entry.id}>
                       <TableCell className="font-medium">{entry.vendors?.name ?? "-"}</TableCell>
                       <TableCell>{entry.invoices?.invoice_number ?? "-"}</TableCell>
-                      <TableCell className="text-right font-mono">{formatOMR(entry.original_amount)}</TableCell>
-                      <TableCell className="text-right font-mono">{formatOMR(entry.balance)}</TableCell>
+                      <TableCell className="text-right font-mono tabular-nums">{formatOMR(entry.original_amount)}</TableCell>
+                      <TableCell className="text-right font-mono tabular-nums">{formatOMR(entry.balance)}</TableCell>
                       <TableCell>
-                        <Badge variant={entry.status === "PAID" ? "success" : "secondary"}>{entry.status}</Badge>
+                        <StatusBadge status={entry.status} />
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="whitespace-nowrap">
                         {entry.created_at ? format(new Date(entry.created_at), "dd MMM yyyy") : "-"}
                       </TableCell>
                     </TableRow>
