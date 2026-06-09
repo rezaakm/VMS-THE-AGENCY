@@ -1,6 +1,6 @@
 import { supabase } from "../supabase";
 
-export async function getPayrollEntries(period?: string) {
+export async function getPayrollEntries(period?: string, entity?: string | null) {
   let query = supabase
     .from("payroll_entries")
     .select("*")
@@ -12,5 +12,6 @@ export async function getPayrollEntries(period?: string) {
 
   const { data, error } = await query;
   if (error) throw error;
-  return data ?? [];
+  if (!entity) return data ?? [];
+  return (data ?? []).filter((r) => r.entity === entity);
 }

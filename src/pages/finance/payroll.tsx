@@ -1,51 +1,45 @@
 import { useQuery } from "@tanstack/react-query";
 import { format } from "date-fns";
-import { Wallet, Users } from "lucide-react";
+import { Wallet, Users, DollarSign } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
+  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { PageHeader } from "@/components/ui/page-header";
 import { StatCard } from "@/components/ui/stat-card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { formatOMR } from "@/lib/utils";
 import { getPayrollEntries } from "@/lib/queries/payroll";
+import { useEntityScope, ENTITY_LABELS } from "@/hooks/use-entity-scope";
 
-export default function PaymentsSalariesPanel() {
+export default function PayrollPanel() {
+  const { entityFilter, scope } = useEntityScope();
+
   const payrollQ = useQuery({
-    queryKey: ["payroll-entries"],
-    queryFn: () => getPayrollEntries(),
+    queryKey: ["payroll-entries", scope],
+    queryFn: () => getPayrollEntries(undefined, entityFilter),
   });
 
   const entries = payrollQ.data ?? [];
-  const totalPayroll = entries.reduce(
-    (s, e) => s + (e.net_pay ?? e.gross_pay ?? 0),
-    0
-  );
+  const totalGross = entries.reduce((s, e) => s + (e.gross_pay ?? 0), 0);
+  const totalNet = entries.reduce((s, e) => s + (e.net_pay ?? e.gross_pay ?? 0), 0);
+
+  // Unique employees
+  const employees = new Set(entries.map((e) => e.employee_name).filter(Boolean));
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Payments & Salaries" description="Payroll and compensation" />
+      <PageHeader
+        title="HR / Payroll"
+        description={`Staff and monthly salaries — ${ENTITY_LABELS[scope]}`}
+      />
 
-      <div className="grid gap-4 sm:grid-cols-2">
-        <StatCard
-          loading={payrollQ.isLoading}
-          title="Total Payroll"
-          value={formatOMR(totalPayroll)}
-          icon={Wallet}
-        />
-        <StatCard
-          loading={payrollQ.isLoading}
-          title="Entries"
-          value={String(entries.length)}
-          icon={Users}
-        />
+      <div className="grid gap-4 sm:grid-cols-3">
+        <StatCard loading={payrollQ.isLoading} title="Total Net Payroll" value={formatOMR(totalNet)} icon={Wallet} />
+        <StatCard loading={payrollQ.isLoading} title="Total Gross" value={formatOMR(totalGross)} icon={DollarSign} />
+        <StatCard loading={payrollQ.isLoading} title="Staff Members" value={String(employees.size)} icon={Users} />
       </div>
 
       <Card className="hover:shadow-md transition-shadow">
@@ -60,7 +54,7 @@ export default function PaymentsSalariesPanel() {
               ))}
             </div>
           ) : entries.length === 0 ? (
-            <EmptyState title="No entries yet" />
+            <EmptyState title="No payroll entries yet" />
           ) : (
             <div className="overflow-x-auto">
               <Table>
@@ -68,28 +62,24 @@ export default function PaymentsSalariesPanel() {
                   <TableRow>
                     <TableHead>Employee</TableHead>
                     <TableHead>Period</TableHead>
-                    <TableHead className="text-right">Gross</TableHead>
-                    <TableHead className="text-right">Net</TableHead>
+                    <TableHead className="text-right">Gross Pay</TableHead>
+                    <TableHead className="text-right">Net Pay</TableHead>
                     <TableHead>Pay Date</TableHead>
+                    <TableHead>Entity</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {entries.map((e) => (
                     <TableRow key={e.id}>
-                      <TableCell className="font-medium">
-                        {e.employee_name ?? "-"}
-                      </TableCell>
+                      <TableCell className="font-medium">{e.employee_name ?? "-"}</TableCell>
                       <TableCell>{e.period ?? "-"}</TableCell>
-                      <TableCell className="text-right font-mono">
-                        {formatOMR(e.gross_pay)}
-                      </TableCell>
-                      <TableCell className="text-right font-mono">
-                        {formatOMR(e.net_pay)}
+                      <TableCell className="text-right font-mono">{formatOMR(e.gross_pay)}</TableCell>
+                      <TableCell className="text-right font-mono">{formatOMR(e.net_pay)}</TableCell>
+                      <TableCell>
+                        {e.pay_date ? format(new Date(e.pay_date), "dd MMM yyyy") : "-"}
                       </TableCell>
                       <TableCell>
-                        {e.pay_date
-                          ? format(new Date(e.pay_date), "dd MMM yyyy")
-                          : "-"}
+                        {e.entity && <Badge variant="outline" className="text-[10px]">{e.entity}</Badge>}
                       </TableCell>
                     </TableRow>
                   ))}

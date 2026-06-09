@@ -1,19 +1,25 @@
 import { supabase } from "../supabase";
 
-export async function getOverviewMetrics() {
+export async function getOverviewMetrics(entity?: string | null) {
   // Fetch AR total
   const { data: arData, error: arErr } = await supabase
     .from("ar_entries")
-    .select("balance");
+    .select("balance, entity");
   if (arErr) throw arErr;
-  const totalAR = (arData ?? []).reduce((s, r) => s + (r.balance ?? 0), 0);
+  const arFiltered = entity
+    ? (arData ?? []).filter((r) => r.entity === entity)
+    : (arData ?? []);
+  const totalAR = arFiltered.reduce((s, r) => s + (r.balance ?? 0), 0);
 
   // Fetch AP total
   const { data: apData, error: apErr } = await supabase
     .from("ap_entries")
-    .select("balance");
+    .select("balance, entity");
   if (apErr) throw apErr;
-  const totalAP = (apData ?? []).reduce((s, r) => s + (r.balance ?? 0), 0);
+  const apFiltered = entity
+    ? (apData ?? []).filter((r) => r.entity === entity)
+    : (apData ?? []);
+  const totalAP = apFiltered.reduce((s, r) => s + (r.balance ?? 0), 0);
 
   // Net position
   const netPosition = totalAR - totalAP;
