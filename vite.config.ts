@@ -39,4 +39,10 @@ export default defineConfig({
     port,
     host: "0.0.0.0",
   },
+  test: {
+    globals: true,
+    environment: "jsdom",
+    include: ["src/**/*.test.{ts,tsx}"],
+    setupFiles: [],
+  },
 });

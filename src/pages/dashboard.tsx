@@ -13,6 +13,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useEntityScope, ENTITY_LABELS } from "@/hooks/use-entity-scope";
 import { supabase } from "@/lib/supabase";
 import { formatOMR } from "@/lib/utils";
+import {
+  snapRevenue, snapNet, snapExpenses, snapYear, snapMonthKey, snapMonthLabel,
+} from "@/lib/snap";
 
 function num(v: any): number {
   const n = typeof v === "string" ? parseFloat(v) : v;
@@ -66,38 +69,40 @@ function useDashboardData() {
       );
 
       // Monthly financial snapshots for YTD revenue + chart
+      // Columns: id, entity, period (text like "January-2026"), revenueActual, netProfitActual, ...
       const year = new Date().getFullYear();
       const { data: snapRows } = await supabase
         .from("monthly_financial_snapshots")
-        .select("*")
-        .order("month", { ascending: true });
-      const allSnaps = snapRows ?? [];
-      // Entity filter only for non-group scopes (snapshots DO have entity column)
+        .select("*");
+      const allSnaps = [...(snapRows ?? [])].sort((a, b) =>
+        snapMonthKey(a).localeCompare(snapMonthKey(b)),
+      );
+      // Entity filter only for non-group scopes
       const entitySnaps = entityFilter
         ? allSnaps.filter((r) => r.entity === entityFilter)
         : allSnaps;
-      // Then filter to current year
-      const filteredSnaps = entitySnaps.filter((r) =>
-        r.month?.startsWith(String(year)),
+      // Filter to current year
+      const filteredSnaps = entitySnaps.filter(
+        (r) => snapYear(r) === String(year),
       );
 
-      const ytdRevenue = filteredSnaps.reduce((s, r) => s + num(r.revenue), 0);
-      const ytdNet = filteredSnaps.reduce((s, r) => s + num(r.net_income), 0);
+      const ytdRevenue = filteredSnaps.reduce((s, r) => s + snapRevenue(r), 0);
+      const ytdNet = filteredSnaps.reduce((s, r) => s + snapNet(r), 0);
 
       // Aggregate by month for chart
-      const monthMap = new Map<string, { revenue: number; expenses: number; net: number }>();
+      const monthMap = new Map<string, { key: string; month: string; revenue: number; expenses: number; net: number }>();
       for (const r of filteredSnaps) {
-        const m = r.month?.slice(0, 7) ?? "unknown";
-        const cur = monthMap.get(m) ?? { revenue: 0, expenses: 0, net: 0 };
-        cur.revenue += num(r.revenue);
-        cur.expenses += num(r.expenses);
-        cur.net += num(r.net_income);
-        monthMap.set(m, cur);
+        const key = snapMonthKey(r);
+        const cur = monthMap.get(key) ?? { key, month: snapMonthLabel(r), revenue: 0, expenses: 0, net: 0 };
+        cur.revenue += snapRevenue(r);
+        cur.expenses += snapExpenses(r);
+        cur.net += snapNet(r);
+        monthMap.set(key, cur);
       }
-      const monthlyChart = Array.from(monthMap.entries())
-        .sort((a, b) => a[0].localeCompare(b[0]))
-        .map(([month, v]) => ({
-          month: month.slice(5), // "01", "02", etc.
+      const monthlyChart = Array.from(monthMap.values())
+        .sort((a, b) => a.key.localeCompare(b.key))
+        .map((v) => ({
+          month: v.month,
           revenue: v.revenue,
           expenses: v.expenses,
           net: v.net,

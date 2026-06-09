@@ -18,6 +18,9 @@ import { StatCard } from "@/components/ui/stat-card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { formatOMR } from "@/lib/utils";
 import { supabase } from "@/lib/supabase";
+import {
+  snapRevenue, snapNet, snapExpenses, snapYear, snapMonthKey, snapMonthLabel,
+} from "@/lib/snap";
 
 function num(v: any): number {
   const n = typeof v === "string" ? parseFloat(v) : v;
@@ -35,8 +38,7 @@ function useFitnessBayData() {
         supabase
           .from("monthly_financial_snapshots")
           .select("*")
-          .eq("entity", "fitnessbay")
-          .order("month", { ascending: true }),
+          .eq("entity", "fitnessbay"),
         supabase
           .from("bank_transactions")
           .select("*")
@@ -44,36 +46,40 @@ function useFitnessBayData() {
           .order("transaction_date", { ascending: false }),
       ]);
 
-      const snapshots = snapRes.data ?? [];
+      // Sort snapshots client-side by parsed period (no created_at column).
+      const snapshots = [...(snapRes.data ?? [])].sort((a, b) =>
+        snapMonthKey(a).localeCompare(snapMonthKey(b)),
+      );
       const transactions = txnRes.data ?? [];
+
+      // bank_transactions has debit/credit, not a signed `amount`.
+      const txnAmount = (t: any): number => num(t.credit) - num(t.debit);
 
       // P&L aggregates
       const year = new Date().getFullYear();
-      const ytdSnaps = snapshots.filter((r) => r.month?.startsWith(String(year)));
-      const ytdRevenue = ytdSnaps.reduce((s, r) => s + num(r.revenue), 0);
-      const ytdExpenses = ytdSnaps.reduce((s, r) => s + num(r.expenses), 0);
-      const ytdNet = ytdSnaps.reduce((s, r) => s + num(r.net_income), 0);
+      const ytdSnaps = snapshots.filter((r) => snapYear(r) === String(year));
+      const ytdRevenue = ytdSnaps.reduce((s, r) => s + snapRevenue(r), 0);
+      const ytdExpenses = ytdSnaps.reduce((s, r) => s + snapExpenses(r), 0);
+      const ytdNet = ytdSnaps.reduce((s, r) => s + snapNet(r), 0);
 
       // All-time totals
-      const allRevenue = snapshots.reduce((s, r) => s + num(r.revenue), 0);
-      const allExpenses = snapshots.reduce((s, r) => s + num(r.expenses), 0);
-      const allNet = snapshots.reduce((s, r) => s + num(r.net_income), 0);
+      const allNet = snapshots.reduce((s, r) => s + snapNet(r), 0);
 
       // Monthly chart data
       const chartData = snapshots.map((r) => ({
-        month: r.month?.slice(0, 7) ?? "",
-        revenue: num(r.revenue),
-        expenses: num(r.expenses),
-        net: num(r.net_income),
+        month: snapMonthLabel(r),
+        revenue: snapRevenue(r),
+        expenses: snapExpenses(r),
+        net: snapNet(r),
       }));
 
       // Virtual bank: money in / out / retained
       const moneyIn = transactions
-        .filter((t) => num(t.amount) > 0)
-        .reduce((s, t) => s + num(t.amount), 0);
+        .filter((t) => txnAmount(t) > 0)
+        .reduce((s, t) => s + txnAmount(t), 0);
       const moneyOut = transactions
-        .filter((t) => num(t.amount) < 0)
-        .reduce((s, t) => s + Math.abs(num(t.amount)), 0);
+        .filter((t) => txnAmount(t) < 0)
+        .reduce((s, t) => s + Math.abs(txnAmount(t)), 0);
       const retained = moneyIn - moneyOut;
 
       // Partner split on cumulative net
@@ -306,11 +312,11 @@ export default function FitnessBay() {
                           : "-"}
                       </TableCell>
                       <TableCell className="max-w-[300px] truncate">{t.description ?? "-"}</TableCell>
-                      <TableCell className={`text-right font-mono ${num(t.amount) < 0 ? "text-rose-400" : "text-emerald-400"}`}>
-                        {formatOMR(t.amount)}
+                      <TableCell className={`text-right font-mono ${(num(t.credit) - num(t.debit)) < 0 ? "text-rose-400" : "text-emerald-400"}`}>
+                        {formatOMR(num(t.credit) - num(t.debit))}
                       </TableCell>
                       <TableCell>
-                        <Badge variant="outline">{t.type ?? "-"}</Badge>
+                        <Badge variant="outline">{num(t.credit) - num(t.debit) >= 0 ? "Credit" : "Debit"}</Badge>
                       </TableCell>
                     </TableRow>
                   ))}

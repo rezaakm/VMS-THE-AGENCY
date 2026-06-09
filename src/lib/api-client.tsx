@@ -155,7 +155,13 @@ const purchaseOrders = crud("purchase_orders", { order: "createdAt" });
 const invoices = crud("invoices", { order: "createdAt" });
 const evaluations = crud("evaluations", { order: "createdAt" });
 const contracts = crud("contracts", { order: "createdAt" });
-const costSheets = crud("cost_sheets", { order: "createdAt" });
+const costSheets = crud("cost_sheets", {
+  order: "createdAt",
+  // The cost-sheet display title lives in the `event` column (there is no
+  // `title` column). Expose it to the UI as `title`, and map writes back.
+  toPage: (r) => ({ ...r, title: r.event ?? r.title ?? "" }),
+  toDb: (p) => ({ ...p, event: p.event ?? p.title }),
+});
 const costSheetItems = crud("cost_sheet_items", { order: "itemNumber" });
 const enquiries = crud("enquiries", { order: "createdAt" });
 const quotations = crud("quotations", { order: "createdAt" });

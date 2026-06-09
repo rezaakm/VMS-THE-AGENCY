@@ -15,11 +15,9 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { formatOMR } from "@/lib/utils";
 import { supabase } from "@/lib/supabase";
 import { useEntityScope } from "@/hooks/use-entity-scope";
-
-function num(v: any): number {
-  const n = typeof v === "string" ? parseFloat(v) : v;
-  return Number.isFinite(n) ? n : 0;
-}
+import {
+  snapRevenue, snapNet, snapExpenses, snapYear, snapMonthKey, snapMonthLabel,
+} from "@/lib/snap";
 
 export default function PnlPanel() {
   const { entityFilter, scope } = useEntityScope();
@@ -29,39 +27,40 @@ export default function PnlPanel() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("monthly_financial_snapshots")
-        .select("*")
-        .order("month", { ascending: true });
+        .select("*");
       if (error) throw error;
 
       const filtered = entityFilter
         ? (data ?? []).filter((r) => r.entity === entityFilter)
         : (data ?? []);
 
-      return filtered;
+      // Sort client-side by parsed period (no created_at column on this table).
+      return [...filtered].sort((a, b) =>
+        snapMonthKey(a).localeCompare(snapMonthKey(b)),
+      );
     },
   });
 
   const rows = snapshotsQ.data ?? [];
   const year = new Date().getFullYear();
-  const ytdRows = rows.filter((r) => r.month?.startsWith(String(year)));
+  const ytdRows = rows.filter((r) => snapYear(r) === String(year));
 
-  const totalRevenue = ytdRows.reduce((s, r) => s + num(r.revenue), 0);
-  const totalExpenses = ytdRows.reduce((s, r) => s + num(r.expenses), 0);
-  const totalNet = ytdRows.reduce((s, r) => s + num(r.net_income), 0);
+  const totalRevenue = ytdRows.reduce((s, r) => s + snapRevenue(r), 0);
+  const totalExpenses = ytdRows.reduce((s, r) => s + snapExpenses(r), 0);
+  const totalNet = ytdRows.reduce((s, r) => s + snapNet(r), 0);
 
   // Aggregate by month for chart (handle group mode where multiple entities per month)
-  const monthMap = new Map<string, { revenue: number; expenses: number; net: number }>();
+  const monthMap = new Map<string, { key: string; month: string; revenue: number; expenses: number; net: number }>();
   for (const r of rows) {
-    const m = r.month?.slice(0, 7) ?? "unknown";
-    const cur = monthMap.get(m) ?? { revenue: 0, expenses: 0, net: 0 };
-    cur.revenue += num(r.revenue);
-    cur.expenses += num(r.expenses);
-    cur.net += num(r.net_income);
-    monthMap.set(m, cur);
+    const key = snapMonthKey(r);
+    const cur = monthMap.get(key) ?? { key, month: snapMonthLabel(r), revenue: 0, expenses: 0, net: 0 };
+    cur.revenue += snapRevenue(r);
+    cur.expenses += snapExpenses(r);
+    cur.net += snapNet(r);
+    monthMap.set(key, cur);
   }
-  const chartData = Array.from(monthMap.entries())
-    .sort((a, b) => a[0].localeCompare(b[0]))
-    .map(([month, v]) => ({ month, ...v }));
+  const chartData = Array.from(monthMap.values())
+    .sort((a, b) => a.key.localeCompare(b.key));
 
   return (
     <div className="space-y-6">
@@ -181,7 +180,7 @@ export default function PnlPanel() {
                   {chartData.map((row) => {
                     const margin = row.revenue > 0 ? (row.net / row.revenue) * 100 : 0;
                     return (
-                      <TableRow key={row.month}>
+                      <TableRow key={row.key}>
                         <TableCell className="font-medium">{row.month}</TableCell>
                         <TableCell className="text-right font-mono text-emerald-400">{formatOMR(row.revenue)}</TableCell>
                         <TableCell className="text-right font-mono text-rose-400">{formatOMR(row.expenses)}</TableCell>
