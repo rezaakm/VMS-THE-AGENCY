@@ -1,6 +1,7 @@
 import { useState, useRef } from "react";
 import { supabase } from "@/lib/supabase";
 import * as XLSX from "xlsx";
+import { generateQuotePDF } from "@/lib/pdf-quote";
 import {
   computeLineConfidence,
   computeSheetConfidence,
@@ -319,6 +320,28 @@ export default function QuoteWizard() {
 
       <div className="flex gap-3 mt-4">
         <button onClick={() => generateDoc("quote")} className="px-4 py-2 rounded bg-blue-600 hover:bg-blue-500 font-semibold">Generate Quote</button>
+        <button
+          onClick={() =>
+            generateQuotePDF({
+              client,
+              scope,
+              refNo,
+              date: docDate,
+              lines: lines.map((l) => ({
+                description: l.description,
+                qty: l.qty,
+                unitPrice: sell(l),
+                totalPrice: lineTotal(l),
+              })),
+              subtotal: subTotal,
+              vat: vatAmt,
+              total: grand,
+            })
+          }
+          className="px-4 py-2 rounded bg-emerald-600 hover:bg-emerald-500 font-semibold"
+        >
+          Download PDF
+        </button>
         <button onClick={() => generateDoc("invoice")} className="px-4 py-2 rounded bg-blue-600 hover:bg-blue-500 font-semibold">Generate Tax Invoice</button>
         <button onClick={() => generateDoc("cost")} className="px-4 py-2 rounded bg-gray-700 hover:bg-gray-600 font-semibold">Generate Cost Sheet</button>
       </div>

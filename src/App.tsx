@@ -1,3 +1,4 @@
+import React, { lazy, Suspense, useEffect } from "react";
 import { Switch, Route, Router as WouterRouter } from "wouter";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -5,39 +6,40 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { Layout } from "@/components/layout/layout";
 import { AuthProvider } from "@/hooks/useAuth";
 import { AuthGate } from "@/components/layout/AuthGate";
-import { useEffect } from "react";
 import { setBaseUrl } from "@workspace/api-client-react";
 import { EntityScopeProvider } from "@/hooks/use-entity-scope";
+
 import NotFound from "@/pages/not-found";
 import Dashboard from "@/pages/dashboard";
-import Enquiries from "@/pages/enquiries";
-import EnquiryDetail from "@/pages/enquiry-detail";
-import CostSheets from "@/pages/cost-sheets";
-import CostSheetDetail from "@/pages/cost-sheet-detail";
-import Quotations from "@/pages/quotations";
-import QuotationDetail from "@/pages/quotation-detail";
-import Vendors from "@/pages/vendors";
-import Calculator from "@/pages/calculator";
-import Assistant from "@/pages/assistant";
-import ImportData from "@/pages/import";
-import Contracts from "@/pages/contracts";
-import PurchaseOrders from "@/pages/purchase-orders";
-import Invoices from "@/pages/invoices";
-import Evaluations from "@/pages/evaluations";
-import Rfqs from "@/pages/rfqs";
-import Reports from "@/pages/reports";
-import QuoteWizard from "@/pages/quote-wizard";
-import FinanceOverview from "@/pages/finance/overview";
-import FinancePnl from "@/pages/finance/pnl";
-import FinanceReceivables from "@/pages/finance/receivables";
-import FinancePayables from "@/pages/finance/payables";
-import FinanceBank from "@/pages/finance/bank";
-import FinancePayroll from "@/pages/finance/payroll";
-import FinanceCashOutlook from "@/pages/finance/cash-outlook";
-import FinancePending from "@/pages/finance/pending";
-import Clients from "@/pages/clients";
-import FitnessBay from "@/pages/fitness-bay";
-import Pipeline from "@/pages/pipeline";
+
+const Enquiries = lazy(() => import("@/pages/enquiries"));
+const EnquiryDetail = lazy(() => import("@/pages/enquiry-detail"));
+const CostSheets = lazy(() => import("@/pages/cost-sheets"));
+const CostSheetDetail = lazy(() => import("@/pages/cost-sheet-detail"));
+const Quotations = lazy(() => import("@/pages/quotations"));
+const QuotationDetail = lazy(() => import("@/pages/quotation-detail"));
+const Vendors = lazy(() => import("@/pages/vendors"));
+const Calculator = lazy(() => import("@/pages/calculator"));
+const Assistant = lazy(() => import("@/pages/assistant"));
+const ImportData = lazy(() => import("@/pages/import"));
+const Contracts = lazy(() => import("@/pages/contracts"));
+const PurchaseOrders = lazy(() => import("@/pages/purchase-orders"));
+const Invoices = lazy(() => import("@/pages/invoices"));
+const Evaluations = lazy(() => import("@/pages/evaluations"));
+const Rfqs = lazy(() => import("@/pages/rfqs"));
+const Reports = lazy(() => import("@/pages/reports"));
+const QuoteWizard = lazy(() => import("@/pages/quote-wizard"));
+const FinanceOverview = lazy(() => import("@/pages/finance/overview"));
+const FinancePnl = lazy(() => import("@/pages/finance/pnl"));
+const FinanceReceivables = lazy(() => import("@/pages/finance/receivables"));
+const FinancePayables = lazy(() => import("@/pages/finance/payables"));
+const FinanceBank = lazy(() => import("@/pages/finance/bank"));
+const FinancePayroll = lazy(() => import("@/pages/finance/payroll"));
+const FinanceCashOutlook = lazy(() => import("@/pages/finance/cash-outlook"));
+const FinancePending = lazy(() => import("@/pages/finance/pending"));
+const Clients = lazy(() => import("@/pages/clients"));
+const FitnessBay = lazy(() => import("@/pages/fitness-bay"));
+const Pipeline = lazy(() => import("@/pages/pipeline"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -48,9 +50,18 @@ const queryClient = new QueryClient({
   },
 });
 
+function PageSpinner() {
+  return (
+    <div className="flex h-full w-full items-center justify-center py-32">
+      <div className="h-8 w-8 animate-spin rounded-full border-4 border-muted border-t-primary" />
+    </div>
+  );
+}
+
 function Router() {
   return (
     <Layout>
+      <Suspense fallback={<PageSpinner />}>
       <Switch>
         <Route path="/" component={Dashboard} />
         <Route path="/enquiries" component={Enquiries} />
@@ -83,6 +94,7 @@ function Router() {
         <Route path="/pipeline" component={Pipeline} />
         <Route component={NotFound} />
       </Switch>
+      </Suspense>
     </Layout>
   );
 }

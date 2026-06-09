@@ -29,6 +29,8 @@ interface ClientRecord {
   quotationValue: number;
   invoiceCount: number;
   arOutstanding: number;
+  enquiryCount: number;
+  activeEnquiries: number;
   lastActivity: string | null;
 }
 
@@ -36,10 +38,11 @@ function useClients() {
   return useQuery({
     queryKey: ["clients-derived"],
     queryFn: async () => {
-      const [quotRes, invRes, arRes] = await Promise.all([
+      const [quotRes, invRes, arRes, enqRes] = await Promise.all([
         supabase.from("quotations").select("client, totalAmount, createdAt"),
         supabase.from("sales_invoices").select("client_name, amount, created_at"),
         supabase.from("ar_entries").select("client_name, balance"),
+        supabase.from("enquiries").select("client, status, createdAt"),
       ]);
 
       const clientMap = new Map<string, ClientRecord>();
@@ -53,6 +56,8 @@ function useClients() {
             quotationValue: 0,
             invoiceCount: 0,
             arOutstanding: 0,
+            enquiryCount: 0,
+            activeEnquiries: 0,
             lastActivity: null,
           });
         }
@@ -86,6 +91,18 @@ function useClients() {
         if (!ar.client_name) continue;
         const c = getOrCreate(ar.client_name);
         c.arOutstanding += num(ar.balance);
+      }
+
+      // Enquiries (pipeline status)
+      const activeStatuses = new Set(["new", "in_progress", "drafting", "approved", "quoted"]);
+      for (const enq of enqRes.data ?? []) {
+        if (!enq.client) continue;
+        const c = getOrCreate(enq.client);
+        c.enquiryCount++;
+        if (activeStatuses.has(enq.status)) c.activeEnquiries++;
+        if (enq.createdAt && (!c.lastActivity || enq.createdAt > c.lastActivity)) {
+          c.lastActivity = enq.createdAt;
+        }
       }
 
       return Array.from(clientMap.values()).sort((a, b) =>
@@ -175,11 +192,12 @@ export default function Clients() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Client</TableHead>
+                    <TableHead className="text-right">Enquiries</TableHead>
                     <TableHead className="text-right">Quotations</TableHead>
                     <TableHead className="text-right">Quoted Value</TableHead>
-                    <TableHead className="text-right">Invoices</TableHead>
-                    <TableHead className="text-right">AR Outstanding</TableHead>
-                    <TableHead>Last Activity</TableHead>
+                    <TableHead className="text-right hidden sm:table-cell">Invoices</TableHead>
+                    <TableHead className="text-right hidden sm:table-cell">AR Outstanding</TableHead>
+                    <TableHead className="hidden md:table-cell">Last Activity</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -192,6 +210,17 @@ export default function Clients() {
                         </div>
                       </TableCell>
                       <TableCell className="text-right">
+                        {client.activeEnquiries > 0 ? (
+                          <Badge className="tabular-nums bg-blue-600/20 text-blue-400 border-blue-700 text-[10px]">
+                            {client.activeEnquiries} active
+                          </Badge>
+                        ) : client.enquiryCount > 0 ? (
+                          <span className="text-muted-foreground text-xs">{client.enquiryCount}</span>
+                        ) : (
+                          <span className="text-muted-foreground">—</span>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-right">
                         <Badge variant="secondary" className="tabular-nums">
                           {client.quotationCount}
                         </Badge>
@@ -199,15 +228,15 @@ export default function Clients() {
                       <TableCell className="text-right font-mono text-sm">
                         {formatOMR(client.quotationValue)}
                       </TableCell>
-                      <TableCell className="text-right">
+                      <TableCell className="text-right hidden sm:table-cell">
                         <Badge variant="outline" className="tabular-nums">
                           {client.invoiceCount}
                         </Badge>
                       </TableCell>
-                      <TableCell className={`text-right font-mono text-sm ${client.arOutstanding > 0 ? "text-amber-400" : "text-muted-foreground"}`}>
+                      <TableCell className={`text-right font-mono text-sm hidden sm:table-cell ${client.arOutstanding > 0 ? "text-amber-400" : "text-muted-foreground"}`}>
                         {client.arOutstanding > 0 ? formatOMR(client.arOutstanding) : "—"}
                       </TableCell>
-                      <TableCell className="text-muted-foreground text-sm">
+                      <TableCell className="text-muted-foreground text-sm hidden md:table-cell">
                         {client.lastActivity
                           ? new Date(client.lastActivity).toLocaleDateString("en-GB", {
                               day: "2-digit",

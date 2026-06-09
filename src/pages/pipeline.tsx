@@ -3,8 +3,9 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Link } from "wouter";
 import {
   CheckCircle, XCircle, FileSpreadsheet, FileText, AlertTriangle,
-  ChevronRight, Wand2, Send, Eye,
+  ChevronRight, Wand2, Send, Eye, Download,
 } from "lucide-react";
+import { generateQuotePDF } from "@/lib/pdf-quote";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
@@ -396,14 +397,14 @@ export default function Pipeline() {
     score >= 80 ? "high" : score >= 50 ? "medium" : score > 0 ? "low" : "none";
 
   return (
-    <div className="flex flex-col gap-8 animate-in fade-in duration-300">
+    <div className="flex flex-col gap-5 sm:gap-8 animate-in fade-in duration-300">
       <PageHeader
         title="Quote Pipeline"
         description="Enquiry to quotation automation"
       />
 
       {/* Pipeline Stats */}
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-3 gap-2 sm:gap-3">
         <Card>
           <CardContent className="p-4 text-center">
             <div className="text-2xl font-bold tabular-nums text-blue-400">{newEnquiries.length}</div>
@@ -442,20 +443,20 @@ export default function Pipeline() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Enquiry</TableHead>
+                    <TableHead className="hidden sm:table-cell">Enquiry</TableHead>
                     <TableHead>Client</TableHead>
                     <TableHead>Title</TableHead>
-                    <TableHead>Source</TableHead>
+                    <TableHead className="hidden sm:table-cell">Source</TableHead>
                     <TableHead className="text-right">Action</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {newEnquiries.map((enq) => (
                     <TableRow key={enq.id}>
-                      <TableCell className="font-mono text-xs">{enq.enquiryNumber || `#${enq.id}`}</TableCell>
+                      <TableCell className="font-mono text-xs hidden sm:table-cell">{enq.enquiryNumber || `#${enq.id}`}</TableCell>
                       <TableCell className="font-medium">{enq.client || enq.clientName || "—"}</TableCell>
-                      <TableCell className="max-w-[250px] truncate">{enq.title || enq.subject || "—"}</TableCell>
-                      <TableCell>
+                      <TableCell className="max-w-[200px] truncate">{enq.title || enq.subject || "—"}</TableCell>
+                      <TableCell className="hidden sm:table-cell">
                         <Badge variant="outline" className="text-[10px]">{enq.source || "manual"}</Badge>
                       </TableCell>
                       <TableCell className="text-right">
@@ -496,10 +497,10 @@ export default function Pipeline() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Job #</TableHead>
+                    <TableHead className="hidden sm:table-cell">Job #</TableHead>
                     <TableHead>Client</TableHead>
-                    <TableHead>Event</TableHead>
-                    <TableHead>Lines</TableHead>
+                    <TableHead className="hidden md:table-cell">Event</TableHead>
+                    <TableHead className="hidden sm:table-cell">Lines</TableHead>
                     <TableHead>Confidence</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
@@ -510,10 +511,10 @@ export default function Pipeline() {
                     const hasZero = sheet.items.some((it: any) => it.conf.score === 0 && (it.unitCost ?? 0) === 0);
                     return (
                       <TableRow key={sheet.id}>
-                        <TableCell className="font-mono text-xs">{sheet.jobNumber}</TableCell>
+                        <TableCell className="font-mono text-xs hidden sm:table-cell">{sheet.jobNumber}</TableCell>
                         <TableCell className="font-medium">{sheet.client || "—"}</TableCell>
-                        <TableCell className="max-w-[200px] truncate">{sheet.event || "—"}</TableCell>
-                        <TableCell>{sheet.items.length}</TableCell>
+                        <TableCell className="max-w-[200px] truncate hidden md:table-cell">{sheet.event || "—"}</TableCell>
+                        <TableCell className="hidden sm:table-cell">{sheet.items.length}</TableCell>
                         <TableCell>
                           <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium border ${CONFIDENCE_COLORS[bucket]}`}>
                             <span className={`w-1.5 h-1.5 rounded-full ${CONFIDENCE_DOT_COLORS[bucket]}`} />
@@ -522,9 +523,9 @@ export default function Pipeline() {
                           {hasZero && <AlertTriangle className="w-3.5 h-3.5 text-red-400 inline ml-1.5" />}
                         </TableCell>
                         <TableCell className="text-right">
-                          <div className="flex items-center justify-end gap-2">
+                          <div className="flex items-center justify-end gap-1.5 flex-wrap">
                             <Button size="sm" variant="outline" onClick={() => setReviewSheet(sheet)} className="text-xs">
-                              <Eye className="w-3.5 h-3.5 mr-1" /> Review
+                              <Eye className="w-3.5 h-3.5 sm:mr-1" /><span className="hidden sm:inline"> Review</span>
                             </Button>
                             <Button
                               size="sm"
@@ -533,7 +534,7 @@ export default function Pipeline() {
                               className="text-xs bg-emerald-600 hover:bg-emerald-500"
                               title={hasZero ? "Price all lines before approving" : "Approve and generate quotation"}
                             >
-                              <CheckCircle className="w-3.5 h-3.5 mr-1" /> Approve
+                              <CheckCircle className="w-3.5 h-3.5 sm:mr-1" /><span className="hidden sm:inline"> Approve</span>
                             </Button>
                             <Button
                               size="sm"
@@ -593,6 +594,41 @@ export default function Pipeline() {
                               <FileText className="w-3.5 h-3.5 mr-1" /> View
                             </Button>
                           </Link>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="text-xs"
+                            onClick={async () => {
+                              const { data: quotation } = await supabase
+                                .from("quotations")
+                                .select("*")
+                                .eq("cost_sheet_id", sheet.id)
+                                .single();
+                              if (!quotation) return;
+                              const { data: items } = await supabase
+                                .from("quotation_items")
+                                .select("*")
+                                .eq("quotationId", quotation.id)
+                                .order("itemNumber", { ascending: true });
+                              generateQuotePDF({
+                                client: sheet.client || "",
+                                scope: sheet.event || "",
+                                refNo: sheet.jobNumber || "",
+                                date: sheet.date || new Date().toISOString().slice(0, 10),
+                                lines: (items ?? []).map((it: any) => ({
+                                  description: it.description,
+                                  qty: it.quantity ?? 1,
+                                  unitPrice: it.unitPrice ?? 0,
+                                  totalPrice: it.totalPrice ?? 0,
+                                })),
+                                subtotal: Number(quotation.subtotal) || 0,
+                                vat: Number(quotation.taxAmount) || 0,
+                                total: Number(quotation.totalAmount) || 0,
+                              });
+                            }}
+                          >
+                            <Download className="w-3.5 h-3.5 mr-1" /> PDF
+                          </Button>
                           <Button
                             size="sm"
                             className="text-xs bg-blue-600 hover:bg-blue-500"
