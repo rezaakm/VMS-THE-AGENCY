@@ -32,7 +32,7 @@ export default function PendingPanel() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Pending Approvals" description="Draft and review items" />
+      <PageHeader title="Pending Approvals" description="Draft and review items" showScope />
 
       <div className="grid gap-4 sm:grid-cols-2">
         <StatCard

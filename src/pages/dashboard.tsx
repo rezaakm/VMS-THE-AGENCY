@@ -1,155 +1,356 @@
-import { useGetEnquiryStats, useGetRecentQuotations } from "@workspace/api-client-react";
+import { useQuery } from "@tanstack/react-query";
 import { Link } from "wouter";
-import { FileText, Users, FileSpreadsheet, Calculator, Bot, TrendingUp, Clock, CheckCircle, XCircle, AlertCircle, Plus } from "lucide-react";
+import {
+  Landmark, ArrowDownLeft, ArrowUpRight, TrendingUp, FileText,
+  Users, DollarSign, BarChart3, Dumbbell, Building2,
+} from "lucide-react";
+import {
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
+  ResponsiveContainer, LineChart, Line,
+} from "recharts";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useEntityScope, ENTITY_LABELS } from "@/hooks/use-entity-scope";
+import { supabase } from "@/lib/supabase";
+import { formatOMR } from "@/lib/utils";
 
-const statusColors: Record<string, string> = {
-  draft: "bg-zinc-700 text-zinc-200",
-  sent: "bg-blue-900 text-blue-200",
-  approved: "bg-green-900 text-green-200",
-  rejected: "bg-red-900 text-red-200",
-};
+function num(v: any): number {
+  const n = typeof v === "string" ? parseFloat(v) : v;
+  return Number.isFinite(n) ? n : 0;
+}
 
-const statusLabel: Record<string, string> = {
-  draft: "Draft",
-  sent: "Sent",
-  approved: "Approved",
-  rejected: "Rejected",
-};
+function useDashboardData() {
+  const { entityFilter, scope } = useEntityScope();
+
+  return useQuery({
+    queryKey: ["dashboard", scope],
+    queryFn: async () => {
+      // Bank balance
+      let bankQ = supabase.from("bank_accounts").select("current_balance, entity");
+      const { data: bankRows } = await bankQ;
+      const filteredBank = entityFilter
+        ? (bankRows ?? []).filter((r) => r.entity === entityFilter)
+        : (bankRows ?? []);
+      const bankBalance = filteredBank.reduce((s, r) => s + num(r.current_balance), 0);
+
+      // AR
+      let arQ = supabase.from("ar_entries").select("balance, entity");
+      const { data: arRows } = await arQ;
+      const filteredAr = entityFilter
+        ? (arRows ?? []).filter((r) => r.entity === entityFilter)
+        : (arRows ?? []);
+      const totalAR = filteredAr.reduce((s, r) => s + num(r.balance), 0);
+
+      // AP
+      let apQ = supabase.from("ap_entries").select("balance, entity");
+      const { data: apRows } = await apQ;
+      const filteredAp = entityFilter
+        ? (apRows ?? []).filter((r) => r.entity === entityFilter)
+        : (apRows ?? []);
+      const totalAP = filteredAp.reduce((s, r) => s + num(r.balance), 0);
+
+      // Net position = bank + AR - AP
+      const netPosition = bankBalance + totalAR - totalAP;
+
+      // Quotations count + value
+      const { data: qRows } = await supabase.from("quotations").select("totalAmount");
+      const quotationCount = qRows?.length ?? 0;
+      const quotationValue = (qRows ?? []).reduce((s, r) => s + num(r.totalAmount), 0);
+
+      // Monthly financial snapshots for YTD revenue + chart
+      const year = new Date().getFullYear();
+      let snapQ = supabase
+        .from("monthly_financial_snapshots")
+        .select("month, revenue, net_income, expenses, entity")
+        .gte("month", `${year}-01-01`);
+      const { data: snapRows } = await snapQ;
+      const filteredSnaps = entityFilter
+        ? (snapRows ?? []).filter((r) => r.entity === entityFilter)
+        : (snapRows ?? []);
+
+      const ytdRevenue = filteredSnaps.reduce((s, r) => s + num(r.revenue), 0);
+      const ytdNet = filteredSnaps.reduce((s, r) => s + num(r.net_income), 0);
+
+      // Aggregate by month for chart
+      const monthMap = new Map<string, { revenue: number; expenses: number; net: number }>();
+      for (const r of filteredSnaps) {
+        const m = r.month?.slice(0, 7) ?? "unknown";
+        const cur = monthMap.get(m) ?? { revenue: 0, expenses: 0, net: 0 };
+        cur.revenue += num(r.revenue);
+        cur.expenses += num(r.expenses);
+        cur.net += num(r.net_income);
+        monthMap.set(m, cur);
+      }
+      const monthlyChart = Array.from(monthMap.entries())
+        .sort((a, b) => a[0].localeCompare(b[0]))
+        .map(([month, v]) => ({
+          month: month.slice(5), // "01", "02", etc.
+          revenue: v.revenue,
+          expenses: v.expenses,
+          net: v.net,
+        }));
+
+      // Vendors count
+      const { count: vendorCount } = await supabase
+        .from("vendors")
+        .select("id", { count: "exact", head: true });
+
+      return {
+        bankBalance,
+        totalAR,
+        totalAP,
+        netPosition,
+        quotationCount,
+        quotationValue,
+        ytdRevenue,
+        ytdNet,
+        monthlyChart,
+        vendorCount: vendorCount ?? 0,
+      };
+    },
+    staleTime: 60_000,
+  });
+}
 
 export default function Dashboard() {
-  const { data: stats, isLoading: statsLoading } = useGetEnquiryStats();
-  const { data: recentQuotations, isLoading: quotationsLoading } = useGetRecentQuotations();
+  const { scope } = useEntityScope();
+  const { data, isLoading } = useDashboardData();
 
-  const statCards = [
-    { label: "Total Enquiries", value: stats?.total ?? 0, icon: FileText, color: "text-primary", glow: "hover:shadow-[0_0_20px_hsl(217_100%_60%/0.2)]" },
-    { label: "New", value: stats?.new ?? 0, icon: AlertCircle, color: "text-blue-400", glow: "hover:shadow-[0_0_20px_hsl(217_80%_60%/0.2)]" },
-    { label: "In Progress", value: stats?.inProgress ?? 0, icon: Clock, color: "text-blue-400", glow: "hover:shadow-[0_0_20px_hsl(217_80%_60%/0.2)]" },
-    { label: "Quoted", value: stats?.quoted ?? 0, icon: TrendingUp, color: "text-orange-400", glow: "hover:shadow-[0_0_20px_hsl(30_90%_50%/0.2)]" },
-    { label: "Won", value: stats?.won ?? 0, icon: CheckCircle, color: "text-green-400", glow: "hover:shadow-[0_0_20px_hsl(142_70%_45%/0.2)]" },
-    { label: "Lost", value: stats?.lost ?? 0, icon: XCircle, color: "text-red-400", glow: "hover:shadow-[0_0_20px_hsl(0_80%_50%/0.2)]" },
+  const kpis = [
+    {
+      label: "Net Position",
+      value: data ? formatOMR(data.netPosition) : null,
+      icon: DollarSign,
+      color: "text-emerald-400",
+      desc: "Bank + AR - AP",
+    },
+    {
+      label: "Bank Balance",
+      value: data ? formatOMR(data.bankBalance) : null,
+      icon: Landmark,
+      color: "text-blue-400",
+      desc: "Current balance",
+    },
+    {
+      label: "Receivables (AR)",
+      value: data ? formatOMR(data.totalAR) : null,
+      icon: ArrowDownLeft,
+      color: "text-amber-400",
+      desc: "Outstanding",
+    },
+    {
+      label: "Payables (AP)",
+      value: data ? formatOMR(data.totalAP) : null,
+      icon: ArrowUpRight,
+      color: "text-rose-400",
+      desc: "Outstanding",
+    },
+    {
+      label: "YTD Revenue",
+      value: data ? formatOMR(data.ytdRevenue) : null,
+      icon: TrendingUp,
+      color: "text-emerald-400",
+      desc: `${new Date().getFullYear()} total`,
+    },
+    {
+      label: "YTD Net Income",
+      value: data ? formatOMR(data.ytdNet) : null,
+      icon: BarChart3,
+      color: data && data.ytdNet >= 0 ? "text-emerald-400" : "text-rose-400",
+      desc: "Revenue - Expenses",
+    },
   ];
 
-  const quickLinks = [
-    { href: "/enquiries", label: "New Enquiry", icon: FileText, desc: "Log a client enquiry" },
-    { href: "/cost-sheets", label: "Cost Sheet", icon: FileSpreadsheet, desc: "Build a cost sheet" },
-    { href: "/quotations", label: "Quotation", icon: TrendingUp, desc: "Create a quotation" },
-    { href: "/vendors", label: "Vendors", icon: Users, desc: "Manage vendor contacts" },
-    { href: "/calculator", label: "Calculator", icon: Calculator, desc: "Quick calculations" },
-    { href: "/assistant", label: "AI Assistant", icon: Bot, desc: "Ask anything" },
+  const quickStats = [
+    {
+      label: "Quotations",
+      value: data?.quotationCount ?? 0,
+      sub: data ? formatOMR(data.quotationValue) : "—",
+      icon: FileText,
+      href: "/quotations",
+    },
+    {
+      label: "Vendors",
+      value: data?.vendorCount ?? 0,
+      sub: "Active suppliers",
+      icon: Users,
+      href: "/vendors",
+    },
   ];
+
+  const ScopeIcon = scope === "fitnessbay" ? Dumbbell : Building2;
 
   return (
     <div className="flex flex-col gap-8 animate-in fade-in duration-300">
-      <div>
-        <h1 className="text-3xl font-bold uppercase tracking-tight text-foreground" data-testid="text-dashboard-title">
-          Operations
-        </h1>
-        <p className="text-muted-foreground mt-1 text-sm uppercase tracking-widest">The Agency — Command Center</p>
+      {/* Header */}
+      <div className="flex items-center gap-3">
+        <ScopeIcon className="w-7 h-7 text-primary" />
+        <div>
+          <h1 className="text-3xl font-bold uppercase tracking-tight text-foreground">
+            Dashboard
+          </h1>
+          <p className="text-muted-foreground text-sm uppercase tracking-widest">
+            {ENTITY_LABELS[scope]} — Command Center
+          </p>
+        </div>
       </div>
 
-      {/* Stats */}
+      {/* KPI Cards */}
       <section>
-        <h2 className="text-xs uppercase tracking-widest text-muted-foreground mb-4">Enquiry Overview</h2>
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-          {statCards.map((card, index) => {
-            const Icon = card.icon;
+        <h2 className="text-xs uppercase tracking-widest text-muted-foreground mb-4">
+          Financial Overview
+        </h2>
+        <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3">
+          {kpis.map((kpi, i) => {
+            const Icon = kpi.icon;
             return (
               <div
-                key={card.label}
-                className={`bg-card border border-card-border rounded-lg p-4 flex flex-col gap-2 transition-all duration-300 hover:border-primary/30 ${card.glow} animate-card-rise`}
-                style={{ animationDelay: `${index * 80}ms` }}
-                data-testid={`card-stat-${card.label.toLowerCase().replace(/\s+/g, "-")}`}
+                key={kpi.label}
+                className="bg-card border border-card-border rounded-lg p-4 flex flex-col gap-1.5 transition-all duration-300 hover:border-primary/30 hover:shadow-[0_0_20px_hsl(217_100%_60%/0.1)] animate-card-rise"
+                style={{ animationDelay: `${i * 60}ms` }}
               >
                 <div className="flex items-center justify-between">
-                  <span className="text-xs text-muted-foreground uppercase tracking-wider">{card.label}</span>
-                  <Icon className={`w-4 h-4 ${card.color}`} />
+                  <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">
+                    {kpi.label}
+                  </span>
+                  <Icon className={`w-4 h-4 ${kpi.color}`} />
                 </div>
-                {statsLoading ? (
-                  <Skeleton className="h-8 w-12" />
+                {isLoading ? (
+                  <Skeleton className="h-7 w-24" />
                 ) : (
-                  <span className={`text-3xl font-bold tabular-nums ${card.color}`}>{card.value}</span>
+                  <span className={`text-lg font-bold tabular-nums ${kpi.color}`}>
+                    {kpi.value}
+                  </span>
                 )}
+                <span className="text-[10px] text-muted-foreground/60">{kpi.desc}</span>
               </div>
             );
           })}
         </div>
       </section>
 
-      {/* Quick Actions */}
+      {/* Quick Stats Row */}
+      <section className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        {quickStats.map((s) => {
+          const Icon = s.icon;
+          return (
+            <Link key={s.label} href={s.href}>
+              <div className="bg-card border border-card-border rounded-lg p-4 hover:border-primary/40 transition-all cursor-pointer group">
+                <Icon className="w-5 h-5 text-primary mb-2 group-hover:scale-110 transition-transform" />
+                <div className="text-2xl font-bold tabular-nums text-foreground">
+                  {isLoading ? <Skeleton className="h-7 w-12" /> : s.value}
+                </div>
+                <div className="text-xs text-muted-foreground mt-0.5">{s.label}</div>
+                <div className="text-[10px] text-muted-foreground/60">{s.sub}</div>
+              </div>
+            </Link>
+          );
+        })}
+      </section>
+
+      {/* Revenue / Expenses Chart */}
+      <section className="grid lg:grid-cols-2 gap-6">
+        <Card className="hover:shadow-md transition-shadow">
+          <CardHeader>
+            <CardTitle className="text-sm font-semibold">
+              Monthly Revenue & Expenses ({new Date().getFullYear()})
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {isLoading ? (
+              <Skeleton className="h-56 w-full" />
+            ) : !data?.monthlyChart.length ? (
+              <div className="h-56 flex items-center justify-center text-muted-foreground text-sm">
+                No financial snapshot data yet
+              </div>
+            ) : (
+              <ResponsiveContainer width="100%" height={220}>
+                <BarChart data={data.monthlyChart} barGap={2}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
+                  <XAxis dataKey="month" tick={{ fontSize: 11, fill: "#888" }} />
+                  <YAxis tick={{ fontSize: 11, fill: "#888" }} tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`} />
+                  <Tooltip
+                    formatter={(val: number) => formatOMR(val)}
+                    contentStyle={{
+                      background: "rgba(20,20,30,0.95)",
+                      border: "1px solid rgba(255,255,255,0.1)",
+                      borderRadius: 8,
+                      fontSize: 12,
+                    }}
+                  />
+                  <Bar dataKey="revenue" fill="#10b981" radius={[3, 3, 0, 0]} name="Revenue" />
+                  <Bar dataKey="expenses" fill="#f43f5e" radius={[3, 3, 0, 0]} name="Expenses" />
+                </BarChart>
+              </ResponsiveContainer>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card className="hover:shadow-md transition-shadow">
+          <CardHeader>
+            <CardTitle className="text-sm font-semibold">
+              Net Income Trend ({new Date().getFullYear()})
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {isLoading ? (
+              <Skeleton className="h-56 w-full" />
+            ) : !data?.monthlyChart.length ? (
+              <div className="h-56 flex items-center justify-center text-muted-foreground text-sm">
+                No financial snapshot data yet
+              </div>
+            ) : (
+              <ResponsiveContainer width="100%" height={220}>
+                <LineChart data={data.monthlyChart}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
+                  <XAxis dataKey="month" tick={{ fontSize: 11, fill: "#888" }} />
+                  <YAxis tick={{ fontSize: 11, fill: "#888" }} tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`} />
+                  <Tooltip
+                    formatter={(val: number) => formatOMR(val)}
+                    contentStyle={{
+                      background: "rgba(20,20,30,0.95)",
+                      border: "1px solid rgba(255,255,255,0.1)",
+                      borderRadius: 8,
+                      fontSize: 12,
+                    }}
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="net"
+                    stroke="#8b5cf6"
+                    strokeWidth={2}
+                    dot={{ fill: "#8b5cf6", r: 3 }}
+                    name="Net Income"
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            )}
+          </CardContent>
+        </Card>
+      </section>
+
+      {/* Quick Navigation */}
       <section>
-        <h2 className="text-xs uppercase tracking-widest text-muted-foreground mb-4">Quick Actions</h2>
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-          {quickLinks.map((item, index) => {
+        <h2 className="text-xs uppercase tracking-widest text-muted-foreground mb-4">Quick Navigation</h2>
+        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-3">
+          {[
+            { href: "/finance/receivables", label: "Receivables", icon: ArrowDownLeft },
+            { href: "/finance/payables", label: "Payables", icon: ArrowUpRight },
+            { href: "/finance/bank", label: "Bank", icon: Landmark },
+            { href: "/finance/pnl", label: "P&L", icon: TrendingUp },
+            { href: "/finance/payroll", label: "HR / Payroll", icon: Users },
+            { href: "/fitness-bay", label: "Fitness Bay", icon: Dumbbell },
+          ].map((item) => {
             const Icon = item.icon;
             return (
               <Link key={item.href} href={item.href}>
-                <div className="bg-card border border-card-border rounded-lg p-4 hover:border-primary/40 hover:bg-card/80 hover:shadow-[0_0_20px_hsl(217_100%_60%/0.15)] transition-all duration-300 cursor-pointer group animate-card-rise" style={{ animationDelay: `${(index + 6) * 80}ms` }} data-testid={`link-quick-${item.label.toLowerCase().replace(/\s+/g, "-")}`}>
-                  <Icon className="w-6 h-6 text-primary mb-2 group-hover:scale-110 transition-transform" />
+                <div className="bg-card border border-card-border rounded-lg p-4 hover:border-primary/40 hover:bg-card/80 transition-all cursor-pointer group">
+                  <Icon className="w-5 h-5 text-primary mb-2 group-hover:scale-110 transition-transform" />
                   <div className="text-sm font-semibold text-foreground">{item.label}</div>
-                  <div className="text-xs text-muted-foreground mt-1">{item.desc}</div>
                 </div>
               </Link>
             );
           })}
-        </div>
-      </section>
-
-      {/* Recent Quotations */}
-      <section>
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xs uppercase tracking-widest text-muted-foreground">Recent Quotations</h2>
-          <Link href="/quotations">
-            <Button variant="ghost" size="sm" className="text-xs uppercase tracking-wider text-primary hover:text-primary">
-              View All
-            </Button>
-          </Link>
-        </div>
-        <div className="bg-card border border-card-border rounded-lg overflow-hidden">
-          {quotationsLoading ? (
-            <div className="p-6 space-y-3">
-              {[1, 2, 3].map((i) => <Skeleton key={i} className="h-10 w-full" />)}
-            </div>
-          ) : !recentQuotations || recentQuotations.length === 0 ? (
-            <div className="p-12 text-center text-muted-foreground text-sm">
-              No quotations yet. <Link href="/quotations" className="text-primary hover:underline">Create one</Link>
-            </div>
-          ) : (
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-card-border">
-                  <th className="text-left px-6 py-3 text-xs uppercase tracking-wider text-muted-foreground font-medium">S.N.</th>
-                  <th className="text-left px-6 py-3 text-xs uppercase tracking-wider text-muted-foreground font-medium">Client</th>
-                  <th className="text-left px-6 py-3 text-xs uppercase tracking-wider text-muted-foreground font-medium">Subject</th>
-                  <th className="text-left px-6 py-3 text-xs uppercase tracking-wider text-muted-foreground font-medium">Date</th>
-                  <th className="text-left px-6 py-3 text-xs uppercase tracking-wider text-muted-foreground font-medium">Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {recentQuotations.map((q) => (
-                  <tr
-                    key={q.id}
-                    className="border-b border-card-border/50 hover:bg-accent/20 transition-colors cursor-pointer"
-                    data-testid={`row-quotation-${q.id}`}
-                  >
-                    <td className="px-6 py-3">
-                      <Link href={`/quotations/${q.id}`} className="text-primary font-mono text-xs hover:underline">{q.serialNumber}</Link>
-                    </td>
-                    <td className="px-6 py-3 text-foreground font-medium">{q.clientName}</td>
-                    <td className="px-6 py-3 text-muted-foreground truncate max-w-[200px]">{q.subject}</td>
-                    <td className="px-6 py-3 text-muted-foreground font-mono text-xs">{q.quotationDate}</td>
-                    <td className="px-6 py-3">
-                      <span className={`px-2 py-1 rounded text-xs font-medium uppercase tracking-wider ${statusColors[q.status] ?? "bg-zinc-700 text-zinc-200"}`}>
-                        {statusLabel[q.status] ?? q.status}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
         </div>
       </section>
     </div>

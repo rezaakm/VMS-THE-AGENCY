@@ -1,30 +1,35 @@
 import { supabase } from "../supabase";
 
-export async function getApSummary() {
+export async function getApSummary(entity?: string | null) {
   const { data, error } = await supabase
     .from("ap_entries")
-    .select("balance, original_amount");
+    .select("balance, original_amount, entity");
 
   if (error) throw error;
 
-  const totalOutstanding = (data ?? []).reduce(
+  const filtered = entity
+    ? (data ?? []).filter((r) => r.entity === entity)
+    : (data ?? []);
+
+  const totalOutstanding = filtered.reduce(
     (sum, r) => sum + (r.balance ?? 0),
     0
   );
-  const totalPayable = (data ?? []).reduce(
+  const totalPayable = filtered.reduce(
     (sum, r) => sum + (r.original_amount ?? 0),
     0
   );
-  const count = data?.length ?? 0;
+  const count = filtered.length;
 
   return { totalOutstanding, totalPayable, count };
 }
 
-export async function getApEntries() {
+export async function getApEntries(entity?: string | null) {
   const { data, error } = await supabase
     .from("ap_entries")
     .select("*, invoices(*), vendors(*)")
     .order("created_at", { ascending: false });
   if (error) throw error;
-  return data ?? [];
+  if (!entity) return data ?? [];
+  return (data ?? []).filter((r) => r.entity === entity);
 }
