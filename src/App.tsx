@@ -37,6 +37,7 @@ import FinanceCashOutlook from "@/pages/finance/cash-outlook";
 import FinancePending from "@/pages/finance/pending";
 import Clients from "@/pages/clients";
 import FitnessBay from "@/pages/fitness-bay";
+import Pipeline from "@/pages/pipeline";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -79,6 +80,7 @@ function Router() {
         <Route path="/finance/pending" component={FinancePending} />
         <Route path="/clients" component={Clients} />
         <Route path="/fitness-bay" component={FitnessBay} />
+        <Route path="/pipeline" component={Pipeline} />
         <Route component={NotFound} />
       </Switch>
     </Layout>

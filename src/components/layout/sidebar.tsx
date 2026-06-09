@@ -4,7 +4,7 @@ import {
   Menu, X, Plus, Upload, ShoppingCart, Receipt, FileSignature,
   ClipboardList, Star, BarChart3, Wand2, TrendingUp, Landmark,
   ArrowDownLeft, ArrowUpRight, Wallet, Clock, Building2, Dumbbell,
-  ChevronsUpDown, UserCircle,
+  ChevronsUpDown, UserCircle, Zap,
 } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
@@ -21,6 +21,7 @@ const navItems = [
   { href: "/cost-sheets", label: "Cost Sheets", icon: FileSpreadsheet, group: "Sales" },
   { href: "/quotations", label: "Quotations", icon: FileText, group: "Sales" },
   { href: "/quote-wizard", label: "Quote Wizard", icon: Wand2, group: "Sales" },
+  { href: "/pipeline", label: "Quote Pipeline", icon: Zap, group: "Sales" },
   { href: "/rfqs", label: "RFQs", icon: ClipboardList, group: "Procurement" },
   { href: "/purchase-orders", label: "Purchase Orders", icon: ShoppingCart, group: "Procurement" },
   { href: "/contracts", label: "Contracts", icon: FileSignature, group: "Procurement" },

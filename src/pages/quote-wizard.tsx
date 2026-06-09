@@ -1,6 +1,12 @@
 import { useState, useRef } from "react";
 import { supabase } from "@/lib/supabase";
 import * as XLSX from "xlsx";
+import {
+  computeLineConfidence,
+  computeSheetConfidence,
+  CONFIDENCE_COLORS,
+  CONFIDENCE_DOT_COLORS,
+} from "@/lib/confidence";
 
 type Match = {
   item_label: string;
@@ -20,6 +26,8 @@ type Line = {
   markup: number;
   vendor: string;
   source: string;
+  matchType?: string;
+  matchScore?: number;
 };
 
 const TIERS = [25, 30, 35, 40];
@@ -68,6 +76,8 @@ export default function QuoteWizard() {
       cost: r3(m.typical_cost ?? m.typical_sell ?? 0),
       vendor: m.usual_vendor ?? "",
       source: `${m.match_type} · used ${m.times_used}×`,
+      matchType: m.match_type,
+      matchScore: m.score,
     });
     setSuggest((s) => ({ ...s, [id]: [] }));
   };
@@ -258,7 +268,20 @@ export default function QuoteWizard() {
               <span className="ml-auto text-gray-200">Sell {fmt(sell(l))} × {l.qty} = <b>{fmt(lineTotal(l))}</b></span>
               <button onClick={() => setLines((ls) => ls.filter((x) => x.id !== l.id))} className="text-red-400 hover:text-red-300">✕</button>
             </div>
-            {l.source && <div className="text-xs text-gray-500 mt-1">{l.source}{l.vendor ? ` · ${l.vendor}` : ""}</div>}
+            {(l.source || l.matchType) && (
+              <div className="flex items-center gap-2 mt-1">
+                {l.source && <span className="text-xs text-gray-500">{l.source}{l.vendor ? ` · ${l.vendor}` : ""}</span>}
+                {(() => {
+                  const conf = computeLineConfidence(l.matchType, l.matchScore);
+                  return (
+                    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium border ${CONFIDENCE_COLORS[conf.bucket]}`}>
+                      <span className={`w-1.5 h-1.5 rounded-full ${CONFIDENCE_DOT_COLORS[conf.bucket]}`} />
+                      {conf.score}% — {conf.label}
+                    </span>
+                  );
+                })()}
+              </div>
+            )}
           </div>
         ))}
       </div>
@@ -266,6 +289,27 @@ export default function QuoteWizard() {
       <button onClick={() => setLines((ls) => [...ls, blank()])} className="mt-3 px-3 py-2 rounded bg-gray-700 hover:bg-gray-600 text-sm">+ Add line</button>
 
       <div className="mt-5 bg-gray-900 border border-gray-800 rounded p-4 text-sm">
+        {(() => {
+          const confLines = lines.map((l) => ({
+            total: lineTotal(l),
+            confidence: computeLineConfidence(l.matchType, l.matchScore).score,
+          }));
+          const sheetConf = computeSheetConfidence(confLines);
+          const bucket = sheetConf >= 80 ? "high" : sheetConf >= 50 ? "medium" : sheetConf > 0 ? "low" : "none";
+          const hasZero = lines.some((l) => computeLineConfidence(l.matchType, l.matchScore).score === 0 && l.cost === 0);
+          return (
+            <div className="flex items-center justify-between mb-3 pb-3 border-b border-gray-800">
+              <span className="text-gray-400">Sheet Confidence</span>
+              <div className="flex items-center gap-2">
+                <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded text-xs font-medium border ${CONFIDENCE_COLORS[bucket]}`}>
+                  <span className={`w-2 h-2 rounded-full ${CONFIDENCE_DOT_COLORS[bucket]}`} />
+                  {sheetConf}%
+                </span>
+                {hasZero && <span className="text-[10px] text-red-400">Lines need pricing</span>}
+              </div>
+            </div>
+          );
+        })()}
         <div className="flex justify-between"><span className="text-gray-400">Total cost</span><span>{fmt(totalCost)}</span></div>
         <div className="flex justify-between"><span className="text-gray-400">Sub total (sell)</span><span>{fmt(subTotal)}</span></div>
         <div className="flex justify-between"><span className="text-gray-400">VAT 5%</span><span>{fmt(vatAmt)}</span></div>
