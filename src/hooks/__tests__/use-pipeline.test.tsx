@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, waitFor, act } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -34,7 +35,7 @@ function createWrapper() {
     defaultOptions: {
       queries: {
         retry: false, // Disable retry for tests
-        cacheTime: 0, // Disable caching for tests
+        gcTime: 0, // Disable caching for tests
       },
       mutations: {
         retry: false,

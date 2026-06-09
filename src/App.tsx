@@ -39,7 +39,7 @@ const FinanceCashOutlook = lazy(() => import("@/pages/finance/cash-outlook"));
 const FinancePending = lazy(() => import("@/pages/finance/pending"));
 const Clients = lazy(() => import("@/pages/clients"));
 const FitnessBay = lazy(() => import("@/pages/fitness-bay"));
-const Pipeline = lazy(() => import("@/pages/pipeline"));
+const Pipeline = lazy(() => import("@/pages/pipeline-refactored"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
