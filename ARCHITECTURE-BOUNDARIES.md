@@ -1,23 +1,31 @@
 # Architecture Boundaries — The Agency Systems
 
-This repo is one of THREE federated systems. One job each. Read before editing.
+This repo is the **primary operating system** for Modern Lifestyle LLC. It consolidates commercial workflows AND finance views into one app.
 
-| System | Repo | Owns | Never owns |
+| System | Repo | Role | Status |
 |---|---|---|---|
-| NEO / Matrix OS | Theagencyagents | Orchestration, AI agents, automation, approvals | A ledger row; stored quotes/money |
-| VMS | VMS-THE-AGENCY | RFQ, vendor eval, cost sheet, quote, PO, invoice issuance | The book of record; a second AI stack |
-| Finance Center | the-agency-finance | The ledger / book of record, bank rec, AR/AP, payroll, P&L, cash outlook | Operational transaction workflows |
+| **Agency OS** | VMS-THE-AGENCY | All modules: quotes, POs, invoices, AR/AP, bank, P&L, payroll, clients, Fitness Bay | **Primary — daily driver** |
+| Finance Center | the-agency-finance | Ledger, bank rec, AR/AP, payroll, P&L (same Supabase data) | **Read-only backup** — not for daily use |
+| NEO | Theagencyagents | AI orchestration, agents, automation, approvals | Active — owns AI stack |
 
 ## Data spine
-One shared Supabase schema is the single source of truth. VMS writes commercial
-events (quotes/POs/invoices). Finance owns the ledger. NEO reads everything,
-writes only the agent/automation layer and action_items.
+One shared Supabase schema (`rmdztasccsnrqqgqvgyy`) is the single source of truth.
+- Agency OS reads and writes commercial events + reads finance tables
+- Finance Center reads/writes the same finance tables (kept as backup, not daily)
+- NEO reads everything, writes only agent/automation data
+
+## Entity model
+- `entity = 'agency'` — The Agency subsidiary
+- `entity = 'fitnessbay'` — Fitness Bay subsidiary
+- Group view = both combined (no entity filter)
 
 ## Working rules
-- One tool per repo per session (Claude Code only during the cleanup/build runbook).
+- One tool per repo per session (Claude Code).
 - Pull before edit. One feature branch per phase. Small commits.
-- Secrets in .env.local / Supabase secrets only — never in code or chat.
-- Every money transaction carries a job number (ML/26/xxx or 4xxx) or an expense head.
-- No selling prices in client-facing output. Procurement line items > 300 OMR need >= 2 quotes.
-- Book of record is the Finance Center on Supabase. NO Zoho. No external accountant system.
+- `npm run build` must pass before every commit.
+- Secrets in `.env.local` / Supabase secrets only — never in code or chat.
+- Every money transaction carries a job number (ML/26/xxx or 4xxx).
+- No selling prices in client-facing output.
+- Procurement items > 300 OMR need >= 2 quotes.
+- Book of record is Supabase. NO Zoho. No external accounting system.
 - If code changes but docs do not, the task is incomplete.
