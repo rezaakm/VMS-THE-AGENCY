@@ -109,7 +109,6 @@ describe("Pipeline Acceptance (live Supabase)", () => {
   it("Step 2: Build cost sheet from enquiry", async () => {
     expect(cleanup.enquiryId).toBeTruthy();
 
-    // Fetch the enquiry we just created
     const { data: enquiry } = await supabase
       .from("enquiries")
       .select("*")
@@ -140,7 +139,7 @@ describe("Pipeline Acceptance (live Supabase)", () => {
 
     expect(updated?.status).toBe("drafting");
     console.log(`  ✓ Enquiry status updated to: ${updated?.status}`);
-  });
+  }, 30_000);
 
   it("Step 3: Approve cost sheet (generates quotation)", async () => {
     expect(cleanup.costSheetId).toBeTruthy();
@@ -167,7 +166,7 @@ describe("Pipeline Acceptance (live Supabase)", () => {
     expect(sheet?.approved_by).toBe("reza");
     expect(sheet?.approved_at).toBeTruthy();
     console.log(`  ✓ Cost sheet status: ${sheet?.status}`);
-  });
+  }, 30_000);
 
   it("Step 4: Verify quotation has items", async () => {
     expect(cleanup.quotationId).toBeTruthy();
