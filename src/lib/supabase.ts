@@ -9,4 +9,16 @@ if (!supabaseUrl || !supabaseAnonKey) {
   );
 }
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+  auth: {
+    // Keep the user signed in across reloads, tabs, and browser restarts.
+    persistSession: true,
+    // Silently refresh the access token in the background so the session
+    // stays alive for weeks without forcing a re-login.
+    autoRefreshToken: true,
+    detectSessionInUrl: true,
+    // Stable, app-specific storage key so the session is not lost if other
+    // Supabase apps on related origins use the default key.
+    storageKey: "agency-os-auth",
+  },
+});
