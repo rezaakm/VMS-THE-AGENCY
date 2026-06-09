@@ -8,17 +8,24 @@ import {
   PieChart, Pie, Cell, ResponsiveContainer, Tooltip,
 } from "recharts";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { StatusBadge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { PageHeader } from "@/components/ui/page-header";
 import { StatCard } from "@/components/ui/stat-card";
 import { EmptyState } from "@/components/ui/empty-state";
-import { formatOMR } from "@/lib/utils";
+import { formatOMR, CHART_TOOLTIP } from "@/lib/utils";
 import { getOverviewMetrics, getRecentActivity } from "@/lib/queries/overview";
 import { getArAging } from "@/lib/queries/ar";
 import { useEntityScope } from "@/hooks/use-entity-scope";
 
-const AGING_COLORS = ["#10b981", "#f59e0b", "#f97316", "#ef4444", "#8b5cf6"];
+// Aging buckets by severity: current -> overdue (meaning-driven)
+const AGING_COLORS = [
+  "hsl(158 64% 52%)", // current — positive
+  "hsl(38 92% 55%)",  // 30d — warning
+  "hsl(25 90% 55%)",  // 60d — escalating
+  "hsl(0 84% 60%)",   // 90d+ — negative
+  "hsl(270 60% 62%)", // other
+];
 
 export default function OverviewPanel() {
   const { entityFilter, scope } = useEntityScope();
@@ -57,18 +64,18 @@ export default function OverviewPanel() {
         showScope
       />
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard title="AR Outstanding" value={m ? formatOMR(m.totalAR) : undefined} icon={ArrowDownLeft} loading={metricsQ.isLoading} />
-        <StatCard title="AP Outstanding" value={m ? formatOMR(m.totalAP) : undefined} icon={ArrowUpRight} loading={metricsQ.isLoading} trend="down" />
-        <StatCard title="Net Cash Position" value={m ? formatOMR(m.netPosition) : undefined} icon={DollarSign} loading={metricsQ.isLoading} trend={m ? (m.netPosition >= 0 ? "up" : "down") : undefined} />
+        <StatCard title="AP Outstanding" value={m ? formatOMR(m.totalAP) : undefined} icon={ArrowUpRight} loading={metricsQ.isLoading} accent="negative" />
+        <StatCard title="Net Cash Position" value={m ? formatOMR(m.netPosition) : undefined} icon={DollarSign} loading={metricsQ.isLoading} accent={m ? (m.netPosition >= 0 ? "positive" : "negative") : "default"} />
         <StatCard title="Open Journals" value={m ? String(m.openJournals) : undefined} icon={FileText} loading={metricsQ.isLoading} />
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-2">
+      <div className="grid gap-4 lg:grid-cols-2">
         {/* AR Aging Donut */}
-        <Card className="hover:shadow-md transition-shadow">
+        <Card>
           <CardHeader>
-            <CardTitle className="text-sm font-semibold">AR Aging Breakdown</CardTitle>
+            <CardTitle className="t-card-title">AR Aging Breakdown</CardTitle>
           </CardHeader>
           <CardContent>
             {agingQ.isLoading ? (
@@ -86,7 +93,7 @@ export default function OverviewPanel() {
                     </Pie>
                     <Tooltip
                       formatter={(val: number) => formatOMR(val)}
-                      contentStyle={{ background: "rgba(20,20,30,0.95)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 8, fontSize: 12 }}
+                      contentStyle={CHART_TOOLTIP}
                     />
                   </PieChart>
                 </ResponsiveContainer>
@@ -104,9 +111,9 @@ export default function OverviewPanel() {
         </Card>
 
         {/* Recent Activity */}
-        <Card className="hover:shadow-md transition-shadow">
+        <Card>
           <CardHeader>
-            <CardTitle className="text-sm font-semibold">Recent Activity</CardTitle>
+            <CardTitle className="t-card-title">Recent Activity</CardTitle>
           </CardHeader>
           <CardContent>
             {activityQ.isLoading ? (
@@ -132,7 +139,7 @@ export default function OverviewPanel() {
                       <p className="text-sm font-medium">{je.description || "Journal Entry"}</p>
                       <p className="text-xs text-muted-foreground">{je.created_at ? format(new Date(je.created_at), "dd MMM yyyy") : ""}</p>
                     </div>
-                    <Badge variant={je.status === "POSTED" ? "success" : "secondary"}>{je.status}</Badge>
+                    <StatusBadge status={je.status} />
                   </div>
                 ))}
                 {(activityQ.data?.recentInvoices ?? []).length === 0 &&

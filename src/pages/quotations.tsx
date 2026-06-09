@@ -4,25 +4,24 @@ import { useQueryClient } from "@tanstack/react-query";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Trash2, ChevronRight, Pencil, TrendingUp } from "lucide-react";
+import { Plus, Trash2, Eye, Pencil } from "lucide-react";
 import { useVoiceInput } from "@/hooks/use-voice-input";
 import { VoiceButton } from "@/components/ui/voice-button";
+import { PageHeader } from "@/components/ui/page-header";
+import { StatusBadge } from "@/components/ui/badge";
+import { formatOMR } from "@/lib/utils";
 import { useTableControls } from "@/hooks/use-table-controls";
-import { TableToolbar, FilterSelect, SortHeader, Pagination } from "@/components/table-controls";
-import { HistorySuggest } from "@/components/history-suggest";
+import { TableToolbar, FilterSelect, SortHeader, Pagination, RowAction, TableSkeleton, TableEmpty } from "@/components/table-controls";
 
-const STATUS_COLORS: Record<string, string> = {
-  draft: "bg-zinc-700 text-zinc-200",
-  sent: "bg-blue-900 text-blue-200",
-  approved: "bg-green-900 text-green-200",
-  rejected: "bg-red-900 text-red-200",
-};
+function num(v: any): number {
+  const n = typeof v === "string" ? parseFloat(v) : v;
+  return Number.isFinite(n) ? n : 0;
+}
 
 const STATUS_ORDER: Record<string, number> = { draft: 0, sent: 1, approved: 2, rejected: 3 };
 
@@ -123,16 +122,12 @@ export default function Quotations() {
   const hasFilters = !!ctl.filters.status && ctl.filters.status !== "all";
 
   return (
-    <div className="flex flex-col gap-6 animate-in fade-in duration-300">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold uppercase tracking-tight" data-testid="text-quotations-title">Quotations</h1>
-          <p className="text-muted-foreground text-sm mt-1 uppercase tracking-widest">Client Proposals</p>
-        </div>
-        <Button onClick={openCreate} className="gap-2 bg-primary text-primary-foreground uppercase tracking-wider text-xs font-bold" data-testid="button-create-quotation">
+    <div className="flex flex-col gap-4 animate-in fade-in duration-300">
+      <PageHeader title="Quotations" description="Client proposals">
+        <Button onClick={openCreate} size="sm" className="gap-1.5 bg-primary text-primary-foreground text-xs font-semibold" data-testid="button-create-quotation">
           <Plus className="w-4 h-4" /> New Quotation
         </Button>
-      </div>
+      </PageHeader>
 
       <TableToolbar
         search={ctl.search}
@@ -153,56 +148,61 @@ export default function Quotations() {
 
       <div className="bg-card border border-card-border rounded-lg overflow-hidden">
         {isLoading ? (
-          <div className="p-6 space-y-3">{[1, 2, 3, 4].map((i) => <Skeleton key={i} className="h-12 w-full" />)}</div>
+          <TableSkeleton rows={6} cols={6} />
         ) : ctl.rows.length === 0 ? (
-          <div className="py-20 text-center text-muted-foreground text-sm">{ctl.totalCount === 0 ? "No quotations yet. Create one above." : "No matches found."}</div>
+          <TableEmpty
+            title={ctl.totalCount === 0 ? "No quotations yet" : "No matches found"}
+            description={ctl.totalCount === 0 ? "Create your first quotation to get started." : "Try adjusting your search or filters."}
+          />
         ) : (
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-card-border">
-                <SortHeader label="S.N." sortKey="sn" current={ctl.sort} onToggle={(k) => ctl.toggleSort(k as "sn")} />
-                <SortHeader label="Client" sortKey="client" current={ctl.sort} onToggle={(k) => ctl.toggleSort(k as "client")} />
-                <SortHeader label="Subject" sortKey="subject" current={ctl.sort} onToggle={(k) => ctl.toggleSort(k as "subject")} className="hidden md:table-cell" />
-                <SortHeader label="Date" sortKey="date" current={ctl.sort} onToggle={(k) => ctl.toggleSort(k as "date")} />
-                <SortHeader label="Status" sortKey="status" current={ctl.sort} onToggle={(k) => ctl.toggleSort(k as "status")} />
-                <th className="px-6 py-3 w-20"></th>
-              </tr>
-            </thead>
-            <tbody>
-              {ctl.rows.map((q) => (
-                <tr key={q.id} className="border-b border-card-border/50 hover:bg-accent/20 transition-colors" data-testid={`row-quotation-${q.id}`}>
-                  <td className="px-6 py-4">
-                    <Link href={`/quotations/${q.id}`} className="text-primary font-mono text-xs font-semibold hover:underline">{q.serialNumber}</Link>
-                  </td>
-                  <td className="px-6 py-4">
-                    <div className="font-semibold text-foreground">{q.clientName}</div>
-                    {q.clientCompany && <div className="text-xs text-muted-foreground">{q.clientCompany}</div>}
-                  </td>
-                  <td className="px-6 py-4 text-muted-foreground hidden md:table-cell truncate max-w-[200px]">{q.subject}</td>
-                  <td className="px-6 py-4 text-muted-foreground font-mono text-xs">{q.quotationDate}</td>
-                  <td className="px-6 py-4">
-                    <Select value={q.status} onValueChange={(v) => quickSetStatus(q.id, v)}>
-                      <SelectTrigger className={`h-7 px-2 py-1 text-xs font-medium uppercase tracking-wider ${STATUS_COLORS[q.status] ?? "bg-zinc-700 text-zinc-200"}`} data-testid={`select-q-status-${q.id}`}>
-                        <SelectValue>{q.status}</SelectValue>
-                      </SelectTrigger>
-                      <SelectContent>
-                        {["draft", "sent", "approved", "rejected"].map(s => <SelectItem key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
-                  </td>
-                  <td className="px-6 py-4">
-                    <div className="flex items-center gap-1">
-                      <Link href={`/quotations/${q.id}`}>
-                        <Button variant="ghost" size="icon" className="h-8 w-8" data-testid={`button-view-quotation-${q.id}`}><ChevronRight className="w-4 h-4" /></Button>
-                      </Link>
-                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(q)} data-testid={`button-edit-quotation-${q.id}`}><Pencil className="w-3.5 h-3.5" /></Button>
-                      <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => setDeleteId(q.id)} data-testid={`button-delete-quotation-${q.id}`}><Trash2 className="w-3.5 h-3.5" /></Button>
-                    </div>
-                  </td>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="bg-card/95 backdrop-blur sticky top-0 z-10">
+                <tr className="border-b border-card-border">
+                  <SortHeader label="S.N." sortKey="sn" current={ctl.sort} onToggle={(k) => ctl.toggleSort(k as "sn")} />
+                  <SortHeader label="Client" sortKey="client" current={ctl.sort} onToggle={(k) => ctl.toggleSort(k as "client")} />
+                  <SortHeader label="Subject" sortKey="subject" current={ctl.sort} onToggle={(k) => ctl.toggleSort(k as "subject")} className="hidden md:table-cell" />
+                  <SortHeader label="Date" sortKey="date" current={ctl.sort} onToggle={(k) => ctl.toggleSort(k as "date")} />
+                  <th className="px-3 py-2.5 text-right text-[11px] uppercase tracking-wider text-muted-foreground font-medium">Total</th>
+                  <SortHeader label="Status" sortKey="status" current={ctl.sort} onToggle={(k) => ctl.toggleSort(k as "status")} />
+                  <th className="px-3 py-2.5 w-24 text-right text-[11px] uppercase tracking-wider text-muted-foreground font-medium">Actions</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {ctl.rows.map((q) => (
+                  <tr key={q.id} className="border-b border-border/40 hover:bg-muted/40 transition-colors group" data-testid={`row-quotation-${q.id}`}>
+                    <td className="px-3 py-2.5">
+                      <Link href={`/quotations/${q.id}`} className="text-primary font-mono text-xs font-semibold hover:underline">{q.serialNumber}</Link>
+                    </td>
+                    <td className="px-3 py-2.5">
+                      <div className="font-medium text-foreground">{q.clientName}</div>
+                      {q.clientCompany && <div className="text-xs text-muted-foreground">{q.clientCompany}</div>}
+                    </td>
+                    <td className="px-3 py-2.5 text-muted-foreground hidden md:table-cell truncate max-w-[220px]">{q.subject}</td>
+                    <td className="px-3 py-2.5 text-muted-foreground font-mono text-xs whitespace-nowrap">{q.quotationDate}</td>
+                    <td className="px-3 py-2.5 text-right font-mono text-sm tabular-nums text-foreground whitespace-nowrap">{formatOMR(num((q as any).totalAmount))}</td>
+                    <td className="px-3 py-2.5">
+                      <Select value={q.status} onValueChange={(v) => quickSetStatus(q.id, v)}>
+                        <SelectTrigger className="h-auto w-auto border-0 bg-transparent p-0 hover:opacity-80 focus:ring-0 [&>svg]:hidden" data-testid={`select-q-status-${q.id}`}>
+                          <StatusBadge status={q.status} />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {["draft", "sent", "approved", "rejected"].map(s => <SelectItem key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                    </td>
+                    <td className="px-3 py-2.5">
+                      <div className="flex items-center justify-end gap-0.5">
+                        <RowAction icon={Eye} label="View" href={`/quotations/${q.id}`} />
+                        <RowAction icon={Pencil} label="Edit" onClick={() => openEdit(q)} />
+                        <RowAction icon={Trash2} label="Delete" destructive onClick={() => setDeleteId(q.id)} />
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
       </div>
 

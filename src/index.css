@@ -75,59 +75,59 @@
   --elevate-1: rgba(255,255,255, .04);
   --elevate-2: rgba(255,255,255, .09);
 
-  /* Deep dark agency theme - operations control room */
-  --background: 0 0% 4%;
-  --foreground: 0 0% 98%;
+  /* Dark executive OS: neutral foundation with restrained signal color */
+  --background: 220 18% 6%;
+  --foreground: 210 25% 96%;
 
-  --border: 0 0% 15%;
+  --border: 215 16% 18%;
   
-  --card: 0 0% 6%;
-  --card-foreground: 0 0% 98%;
-  --card-border: 0 0% 12%;
+  --card: 220 18% 8%;
+  --card-foreground: 210 25% 96%;
+  --card-border: 215 16% 16%;
 
-  --sidebar: 0 0% 6%;
-  --sidebar-foreground: 0 0% 98%;
-  --sidebar-border: 0 0% 12%;
-  --sidebar-primary: 217 100% 60%;
-  --sidebar-primary-foreground: 0 0% 98%;
-  --sidebar-accent: 0 0% 12%;
-  --sidebar-accent-foreground: 0 0% 98%;
-  --sidebar-ring: 217 100% 60%;
+  --sidebar: 220 22% 7%;
+  --sidebar-foreground: 210 24% 92%;
+  --sidebar-border: 215 18% 15%;
+  --sidebar-primary: 193 86% 55%;
+  --sidebar-primary-foreground: 220 18% 6%;
+  --sidebar-accent: 218 18% 12%;
+  --sidebar-accent-foreground: 210 25% 96%;
+  --sidebar-ring: 193 86% 55%;
 
-  --popover: 0 0% 6%;
-  --popover-foreground: 0 0% 98%;
-  --popover-border: 0 0% 15%;
+  --popover: 220 20% 8%;
+  --popover-foreground: 210 25% 96%;
+  --popover-border: 215 16% 18%;
 
-  /* High contrast blue for actions */
-  --primary: 217 100% 60%;
-  --primary-foreground: 0 0% 98%;
+  /* Clear cyan for primary action and active navigation */
+  --primary: 193 86% 55%;
+  --primary-foreground: 220 18% 6%;
 
-  --secondary: 0 0% 15%;
-  --secondary-foreground: 0 0% 98%;
+  --secondary: 218 16% 14%;
+  --secondary-foreground: 210 25% 96%;
 
-  --muted: 0 0% 12%;
-  --muted-foreground: 0 0% 65%;
+  --muted: 218 16% 13%;
+  --muted-foreground: 214 13% 64%;
 
-  --accent: 0 0% 15%;
-  --accent-foreground: 0 0% 98%;
+  --accent: 218 18% 14%;
+  --accent-foreground: 210 25% 96%;
 
   --destructive: 0 100% 60%;
   --destructive-foreground: 0 0% 98%;
 
-  --input: 0 0% 20%;
-  --ring: 217 100% 60%;
+  --input: 215 16% 20%;
+  --ring: 193 86% 55%;
   
-  --chart-1: 217 100% 60%;
-  --chart-2: 174 72% 52%;
+  --chart-1: 193 86% 55%;
+  --chart-2: 160 72% 48%;
   --chart-3: 160 60% 45%;
   --chart-4: 270 60% 58%;
   --chart-5: 38 92% 60%;
 
-  --app-font-sans: "Inter", sans-serif;
+  --app-font-sans: "Aptos", "Segoe UI", sans-serif;
   --app-font-serif: "Playfair Display", serif;
-  --app-font-mono: "Space Mono", monospace;
+  --app-font-mono: "Cascadia Mono", "SFMono-Regular", monospace;
   
-  --radius: 0.5rem;
+  --radius: 0.375rem;
 
   --sidebar-primary-border: hsl(var(--sidebar-primary));
   --sidebar-primary-border: hsl(from hsl(var(--sidebar-primary)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
@@ -152,6 +152,30 @@
 
   body {
     @apply font-sans antialiased bg-background text-foreground;
+    background:
+      radial-gradient(circle at top left, hsl(193 86% 55% / 0.12), transparent 30rem),
+      radial-gradient(circle at 80% 0%, hsl(160 72% 48% / 0.08), transparent 26rem),
+      linear-gradient(180deg, hsl(220 20% 7%), hsl(220 18% 5%) 45%, hsl(220 18% 4%));
+    min-height: 100vh;
+  }
+}
+
+@layer components {
+  .ops-surface {
+    background:
+      linear-gradient(180deg, hsl(var(--card) / 0.96), hsl(var(--card) / 0.88)),
+      linear-gradient(135deg, hsl(var(--primary) / 0.08), transparent 38%);
+    border-color: hsl(var(--card-border));
+    box-shadow:
+      inset 0 1px 0 hsl(0 0% 100% / 0.05),
+      0 18px 42px hsl(220 40% 2% / 0.28);
+  }
+
+  .ops-table-shell {
+    border: 1px solid hsl(var(--border) / 0.72);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    background: hsl(var(--card) / 0.66);
   }
 }
 
@@ -168,25 +192,37 @@
   }
 }
 
-/* Background noise texture overlay */
-body::before {
-  content: "";
-  position: fixed;
-  inset: 0;
-  z-index: 9999;
-  pointer-events: none;
-  opacity: 0.035;
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
-  background-repeat: repeat;
-  background-size: 256px 256px;
+/* Design tokens: spacing + type scale (calm, dense executive OS) */
+:root, .dark {
+  /* Spacing scale — page padding, card padding, grid gaps */
+  --space-page: 1.5rem;      /* outer page padding */
+  --space-card: 1rem;        /* default card padding */
+  --space-gap: 0.75rem;      /* default grid/flex gap */
+  --space-section: 1.5rem;   /* vertical rhythm between sections */
+
+  /* Semantic status colors (meaning only) */
+  --status-positive: 158 64% 52%;  /* emerald — paid/approved/positive */
+  --status-warning: 38 92% 55%;    /* amber — pending/draft/sent */
+  --status-negative: 0 84% 60%;    /* red — overdue/rejected/negative */
+  --status-info: 217 91% 60%;      /* blue — informational */
+  --status-ai: 270 60% 62%;        /* purple — AI / pipeline only */
 }
+
+/* Type scale utilities */
+.t-page-title { font-size: 1.5rem; line-height: 1.9rem; font-weight: 650; letter-spacing: 0; }
+.t-section-title { font-size: 0.75rem; line-height: 1rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; }
+.t-card-title { font-size: 0.8125rem; line-height: 1.125rem; font-weight: 600; }
+.t-label { font-size: 0.625rem; line-height: 0.875rem; font-weight: 500; text-transform: uppercase; letter-spacing: 0.06em; }
+.t-value { font-size: 1.125rem; line-height: 1.5rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+.t-value-lg { font-size: 1.5rem; line-height: 1.75rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+.t-caption { font-size: 0.6875rem; line-height: 0.875rem; }
 
 /* Utility: Glass panel */
 .glass {
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: hsl(var(--card) / 0.72);
+  border: 1px solid hsl(var(--border) / 0.7);
 }
 
 /* Utility: Blue glow */
@@ -256,7 +292,17 @@ body::before {
 
 /* Table row hover highlight */
 table tbody tr {
-  transition: background-color 0.15s ease;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+table {
+  font-variant-numeric: tabular-nums;
+}
+
+thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
 }
 
 /* Mobile: horizontal table scroll indicator */

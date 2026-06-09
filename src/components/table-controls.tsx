@@ -1,7 +1,88 @@
-import { ArrowUp, ArrowDown, ArrowUpDown, Search, X, ChevronLeft, ChevronRight } from "lucide-react";
+import { ArrowUp, ArrowDown, ArrowUpDown, Search, X, ChevronLeft, ChevronRight, Inbox, AlertTriangle } from "lucide-react";
+import { type ElementType, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+
+/** Quiet icon row-action button: low-contrast until row/hover. */
+export function RowAction({
+  icon: Icon,
+  label,
+  onClick,
+  destructive,
+  href,
+}: {
+  icon: ElementType;
+  label: string;
+  onClick?: () => void;
+  destructive?: boolean;
+  href?: string;
+}) {
+  const cls = `inline-flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground/50 transition-colors hover:bg-muted hover:text-foreground ${destructive ? "hover:text-rose-400" : ""}`;
+  if (href) {
+    return (
+      <a href={href} className={cls} aria-label={label} title={label}>
+        <Icon className="h-3.5 w-3.5" />
+      </a>
+    );
+  }
+  return (
+    <button type="button" onClick={onClick} className={cls} aria-label={label} title={label}>
+      <Icon className="h-3.5 w-3.5" />
+    </button>
+  );
+}
+
+/** Unified loading / empty / error states for table bodies. */
+export function TableSkeleton({ rows = 6, cols = 5 }: { rows?: number; cols?: number }) {
+  return (
+    <div className="divide-y divide-border/40">
+      {Array.from({ length: rows }).map((_, r) => (
+        <div key={r} className="flex items-center gap-4 px-3 py-2.5">
+          {Array.from({ length: cols }).map((_, c) => (
+            <Skeleton key={c} className={`h-4 ${c === 0 ? "w-12" : c === 1 ? "w-40 flex-1" : "w-20"}`} />
+          ))}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+export function TableEmpty({
+  icon: Icon = Inbox,
+  title = "No records",
+  description,
+  children,
+}: {
+  icon?: ElementType;
+  title?: string;
+  description?: string;
+  children?: ReactNode;
+}) {
+  return (
+    <div className="flex flex-col items-center justify-center px-6 py-16 text-center">
+      <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-muted/50 border border-border/40 text-muted-foreground">
+        <Icon className="h-5 w-5" />
+      </div>
+      <p className="mt-3 text-sm font-medium text-foreground">{title}</p>
+      {description && <p className="mt-1 max-w-xs text-xs text-muted-foreground">{description}</p>}
+      {children && <div className="mt-3">{children}</div>}
+    </div>
+  );
+}
+
+export function TableError({ message = "Failed to load data." }: { message?: string }) {
+  return (
+    <div className="flex flex-col items-center justify-center px-6 py-16 text-center">
+      <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-rose-500/10 border border-rose-500/20 text-rose-400">
+        <AlertTriangle className="h-5 w-5" />
+      </div>
+      <p className="mt-3 text-sm font-medium text-foreground">Something went wrong</p>
+      <p className="mt-1 max-w-xs text-xs text-muted-foreground">{message}</p>
+    </div>
+  );
+}
 
 interface SortHeaderProps {
   label: string;
@@ -16,7 +97,7 @@ export function SortHeader({ label, sortKey, current, onToggle, className = "" }
   const ariaSort: "ascending" | "descending" | "none" = active ? (current!.dir === "asc" ? "ascending" : "descending") : "none";
   const nextDirLabel = !active ? "ascending" : current!.dir === "asc" ? "descending" : "none";
   return (
-    <th aria-sort={ariaSort} className={`text-left px-6 py-3 text-xs uppercase tracking-wider text-muted-foreground font-medium ${className}`}>
+    <th aria-sort={ariaSort} className={`text-left px-3 py-2.5 text-[11px] uppercase tracking-wider text-muted-foreground font-medium ${className}`}>
       <button
         type="button"
         onClick={() => onToggle(sortKey)}

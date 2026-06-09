@@ -12,7 +12,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { PageHeader } from "@/components/ui/page-header";
 import { StatCard } from "@/components/ui/stat-card";
 import { EmptyState } from "@/components/ui/empty-state";
-import { formatOMR } from "@/lib/utils";
+import { formatOMR, CHART_TOOLTIP } from "@/lib/utils";
 import { supabase } from "@/lib/supabase";
 import { useEntityScope } from "@/hooks/use-entity-scope";
 import {
@@ -76,28 +76,28 @@ export default function PnlPanel() {
           title={`YTD Revenue (${year})`}
           value={formatOMR(totalRevenue)}
           icon={TrendingUp}
-          trend="up"
+          accent="info"
         />
         <StatCard
           loading={snapshotsQ.isLoading}
           title={`YTD Expenses (${year})`}
           value={formatOMR(totalExpenses)}
           icon={TrendingDown}
-          trend="down"
+          accent="negative"
         />
         <StatCard
           loading={snapshotsQ.isLoading}
           title={`YTD Net Income (${year})`}
           value={formatOMR(totalNet)}
           icon={DollarSign}
-          trend={totalNet >= 0 ? "up" : "down"}
+          accent={totalNet >= 0 ? "positive" : "negative"}
         />
       </div>
 
       {/* Revenue vs Expenses Chart */}
-      <Card className="hover:shadow-md transition-shadow">
+      <Card>
         <CardHeader>
-          <CardTitle className="text-base">Revenue vs Expenses</CardTitle>
+          <CardTitle className="t-card-title">Revenue vs Expenses</CardTitle>
         </CardHeader>
         <CardContent>
           {snapshotsQ.isLoading ? (
@@ -107,16 +107,17 @@ export default function PnlPanel() {
           ) : (
             <ResponsiveContainer width="100%" height={280}>
               <BarChart data={chartData} barGap={2}>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
-                <XAxis dataKey="month" tick={{ fontSize: 11, fill: "#888" }} />
-                <YAxis tick={{ fontSize: 11, fill: "#888" }} tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`} />
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" vertical={false} />
+                <XAxis dataKey="month" tick={{ fontSize: 11, fill: "#888" }} axisLine={false} tickLine={false} />
+                <YAxis tick={{ fontSize: 11, fill: "#888" }} axisLine={false} tickLine={false} tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`} />
                 <Tooltip
+                  cursor={{ fill: "rgba(255,255,255,0.03)" }}
                   formatter={(val: number) => formatOMR(val)}
-                  contentStyle={{ background: "rgba(20,20,30,0.95)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 8, fontSize: 12 }}
+                  contentStyle={CHART_TOOLTIP}
                 />
-                <Legend />
-                <Bar dataKey="revenue" fill="#10b981" radius={[3, 3, 0, 0]} name="Revenue" />
-                <Bar dataKey="expenses" fill="#f43f5e" radius={[3, 3, 0, 0]} name="Expenses" />
+                <Legend iconType="circle" wrapperStyle={{ fontSize: 12 }} />
+                <Bar dataKey="revenue" fill="hsl(217 91% 60%)" radius={[3, 3, 0, 0]} name="Revenue" maxBarSize={32} />
+                <Bar dataKey="expenses" fill="hsl(0 84% 60%)" radius={[3, 3, 0, 0]} name="Expenses" maxBarSize={32} />
               </BarChart>
             </ResponsiveContainer>
           )}
@@ -124,9 +125,9 @@ export default function PnlPanel() {
       </Card>
 
       {/* Net Income Trend */}
-      <Card className="hover:shadow-md transition-shadow">
+      <Card>
         <CardHeader>
-          <CardTitle className="text-base">Net Income Trend</CardTitle>
+          <CardTitle className="t-card-title">Net Income Trend</CardTitle>
         </CardHeader>
         <CardContent>
           {snapshotsQ.isLoading ? (
@@ -136,14 +137,14 @@ export default function PnlPanel() {
           ) : (
             <ResponsiveContainer width="100%" height={220}>
               <LineChart data={chartData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
-                <XAxis dataKey="month" tick={{ fontSize: 11, fill: "#888" }} />
-                <YAxis tick={{ fontSize: 11, fill: "#888" }} tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`} />
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" vertical={false} />
+                <XAxis dataKey="month" tick={{ fontSize: 11, fill: "#888" }} axisLine={false} tickLine={false} />
+                <YAxis tick={{ fontSize: 11, fill: "#888" }} axisLine={false} tickLine={false} tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`} />
                 <Tooltip
                   formatter={(val: number) => formatOMR(val)}
-                  contentStyle={{ background: "rgba(20,20,30,0.95)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 8, fontSize: 12 }}
+                  contentStyle={CHART_TOOLTIP}
                 />
-                <Line type="monotone" dataKey="net" stroke="#8b5cf6" strokeWidth={2} dot={{ fill: "#8b5cf6", r: 3 }} name="Net Income" />
+                <Line type="monotone" dataKey="net" stroke="hsl(158 64% 52%)" strokeWidth={2} dot={{ fill: "hsl(158 64% 52%)", r: 3 }} name="Net Income" />
               </LineChart>
             </ResponsiveContainer>
           )}
@@ -151,9 +152,9 @@ export default function PnlPanel() {
       </Card>
 
       {/* Monthly Breakdown Table */}
-      <Card className="hover:shadow-md transition-shadow">
+      <Card>
         <CardHeader>
-          <CardTitle className="text-base">Monthly Breakdown</CardTitle>
+          <CardTitle className="t-card-title">Monthly Breakdown</CardTitle>
         </CardHeader>
         <CardContent>
           {snapshotsQ.isLoading ? (

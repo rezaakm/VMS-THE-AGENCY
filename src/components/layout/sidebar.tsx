@@ -3,78 +3,70 @@ import {
   LayoutDashboard, FileText, FileSpreadsheet, Users, Calculator, Bot,
   Menu, X, Plus, Upload, ShoppingCart, Receipt, FileSignature,
   ClipboardList, Star, BarChart3, Wand2, TrendingUp, Landmark,
-  ArrowDownLeft, ArrowUpRight, Wallet, Clock, Building2, Dumbbell,
-  ChevronsUpDown, UserCircle, Zap,
+  ArrowDownLeft, ArrowUpRight, Wallet, Clock, Dumbbell,
+  UserCircle, Zap,
 } from "lucide-react";
-import { useState, useRef, useEffect } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   useEntityScope,
-  ENTITY_LABELS,
   type EntityScope,
 } from "@/hooks/use-entity-scope";
 
-const navItems = [
-  { href: "/", label: "Dashboard", icon: LayoutDashboard, group: "Overview" },
-  { href: "/reports", label: "Reports", icon: BarChart3, group: "Overview" },
+type NavItem = { href: string; label: string; icon: typeof LayoutDashboard; group: string };
+
+// Grouped nav — Home, Sales, Pipeline, Finance, Procurement, Admin/Tools
+const navItems: NavItem[] = [
+  { href: "/", label: "Dashboard", icon: LayoutDashboard, group: "Home" },
+  { href: "/reports", label: "Reports", icon: BarChart3, group: "Home" },
+
   { href: "/enquiries", label: "Enquiries", icon: FileText, group: "Sales" },
   { href: "/cost-sheets", label: "Cost Sheets", icon: FileSpreadsheet, group: "Sales" },
   { href: "/quotations", label: "Quotations", icon: FileText, group: "Sales" },
-  { href: "/quote-wizard", label: "Quote Wizard", icon: Wand2, group: "Sales" },
-  { href: "/pipeline", label: "Quote Pipeline", icon: Zap, group: "Sales" },
-  { href: "/rfqs", label: "RFQs", icon: ClipboardList, group: "Procurement" },
-  { href: "/purchase-orders", label: "Purchase Orders", icon: ShoppingCart, group: "Procurement" },
-  { href: "/contracts", label: "Contracts", icon: FileSignature, group: "Procurement" },
-  { href: "/clients", label: "Clients", icon: UserCircle, group: "Accounts" },
-  { href: "/finance/receivables", label: "Receivables", icon: ArrowDownLeft, group: "Accounts" },
-  { href: "/finance/payables", label: "Payables", icon: ArrowUpRight, group: "Accounts" },
-  { href: "/invoices", label: "Invoices", icon: Receipt, group: "Accounts" },
+  { href: "/clients", label: "Clients", icon: UserCircle, group: "Sales" },
+
+  { href: "/quote-wizard", label: "Quote Wizard", icon: Wand2, group: "Pipeline" },
+  { href: "/pipeline", label: "Quote Pipeline", icon: Zap, group: "Pipeline" },
+
+  { href: "/finance/receivables", label: "Receivables", icon: ArrowDownLeft, group: "Finance" },
+  { href: "/finance/payables", label: "Payables", icon: ArrowUpRight, group: "Finance" },
+  { href: "/invoices", label: "Invoices", icon: Receipt, group: "Finance" },
   { href: "/finance/bank", label: "Bank", icon: Landmark, group: "Finance" },
   { href: "/finance/pnl", label: "P&L", icon: TrendingUp, group: "Finance" },
   { href: "/finance/payroll", label: "HR / Payroll", icon: Users, group: "Finance" },
   { href: "/finance/cash-outlook", label: "Cash Outlook", icon: Wallet, group: "Finance" },
   { href: "/finance/pending", label: "Pending", icon: Clock, group: "Finance" },
-  { href: "/fitness-bay", label: "Fitness Bay", icon: Dumbbell, group: "Fitness Bay" },
-  { href: "/vendors", label: "Vendors", icon: Users, group: "Vendors" },
-  { href: "/evaluations", label: "Evaluations", icon: Star, group: "Vendors" },
-  { href: "/calculator", label: "Calculator", icon: Calculator, group: "Tools" },
-  { href: "/assistant", label: "AI Assistant", icon: Bot, group: "Tools" },
-  { href: "/import", label: "Import Data", icon: Upload, group: "Tools" },
+  { href: "/fitness-bay", label: "Fitness Bay", icon: Dumbbell, group: "Finance" },
+
+  { href: "/rfqs", label: "RFQs", icon: ClipboardList, group: "Procurement" },
+  { href: "/purchase-orders", label: "Purchase Orders", icon: ShoppingCart, group: "Procurement" },
+  { href: "/contracts", label: "Contracts", icon: FileSignature, group: "Procurement" },
+  { href: "/vendors", label: "Vendors", icon: Users, group: "Procurement" },
+  { href: "/evaluations", label: "Evaluations", icon: Star, group: "Procurement" },
+
+  { href: "/calculator", label: "Calculator", icon: Calculator, group: "Admin / Tools" },
+  { href: "/assistant", label: "AI Assistant", icon: Bot, group: "Admin / Tools" },
+  { href: "/import", label: "Import Data", icon: Upload, group: "Admin / Tools" },
 ];
 
-const SCOPE_OPTIONS: EntityScope[] = ["group", "agency", "fitnessbay"];
-const SCOPE_ICONS: Record<EntityScope, typeof Building2> = {
-  group: Building2,
-  agency: Building2,
-  fitnessbay: Dumbbell,
-};
+const GROUP_ORDER = ["Home", "Sales", "Pipeline", "Finance", "Procurement", "Admin / Tools"];
+
+// Segmented scope control — wired to existing EntityScope context (logic unchanged)
+const SCOPE_SEGMENTS: { value: EntityScope; short: string }[] = [
+  { value: "group", short: "Group" },
+  { value: "agency", short: "Agency" },
+  { value: "fitnessbay", short: "Fitness" },
+];
 
 export function Sidebar() {
   const [location] = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [scopeOpen, setScopeOpen] = useState(false);
-  const scopeRef = useRef<HTMLDivElement>(null);
   const { scope, setScope } = useEntityScope();
 
-  // Close scope dropdown on outside click
-  useEffect(() => {
-    if (!scopeOpen) return;
-    const handler = (e: MouseEvent) => {
-      if (scopeRef.current && !scopeRef.current.contains(e.target as Node)) {
-        setScopeOpen(false);
-      }
-    };
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
-  }, [scopeOpen]);
-
   const isActive = (href: string) => {
-    if (href === "/" && location !== "/") return false;
-    if (href === "/finance") return location === "/finance";
+    if (href === "/") return location === "/";
     return location.startsWith(href);
   };
-
-  const ScopeIcon = SCOPE_ICONS[scope];
 
   return (
     <>
@@ -89,56 +81,45 @@ export function Sidebar() {
       {/* Sidebar Content */}
       <div className={`
         fixed md:sticky top-0 left-0 z-40
-        w-64 h-[100dvh]
+        w-60 h-[100dvh]
         bg-sidebar border-r border-sidebar-border
         flex flex-col
         transition-transform duration-200 ease-in-out
         ${mobileOpen ? "translate-x-0 mt-16 md:mt-0" : "-translate-x-full md:translate-x-0"}
       `}>
-        {/* Gradient shine at top */}
-        <div className="absolute top-0 left-0 right-0 h-32 bg-gradient-to-b from-primary/8 via-primary/3 to-transparent pointer-events-none" />
-
-        <div className="px-4 py-5 hidden md:flex items-center relative z-10">
-          <img src="/logo.png" alt="Modern Lifestyle" className="h-14 w-auto object-contain" />
+        <div className="px-4 py-4 hidden md:flex items-center">
+          <img src="/logo.png" alt="Modern Lifestyle" className="h-11 w-auto object-contain" />
         </div>
 
-        {/* Scope Switcher */}
-        <div className="px-4 pb-3 relative z-10" ref={scopeRef}>
-          <button
-            onClick={() => setScopeOpen(!scopeOpen)}
-            className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg border border-border/60 bg-card/50 hover:bg-card transition-colors text-sm"
-          >
-            <ScopeIcon className="w-4 h-4 text-primary shrink-0" />
-            <span className="flex-1 text-left font-medium text-foreground truncate">
-              {ENTITY_LABELS[scope]}
-            </span>
-            <ChevronsUpDown className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
-          </button>
-          {scopeOpen && (
-            <div className="absolute left-4 right-4 mt-1 bg-popover border border-border rounded-lg shadow-lg z-50 overflow-hidden">
-              {SCOPE_OPTIONS.map((s) => {
-                const Icon = SCOPE_ICONS[s];
-                return (
-                  <button
-                    key={s}
-                    onClick={() => { setScope(s); setScopeOpen(false); }}
-                    className={`w-full flex items-center gap-2.5 px-3 py-2 text-sm transition-colors hover:bg-accent/50
-                      ${s === scope ? "bg-primary/10 text-primary font-medium" : "text-foreground"}
-                    `}
-                  >
-                    <Icon className="w-4 h-4 shrink-0" />
-                    {ENTITY_LABELS[s]}
-                  </button>
-                );
-              })}
-            </div>
-          )}
+        {/* Scope Switcher — segmented control */}
+        <div className="px-3 pb-3">
+          <div className="text-[10px] uppercase tracking-widest text-muted-foreground/60 font-semibold px-1 mb-1.5">
+            Entity Scope
+          </div>
+          <div className="flex items-center gap-0.5 rounded-lg bg-muted/40 border border-border/50 p-0.5">
+            {SCOPE_SEGMENTS.map((seg) => {
+              const active = scope === seg.value;
+              return (
+                <button
+                  key={seg.value}
+                  onClick={() => setScope(seg.value)}
+                  className={`flex-1 rounded-md px-2 py-1.5 text-[11px] font-medium transition-colors
+                    ${active
+                      ? "bg-primary/90 text-primary-foreground shadow-sm"
+                      : "text-muted-foreground hover:text-foreground hover:bg-muted/60"
+                    }`}
+                >
+                  {seg.short}
+                </button>
+              );
+            })}
+          </div>
         </div>
 
-        <nav className="flex-1 px-4 py-2 overflow-y-auto">
-          {Array.from(new Set(navItems.map(i => i.group))).map(group => (
-            <div key={group} className="mb-3">
-              <div className="text-[10px] uppercase tracking-widest text-muted-foreground/60 font-bold px-3 mb-1">{group}</div>
+        <nav className="flex-1 px-3 py-1 overflow-y-auto">
+          {GROUP_ORDER.map(group => (
+            <div key={group} className="mb-4">
+              <div className="text-[10px] uppercase tracking-widest text-muted-foreground/50 font-semibold px-2 mb-1">{group}</div>
               <div className="space-y-0.5">
                 {navItems.filter(i => i.group === group).map(item => {
                   const Icon = item.icon;
@@ -149,15 +130,15 @@ export function Sidebar() {
                       href={item.href}
                       onClick={() => setMobileOpen(false)}
                       className={`
-                        flex items-center gap-3 px-3 py-1.5 rounded-md text-sm font-medium transition-colors
+                        relative flex items-center gap-2.5 pl-3 pr-2 py-1.5 rounded-md text-[13px] font-medium transition-colors
                         ${active
-                          ? "bg-primary/15 text-sidebar-accent-foreground border-l-2 border-primary"
-                          : "text-sidebar-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground"
+                          ? "bg-primary/10 text-foreground before:absolute before:left-0 before:top-1.5 before:bottom-1.5 before:w-0.5 before:rounded-full before:bg-primary"
+                          : "text-sidebar-foreground/80 hover:bg-sidebar-accent/40 hover:text-foreground"
                         }
                       `}
                     >
-                      <Icon className={`w-4 h-4 ${active ? "text-primary" : "text-muted-foreground"}`} />
-                      {item.label}
+                      <Icon className={`w-4 h-4 shrink-0 ${active ? "text-primary" : "text-muted-foreground"}`} />
+                      <span className="truncate">{item.label}</span>
                     </Link>
                   );
                 })}
@@ -166,9 +147,9 @@ export function Sidebar() {
           ))}
         </nav>
 
-        <div className="p-4 border-t border-sidebar-border">
+        <div className="p-3 border-t border-sidebar-border">
           <Link href="/enquiries" className="w-full">
-            <Button className="w-full justify-start gap-2 bg-primary text-primary-foreground hover:bg-primary/90 font-bold uppercase tracking-wider text-xs" style={{ animation: "pulse-glow 3s ease-in-out infinite" }}>
+            <Button className="w-full justify-center gap-2 bg-primary text-primary-foreground hover:bg-primary/90 font-semibold text-xs h-9">
               <Plus className="w-4 h-4" />
               New Enquiry
             </Button>

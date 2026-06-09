@@ -1,7 +1,8 @@
 import { type ElementType } from "react";
-import { Card, CardContent } from "./card";
+import { Card } from "./card";
 import { Skeleton } from "./skeleton";
 import { TrendingUp, TrendingDown } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 export function StatCard({
   title,
@@ -9,6 +10,9 @@ export function StatCard({
   icon: Icon,
   loading,
   trend,
+  delta,
+  sub,
+  accent,
   className,
 }: {
   title: string;
@@ -16,41 +20,69 @@ export function StatCard({
   icon?: ElementType;
   loading: boolean;
   trend?: "up" | "down" | "neutral";
+  /** small trend/delta text e.g. "+12%" */
+  delta?: string;
+  /** small caption under the value */
+  sub?: string;
+  /** color the value: positive/negative/info — meaning only */
+  accent?: "positive" | "negative" | "info" | "default";
   className?: string;
 }) {
+  const valueColor =
+    accent === "positive"
+      ? "text-emerald-400"
+      : accent === "negative"
+      ? "text-rose-400"
+      : accent === "info"
+      ? "text-blue-400"
+      : trend === "up"
+      ? "text-emerald-400"
+      : trend === "down"
+      ? "text-rose-400"
+      : "text-foreground";
+
   return (
-    <Card className={`transition-all duration-300 hover:shadow-md hover:border-primary/20 ${className ?? ""}`}>
-      <CardContent className="flex items-center gap-4 p-4 sm:p-5">
-        {Icon && (
-          <div className="flex h-10 w-10 sm:h-11 sm:w-11 shrink-0 items-center justify-center rounded-xl bg-accent text-accent-foreground">
-            <Icon className="h-4 w-4 sm:h-5 sm:w-5" />
-          </div>
-        )}
+    <Card className={cn("hover:border-primary/25", className)}>
+      <div className="flex items-start justify-between gap-3 p-4">
         <div className="min-w-0 flex-1">
-          <p className="truncate text-[10px] sm:text-xs font-medium uppercase tracking-wider text-muted-foreground">
-            {title}
-          </p>
+          <p className="t-label truncate text-muted-foreground">{title}</p>
           {loading ? (
-            <Skeleton className="mt-1.5 h-6 sm:h-7 w-24 sm:w-28" />
+            <Skeleton className="mt-2 h-6 w-24" />
           ) : (
-            <div className="flex items-center gap-1.5 mt-0.5">
-              <p
-                className={`text-lg sm:text-xl font-bold tabular-nums ${
-                  trend === "up"
-                    ? "text-emerald-400"
-                    : trend === "down"
-                    ? "text-rose-400"
-                    : ""
-                }`}
-              >
-                {value}
-              </p>
-              {trend === "up" && <TrendingUp className="w-3.5 h-3.5 text-emerald-400/60" />}
-              {trend === "down" && <TrendingDown className="w-3.5 h-3.5 text-rose-400/60" />}
+            <div className="mt-1.5 flex items-baseline gap-2">
+              <p className={cn("t-value tabular-nums", valueColor)}>{value}</p>
+              {delta && (
+                <span
+                  className={cn(
+                    "text-[11px] font-medium tabular-nums",
+                    trend === "up"
+                      ? "text-emerald-400"
+                      : trend === "down"
+                      ? "text-rose-400"
+                      : "text-muted-foreground"
+                  )}
+                >
+                  {delta}
+                </span>
+              )}
             </div>
           )}
+          {sub && !loading && (
+            <p className="t-caption mt-0.5 text-muted-foreground/70">{sub}</p>
+          )}
         </div>
-      </CardContent>
+        {Icon && (
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-muted/60 text-muted-foreground">
+            {trend === "up" ? (
+              <TrendingUp className="h-4 w-4 text-emerald-400/70" />
+            ) : trend === "down" ? (
+              <TrendingDown className="h-4 w-4 text-rose-400/70" />
+            ) : (
+              <Icon className="h-4 w-4" />
+            )}
+          </div>
+        )}
+      </div>
     </Card>
   );
 }
