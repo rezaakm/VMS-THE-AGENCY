@@ -46,7 +46,7 @@ function QuotationDocument({ quotation, items }: { quotation: QuotationData; ite
 
   const tncList = (quotation.termsAndConditions ?? "")
     .split(/\r?\n/)
-    .map((l) => l.replace(/^\s*[•\-*]\s*/, "").trim())
+    .map((l: string) => l.replace(/^\s*[•\-*]\s*/, "").trim())
     .filter(Boolean);
 
   return (
@@ -140,7 +140,7 @@ function QuotationDocument({ quotation, items }: { quotation: QuotationData; ite
         <div className="mb-5">
           <div className="font-semibold mb-1.5 text-gray-900 underline">Terms &amp; Conditions:</div>
           <ul className="list-disc pl-5 space-y-1 text-[11px] text-gray-800">
-            {tncList.map((line, i) => (
+            {tncList.map((line: string, i: number) => (
               <li key={i} className="whitespace-pre-wrap leading-snug">{line}</li>
             ))}
           </ul>
@@ -261,7 +261,7 @@ export default function QuotationDetail() {
     });
   }
 
-  const rows = items ?? [];
+  const rows = (items ?? []) as unknown as ItemRow[];
   const subTotal = rows.reduce((s, i) => s + (i.isFoc ? 0 : i.qty * i.unitCost), 0);
   const vat = subTotal * ((quotation?.vatPercent ?? 5) / 100);
   const total = subTotal + vat;

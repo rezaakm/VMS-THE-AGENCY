@@ -78,7 +78,15 @@ function useDashboardData() {
         cur.value += num(r.totalAmount);
         statusAgg.set(key, cur);
       }
-      const quotationByStatus = ["draft", "sent", "approved", "rejected"].map((s) => ({
+      // Real quotation statuses in the DB are: draft, sent, accepted.
+      // (There is no "approved"/"rejected" — bucketing on those showed the 288
+      // accepted quotations as 0.) Surface any other status the data contains
+      // so nothing silently disappears, but always show the three core buckets.
+      const CORE_STATUSES = ["draft", "sent", "accepted"];
+      const extraStatuses = Array.from(statusAgg.keys()).filter(
+        (s) => !CORE_STATUSES.includes(s),
+      );
+      const quotationByStatus = [...CORE_STATUSES, ...extraStatuses].map((s) => ({
         status: s,
         count: statusAgg.get(s)?.count ?? 0,
         value: statusAgg.get(s)?.value ?? 0,
@@ -208,6 +216,8 @@ export default function Dashboard() {
   const STATUS_TINT: Record<string, string> = {
     draft: "text-amber-400",
     sent: "text-amber-400",
+    accepted: "text-emerald-400",
+    // keep legacy/edge statuses tinted sensibly if they ever appear
     approved: "text-emerald-400",
     rejected: "text-rose-400",
   };
@@ -237,16 +247,16 @@ export default function Dashboard() {
           return (
             <div
               key={kpi.label}
-              className="bg-card border border-card-border rounded-lg p-4 flex flex-col gap-1 transition-colors hover:border-primary/25"
+              className="bg-card border border-card-border rounded-lg p-4 flex flex-col gap-1 transition-colors hover:border-primary/25 min-w-0"
             >
-              <div className="flex items-center justify-between">
-                <span className="t-label text-muted-foreground">{kpi.label}</span>
-                <Icon className="w-3.5 h-3.5 text-muted-foreground/60" />
+              <div className="flex items-center justify-between gap-2">
+                <span className="t-label text-muted-foreground truncate">{kpi.label}</span>
+                <Icon className="w-3.5 h-3.5 shrink-0 text-muted-foreground/60" />
               </div>
               {isLoading ? (
                 <Skeleton className="h-6 w-24 mt-1" />
               ) : (
-                <span className={`t-value tabular-nums ${valueColor}`}>{kpi.value}</span>
+                <span className={`t-value tabular-nums block truncate ${valueColor}`} title={kpi.value ?? undefined}>{kpi.value}</span>
               )}
               <span className="t-caption text-muted-foreground/60">{kpi.sub}</span>
             </div>
@@ -309,8 +319,7 @@ export default function Dashboard() {
               {(data?.quotationByStatus ?? [
                 { status: "draft", count: 0, value: 0 },
                 { status: "sent", count: 0, value: 0 },
-                { status: "approved", count: 0, value: 0 },
-                { status: "rejected", count: 0, value: 0 },
+                { status: "accepted", count: 0, value: 0 },
               ]).map((s) => (
                 <div key={s.status} className="flex items-center justify-between">
                   <StatusBadge status={s.status} />

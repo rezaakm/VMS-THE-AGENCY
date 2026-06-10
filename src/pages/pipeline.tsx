@@ -687,8 +687,8 @@ export default function Pipeline() {
                       <TableCell className="text-right font-mono text-sm">{formatOMR(item.unitCost)}</TableCell>
                       <TableCell className="text-right font-mono text-sm">{formatOMR(item.unitSellingPrice)}</TableCell>
                       <TableCell>
-                        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium border ${CONFIDENCE_COLORS[item.conf.bucket]}`}>
-                          <span className={`w-1.5 h-1.5 rounded-full ${CONFIDENCE_DOT_COLORS[item.conf.bucket]}`} />
+                        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium border ${CONFIDENCE_COLORS[item.conf.bucket as ConfidenceBucket]}`}>
+                          <span className={`w-1.5 h-1.5 rounded-full ${CONFIDENCE_DOT_COLORS[item.conf.bucket as ConfidenceBucket]}`} />
                           {item.conf.score}%
                         </span>
                       </TableCell>

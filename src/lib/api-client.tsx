@@ -88,10 +88,21 @@ interface EntityOpts {
 
 function crud(table: string, opts: EntityOpts = {}) {
   const order = opts.order ?? "id";
-  const listKey = () => [table] as const;
+  // `_parentId` is accepted for call-site compatibility with the legacy
+  // generated client (some list keys were scoped by a parent id) but is not
+  // part of the key — this client lists the whole table.
+  const listKey = (_parentId?: number | string) => [table] as const;
   const getKey = (id: number | string) => [table, id] as const;
 
-  const useList = (): UseQueryResult<Row[]> =>
+  // The legacy generated client exposed `useList(parentId?, options?)` and
+  // `useGet(id, options?)`. Both extra arguments are accepted here for
+  // call-site compatibility but intentionally ignored — this list fetches the
+  // full table and `useGet` carries its own `enabled` guard below. Keeping the
+  // optional params makes the types honest without altering runtime behaviour.
+  const useList = (
+    _parentIdOrOptions?: unknown,
+    _options?: unknown,
+  ): UseQueryResult<Row[]> =>
     useQuery({
       queryKey: listKey(),
       queryFn: async () => {
@@ -100,7 +111,10 @@ function crud(table: string, opts: EntityOpts = {}) {
       },
     });
 
-  const useGet = (id: number | string): UseQueryResult<Row | null> =>
+  const useGet = (
+    id: number | string,
+    _options?: unknown,
+  ): UseQueryResult<Row | null> =>
     useQuery({
       queryKey: getKey(id),
       enabled: id !== undefined && id !== null && id !== "",

@@ -179,31 +179,31 @@ export default function FitnessBay() {
             Virtual Bank (Gym Slice)
           </h2>
           <div className="grid gap-3 sm:grid-cols-3">
-            <div className="bg-card border border-card-border rounded-lg p-4">
+            <div className="bg-card border border-card-border rounded-lg p-4 min-w-0">
               <div className="flex items-center gap-2 mb-1.5">
-                <ArrowDownLeft className="w-4 h-4 text-emerald-400" />
-                <span className="t-label text-muted-foreground">Money In</span>
+                <ArrowDownLeft className="w-4 h-4 shrink-0 text-emerald-400" />
+                <span className="t-label text-muted-foreground truncate">Money In</span>
               </div>
               {isLoading ? <Skeleton className="h-6 w-20" /> : (
-                <span className="t-value tabular-nums text-emerald-400">{formatOMR(data?.moneyIn)}</span>
+                <span className="t-value block truncate tabular-nums text-emerald-400" title={formatOMR(data?.moneyIn)}>{formatOMR(data?.moneyIn)}</span>
               )}
             </div>
-            <div className="bg-card border border-card-border rounded-lg p-4">
+            <div className="bg-card border border-card-border rounded-lg p-4 min-w-0">
               <div className="flex items-center gap-2 mb-1.5">
-                <ArrowUpRight className="w-4 h-4 text-rose-400" />
-                <span className="t-label text-muted-foreground">Money Out</span>
+                <ArrowUpRight className="w-4 h-4 shrink-0 text-rose-400" />
+                <span className="t-label text-muted-foreground truncate">Money Out</span>
               </div>
               {isLoading ? <Skeleton className="h-6 w-20" /> : (
-                <span className="t-value tabular-nums text-rose-400">{formatOMR(data?.moneyOut)}</span>
+                <span className="t-value block truncate tabular-nums text-rose-400" title={formatOMR(data?.moneyOut)}>{formatOMR(data?.moneyOut)}</span>
               )}
             </div>
-            <div className="bg-card border border-card-border rounded-lg p-4">
+            <div className="bg-card border border-card-border rounded-lg p-4 min-w-0">
               <div className="flex items-center gap-2 mb-1.5">
-                <Landmark className="w-4 h-4 text-blue-400" />
-                <span className="t-label text-muted-foreground">Retained</span>
+                <Landmark className="w-4 h-4 shrink-0 text-blue-400" />
+                <span className="t-label text-muted-foreground truncate">Retained</span>
               </div>
               {isLoading ? <Skeleton className="h-6 w-20" /> : (
-                <span className={`t-value tabular-nums ${(data?.retained ?? 0) >= 0 ? "text-blue-400" : "text-rose-400"}`}>
+                <span className={`t-value block truncate tabular-nums ${(data?.retained ?? 0) >= 0 ? "text-blue-400" : "text-rose-400"}`} title={formatOMR(data?.retained)}>
                   {formatOMR(data?.retained)}
                 </span>
               )}
@@ -218,31 +218,31 @@ export default function FitnessBay() {
           </h2>
           <Card>
             <CardContent className="p-4 space-y-4">
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-muted-foreground">Cumulative Net Income</span>
+              <div className="flex items-center justify-between gap-3">
+                <span className="text-sm text-muted-foreground truncate">Cumulative Net Income</span>
                 {isLoading ? <Skeleton className="h-6 w-24" /> : (
-                  <span className="text-lg font-bold tabular-nums">{formatOMR(data?.cumulativeNet)}</span>
+                  <span className="text-lg font-bold tabular-nums whitespace-nowrap shrink-0">{formatOMR(data?.cumulativeNet)}</span>
                 )}
               </div>
               <div className="space-y-3">
-                <div className="flex items-center justify-between p-3 rounded-lg border border-border/60 bg-card/50">
-                  <div className="flex items-center gap-2">
-                    <Users className="w-4 h-4 text-primary" />
+                <div className="flex items-center justify-between gap-3 p-3 rounded-lg border border-border/60 bg-card/50">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <Users className="w-4 h-4 shrink-0 text-primary" />
                     <span className="font-medium text-sm">Reza</span>
-                    <Badge variant="outline" className="text-[10px]">70%</Badge>
+                    <Badge variant="outline" className="text-[10px] shrink-0">70%</Badge>
                   </div>
                   {isLoading ? <Skeleton className="h-5 w-20" /> : (
-                    <span className="font-bold tabular-nums text-emerald-400">{formatOMR(data?.rezaShare)}</span>
+                    <span className="font-bold tabular-nums text-emerald-400 whitespace-nowrap shrink-0">{formatOMR(data?.rezaShare)}</span>
                   )}
                 </div>
-                <div className="flex items-center justify-between p-3 rounded-lg border border-border/60 bg-card/50">
-                  <div className="flex items-center gap-2">
-                    <Users className="w-4 h-4 text-primary" />
+                <div className="flex items-center justify-between gap-3 p-3 rounded-lg border border-border/60 bg-card/50">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <Users className="w-4 h-4 shrink-0 text-primary" />
                     <span className="font-medium text-sm">Mahsa</span>
-                    <Badge variant="outline" className="text-[10px]">30%</Badge>
+                    <Badge variant="outline" className="text-[10px] shrink-0">30%</Badge>
                   </div>
                   {isLoading ? <Skeleton className="h-5 w-20" /> : (
-                    <span className="font-bold tabular-nums text-emerald-400">{formatOMR(data?.mahsaShare)}</span>
+                    <span className="font-bold tabular-nums text-emerald-400 whitespace-nowrap shrink-0">{formatOMR(data?.mahsaShare)}</span>
                   )}
                 </div>
               </div>

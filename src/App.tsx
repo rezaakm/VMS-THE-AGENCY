@@ -40,6 +40,7 @@ const FinancePending = lazy(() => import("@/pages/finance/pending"));
 const Clients = lazy(() => import("@/pages/clients"));
 const FitnessBay = lazy(() => import("@/pages/fitness-bay"));
 const Pipeline = lazy(() => import("@/pages/pipeline-refactored"));
+const SystemHealth = lazy(() => import("@/pages/system-health"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -92,6 +93,7 @@ function Router() {
         <Route path="/clients" component={Clients} />
         <Route path="/fitness-bay" component={FitnessBay} />
         <Route path="/pipeline" component={Pipeline} />
+        <Route path="/system-health" component={SystemHealth} />
         <Route component={NotFound} />
       </Switch>
       </Suspense>

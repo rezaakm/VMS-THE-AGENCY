@@ -23,7 +23,10 @@ function num(v: any): number {
   return Number.isFinite(n) ? n : 0;
 }
 
-const STATUS_ORDER: Record<string, number> = { draft: 0, sent: 1, approved: 2, rejected: 3 };
+// Real DB statuses are draft / sent / accepted. Keep approved/rejected in the
+// ordering map too so any legacy rows still sort deterministically.
+const STATUS_ORDER: Record<string, number> = { draft: 0, sent: 1, accepted: 2, approved: 2, rejected: 3 };
+const STATUS_OPTIONS = ["draft", "sent", "accepted"];
 
 interface FormData {
   serialNumber: string; clientName: string; clientCompany: string; subject: string; scopeOfWork: string;
@@ -48,9 +51,9 @@ export default function Quotations() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [editingId, setEditingId] = useState<number | null>(null);
+  const [editingId, setEditingId] = useState<number | string | null>(null);
   const [form, setForm] = useState<FormData>(emptyForm);
-  const [deleteId, setDeleteId] = useState<number | null>(null);
+  const [deleteId, setDeleteId] = useState<number | string | null>(null);
 
   const subjectVoice = useVoiceInput({ onResult: (t) => setForm((f) => ({ ...f, subject: t })) });
   const scopeVoice = useVoiceInput({ onResult: (t) => setForm((f) => ({ ...f, scopeOfWork: (f.scopeOfWork ? f.scopeOfWork + " " : "") + t })) });
@@ -90,7 +93,7 @@ export default function Quotations() {
       subject: form.subject, scopeOfWork: form.scopeOfWork || null, quotationDate: form.quotationDate,
       enquiryId: form.enquiryId && form.enquiryId !== "none" ? parseInt(form.enquiryId, 10) : null,
       paymentTerms: form.paymentTerms || null, termsAndConditions: form.termsAndConditions || null,
-      status: form.status as "draft" | "sent" | "approved" | "rejected", vatPercent: 5, currency: "OMR",
+      status: form.status, vatPercent: 5, currency: "OMR",
     };
     if (editingId) {
       await updateQuotation.mutateAsync({ id: editingId, data: payload }, {
@@ -105,7 +108,7 @@ export default function Quotations() {
     }
   }
 
-  async function handleDelete(id: number) {
+  async function handleDelete(id: number | string) {
     await deleteQuotation.mutateAsync({ id }, {
       onSuccess: () => { queryClient.invalidateQueries({ queryKey: getListQuotationsQueryKey() }); toast({ title: "Deleted" }); setDeleteId(null); },
       onError: () => toast({ title: "Error", variant: "destructive" }),
@@ -113,7 +116,7 @@ export default function Quotations() {
   }
 
   async function quickSetStatus(id: number, status: string) {
-    await updateQuotation.mutateAsync({ id, data: { status: status as "draft" | "sent" | "approved" | "rejected" } }, {
+    await updateQuotation.mutateAsync({ id, data: { status } }, {
       onSuccess: () => { queryClient.invalidateQueries({ queryKey: getListQuotationsQueryKey() }); toast({ title: `Marked ${status}` }); },
       onError: () => toast({ title: "Update failed", variant: "destructive" }),
     });
@@ -141,7 +144,7 @@ export default function Quotations() {
         <FilterSelect
           value={ctl.filters.status}
           onChange={(v) => ctl.setFilter("status", v)}
-          options={["draft", "sent", "approved", "rejected"].map(s => ({ value: s, label: s.charAt(0).toUpperCase() + s.slice(1) }))}
+          options={STATUS_OPTIONS.map(s => ({ value: s, label: s.charAt(0).toUpperCase() + s.slice(1) }))}
           placeholder="All statuses"
         />
       </TableToolbar>
@@ -187,7 +190,7 @@ export default function Quotations() {
                           <StatusBadge status={q.status} />
                         </SelectTrigger>
                         <SelectContent>
-                          {["draft", "sent", "approved", "rejected"].map(s => <SelectItem key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</SelectItem>)}
+                          {STATUS_OPTIONS.map(s => <SelectItem key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</SelectItem>)}
                         </SelectContent>
                       </Select>
                     </td>
@@ -265,7 +268,7 @@ export default function Quotations() {
                 <Select value={form.status} onValueChange={(v) => setForm((f) => ({ ...f, status: v }))}>
                   <SelectTrigger data-testid="select-quotation-status"><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    {["draft", "sent", "approved", "rejected"].map((s) => <SelectItem key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</SelectItem>)}
+                    {STATUS_OPTIONS.map((s) => <SelectItem key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>

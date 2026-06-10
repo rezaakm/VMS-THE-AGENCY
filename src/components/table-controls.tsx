@@ -1,5 +1,6 @@
 import { ArrowUp, ArrowDown, ArrowUpDown, Search, X, ChevronLeft, ChevronRight, Inbox, AlertTriangle } from "lucide-react";
 import { type ElementType, type ReactNode } from "react";
+import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -21,10 +22,12 @@ export function RowAction({
 }) {
   const cls = `inline-flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground/50 transition-colors hover:bg-muted hover:text-foreground ${destructive ? "hover:text-rose-400" : ""}`;
   if (href) {
+    // Use wouter's Link for real client-side navigation (respects router base);
+    // a plain <a href> triggers a full page reload / wrong path and feels "dead".
     return (
-      <a href={href} className={cls} aria-label={label} title={label}>
+      <Link href={href} className={cls} aria-label={label} title={label}>
         <Icon className="h-3.5 w-3.5" />
-      </a>
+      </Link>
     );
   }
   return (

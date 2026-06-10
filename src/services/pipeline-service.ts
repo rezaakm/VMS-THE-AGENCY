@@ -33,6 +33,10 @@ export interface CostSheetItem {
   match_type?: string;
   confidence?: number;
   price_source?: string;
+  // Enriched fields added by getCostSheetItems(): the rounded line total and
+  // the computed per-line confidence. Optional because raw DB rows omit them.
+  total?: number;
+  conf?: ReturnType<typeof computeLineConfidence>;
 }
 
 export interface CostSheet {

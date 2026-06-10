@@ -4,7 +4,7 @@ import {
   Menu, X, Plus, Upload, ShoppingCart, Receipt, FileSignature,
   ClipboardList, Star, BarChart3, Wand2, TrendingUp, Landmark,
   ArrowDownLeft, ArrowUpRight, Wallet, Clock, Dumbbell,
-  UserCircle, Zap,
+  UserCircle, Zap, HeartPulse,
 } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -47,6 +47,7 @@ const navItems: NavItem[] = [
   { href: "/calculator", label: "Calculator", icon: Calculator, group: "Admin / Tools" },
   { href: "/assistant", label: "AI Assistant", icon: Bot, group: "Admin / Tools" },
   { href: "/import", label: "Import Data", icon: Upload, group: "Admin / Tools" },
+  { href: "/system-health", label: "System Health", icon: HeartPulse, group: "Admin / Tools" },
 ];
 
 const GROUP_ORDER = ["Home", "Sales", "Pipeline", "Finance", "Procurement", "Admin / Tools"];

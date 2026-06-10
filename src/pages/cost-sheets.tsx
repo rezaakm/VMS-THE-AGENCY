@@ -26,9 +26,9 @@ export default function CostSheets() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [editingId, setEditingId] = useState<number | null>(null);
+  const [editingId, setEditingId] = useState<number | string | null>(null);
   const [form, setForm] = useState<FormData>(emptyForm);
-  const [deleteId, setDeleteId] = useState<number | null>(null);
+  const [deleteId, setDeleteId] = useState<number | string | null>(null);
 
   const enquiryMap = Object.fromEntries((enquiries ?? []).map((e) => [e.id, e.clientName + (e.clientCompany ? ` — ${e.clientCompany}` : "")]));
 
@@ -68,7 +68,7 @@ export default function CostSheets() {
     }
   }
 
-  async function handleDelete(id: number) {
+  async function handleDelete(id: number | string) {
     await deleteSheet.mutateAsync({ id }, {
       onSuccess: () => { queryClient.invalidateQueries({ queryKey: getListCostSheetsQueryKey() }); toast({ title: "Deleted" }); setDeleteId(null); },
       onError: () => toast({ title: "Error", variant: "destructive" }),

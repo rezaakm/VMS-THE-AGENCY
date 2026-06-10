@@ -128,7 +128,7 @@ export default function ReportsPage() {
           <div className="text-center py-12 text-muted-foreground text-sm">No evaluations yet. Rate vendors after completed jobs to populate this leaderboard.</div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-            {overview.topVendorsByEvalScore.map((v, idx) => (
+            {overview.topVendorsByEvalScore.map((v: any, idx: number) => (
               <div key={v.vendorId} className="flex items-center gap-3 p-3 bg-muted/20 rounded-md">
                 <div className="text-2xl font-bold text-primary w-8 text-center">#{idx + 1}</div>
                 <div className="flex-1 min-w-0">

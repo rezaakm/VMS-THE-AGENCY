@@ -50,7 +50,7 @@ export function StatCard({
             <Skeleton className="mt-2 h-6 w-24" />
           ) : (
             <div className="mt-1.5 flex items-baseline gap-2">
-              <p className={cn("t-value tabular-nums", valueColor)}>{value}</p>
+              <p className={cn("t-value tabular-nums truncate", valueColor)} title={value}>{value}</p>
               {delta && (
                 <span
                   className={cn(

@@ -59,7 +59,7 @@ function useClients() {
 
       // Quotations
       for (const q of quotRes.data ?? []) {
-        const name = q.client || q.clientName;
+        const name = q.client;
         if (!name) continue;
         const c = getOrCreate(name);
         c.quotationCount++;

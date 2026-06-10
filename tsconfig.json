@@ -1,6 +1,13 @@
 {
   "include": ["src/**/*"],
-  "exclude": ["node_modules", "build", "dist", "**/*.test.ts"],
+  "exclude": [
+    "node_modules",
+    "build",
+    "dist",
+    "**/*.test.ts",
+    "**/*.test.tsx",
+    "**/__tests__/**"
+  ],
   "compilerOptions": {
     "target": "ES2022",
     "useDefineForClassFields": true,
@@ -23,7 +30,9 @@
     "baseUrl": ".",
     "paths": {
       "@/*": ["./src/*"],
-      "@assets/*": ["./src/assets/*"]
+      "@assets/*": ["./src/assets/*"],
+      "@workspace/api-client-react": ["./src/lib/api-client.tsx"],
+      "@workspace/integrations-openai-ai-react": ["./src/lib/openai-stub.tsx"]
     }
   }
 }

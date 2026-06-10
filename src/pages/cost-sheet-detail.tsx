@@ -46,7 +46,9 @@ function fmt(n: number) { return n.toLocaleString("en-US", { minimumFractionDigi
 
 export default function CostSheetDetail() {
   const params = useParams<{ id: string }>();
-  const id = parseInt(params.id, 10);
+  // cost_sheets primary key is a UUID string — do NOT parseInt it (that yields
+  // NaN / a wrong partial number and makes the lookup fail with "not found").
+  const id = params.id;
   const [, setLocation] = useLocation();
   const { data: sheet, isLoading: sheetLoading } = useGetCostSheet(id, { query: { enabled: !!id, queryKey: getGetCostSheetQueryKey(id) } });
   const { data: items, isLoading: itemsLoading } = useListCostSheetItems(id, { query: { enabled: !!id, queryKey: getListCostSheetItemsQueryKey(id) } });
@@ -60,15 +62,15 @@ export default function CostSheetDetail() {
   const { toast } = useToast();
 
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [editingItemId, setEditingItemId] = useState<number | null>(null);
+  const [editingItemId, setEditingItemId] = useState<number | string | null>(null);
   const [form, setForm] = useState<ItemForm>(emptyItemForm);
-  const [deleteItemId, setDeleteItemId] = useState<number | null>(null);
+  const [deleteItemId, setDeleteItemId] = useState<number | string | null>(null);
   const [generatingQuotation, setGeneratingQuotation] = useState(false);
   const [genDialogOpen, setGenDialogOpen] = useState(false);
   const [genForm, setGenForm] = useState({ clientName: "", clientCompany: "", subject: "", serialNumber: "" });
 
   // Inline editing for true spreadsheet maker feel (Quotation Wizard style)
-  const [inlineEditId, setInlineEditId] = useState<number | null>(null);
+  const [inlineEditId, setInlineEditId] = useState<number | string | null>(null);
   const [inlineForm, setInlineForm] = useState<any>({});
 
   const { data: linkedEnquiry } = useGetEnquiry(sheet?.enquiryId ?? 0, {
@@ -130,7 +132,7 @@ export default function CostSheetDetail() {
     }
   }
 
-  async function handleDeleteItem(itemId: number) {
+  async function handleDeleteItem(itemId: number | string) {
     await deleteItem.mutateAsync({ id, itemId }, {
       onSuccess: () => { queryClient.invalidateQueries({ queryKey: getListCostSheetItemsQueryKey(id) }); toast({ title: "Item deleted" }); setDeleteItemId(null); },
       onError: () => toast({ title: "Error", variant: "destructive" }),
