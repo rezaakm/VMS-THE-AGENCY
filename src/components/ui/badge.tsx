@@ -52,16 +52,64 @@ const badgeVariants = cva(
 export type StatusVariant =
   | "success" | "warning" | "danger" | "info" | "neutral" | "ai";
 
+/**
+ * Canonical status -> variant overrides. Checked first so the quotation
+ * 6-stage workflow always maps to its intended colour regardless of the
+ * generic keyword heuristics below.
+ *   preparing        -> warning (amber)
+ *   sent             -> info    (blue)
+ *   follow_up        -> ai      (purple)
+ *   waiting_approval -> warning (amber)
+ *   approved         -> success (emerald)
+ *   rejected         -> danger  (red)
+ */
+const STATUS_VARIANTS: Record<string, StatusVariant> = {
+  preparing: "warning",
+  sent: "info",
+  follow_up: "ai",
+  waiting_approval: "warning",
+  approved: "success",
+  rejected: "danger",
+};
+
+/**
+ * Human labels for status strings that contain underscores or need custom
+ * wording. Anything not listed falls back to spaced Title Case.
+ */
+export const STATUS_LABELS: Record<string, string> = {
+  preparing: "Preparing",
+  sent: "Sent",
+  follow_up: "Last Follow-up",
+  waiting_approval: "Waiting Approval",
+  approved: "Approved",
+  rejected: "Rejected",
+};
+
+/** Render a status string as a friendly label ("follow_up" -> "Last Follow-up"). */
+export function statusLabel(status?: string | null): string {
+  const raw = (status ?? "").toString().trim();
+  if (!raw) return "—";
+  const key = raw.toLowerCase();
+  if (STATUS_LABELS[key]) return STATUS_LABELS[key];
+  // Generic: underscores/dashes -> spaces, Title Case each word.
+  return raw
+    .replace(/[_-]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
 export function statusVariant(status?: string | null): StatusVariant {
   const s = (status ?? "").toLowerCase().trim();
   if (!s) return "neutral";
+  if (STATUS_VARIANTS[s]) return STATUS_VARIANTS[s];
   if (/(paid|approved|accepted|active|posted|complete|completed|won|success|cleared)/.test(s))
     return "success";
-  if (/(pending|draft|sent|review|in[\s-]?progress|partial|open|hold|on[\s-]?hold)/.test(s))
+  if (/(pending|draft|sent|review|in[\s-]?progress|partial|open|hold|on[\s-]?hold|preparing|waiting)/.test(s))
     return "warning";
   if (/(overdue|rejected|failed|cancel|cancelled|declined|lost|void|error|unpaid)/.test(s))
     return "danger";
-  if (/(pipeline|ai|forecast|suggested)/.test(s))
+  if (/(pipeline|ai|forecast|suggested|follow[\s_-]?up)/.test(s))
     return "ai";
   return "info";
 }
@@ -78,7 +126,7 @@ function Badge({ className, variant, ...props }: BadgeProps) {
 
 /** Status pill that derives its color from a status string. */
 function StatusBadge({ status, className }: { status?: string | null; className?: string }) {
-  const label = (status ?? "—").toString();
+  const label = statusLabel(status);
   return (
     <Badge
       variant={statusVariant(status)}

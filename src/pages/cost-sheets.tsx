@@ -35,13 +35,31 @@ export default function CostSheets() {
   const [editingId, setEditingId] = useState<number | string | null>(null);
   const [form, setForm] = useState<FormData>(emptyForm);
   const [deleteId, setDeleteId] = useState<number | string | null>(null);
-  // Display-only recency window. Defaults to the last 3 years; switchable to all.
-  const [range, setRange] = useState<"3y" | "all">("3y");
+  // Display-only recency window. Defaults to All time so nothing is hidden
+  // unless the user narrows it.
+  const [range, setRange] = useState<"all" | "30d" | "60d" | "90d" | "custom">("all");
+  const [customFrom, setCustomFrom] = useState("");
+  const [customTo, setCustomTo] = useState("");
 
-  const threeYearsAgo = (() => { const d = new Date(); d.setFullYear(d.getFullYear() - 3); return d; })();
-  const visibleSheets = range === "all"
-    ? sheets
-    : (sheets ?? []).filter((s) => { const d = rowDate(s); return d ? d >= threeYearsAgo : true; });
+  const visibleSheets = (() => {
+    if (range === "all") return sheets;
+    if (range === "custom") {
+      const from = customFrom ? new Date(customFrom) : null;
+      // Include the whole "to" day by pushing to end-of-day.
+      const to = customTo ? new Date(customTo + "T23:59:59.999") : null;
+      if (!from && !to) return sheets;
+      return (sheets ?? []).filter((s) => {
+        const d = rowDate(s);
+        if (!d) return true;
+        if (from && d < from) return false;
+        if (to && d > to) return false;
+        return true;
+      });
+    }
+    const days = range === "30d" ? 30 : range === "60d" ? 60 : 90;
+    const cutoff = (() => { const d = new Date(); d.setDate(d.getDate() - days); return d; })();
+    return (sheets ?? []).filter((s) => { const d = rowDate(s); return d ? d >= cutoff : true; });
+  })();
 
   const ctl = useTableControls<NonNullable<typeof sheets>[0], "client" | "title" | "createdAt", "linked">({
     data: visibleSheets,
@@ -107,15 +125,32 @@ export default function CostSheets() {
         searchPlaceholder="Search by client or job…"
         totalCount={ctl.totalCount}
         filteredCount={ctl.filteredCount}
-        hasActiveFilters={range !== "3y"}
-        onClearFilters={() => { setRange("3y"); ctl.clearFilters(); }}
+        hasActiveFilters={range !== "all"}
+        onClearFilters={() => { setRange("all"); setCustomFrom(""); setCustomTo(""); ctl.clearFilters(); }}
       >
         <FilterSelect
           value={range}
-          onChange={(v) => setRange(v === "all" ? "all" : "3y")}
-          options={[{ value: "3y", label: "Last 3 years" }, { value: "all", label: "All time" }]}
-          placeholder="Last 3 years"
+          onChange={(v) => setRange(v as typeof range)}
+          options={[
+            { value: "30d", label: "Last 30 days" },
+            { value: "60d", label: "Last 60 days" },
+            { value: "90d", label: "Last 90 days" },
+            { value: "custom", label: "Custom range" },
+          ]}
+          placeholder="All time"
         />
+        {range === "custom" && (
+          <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5">
+              <Label className="text-xs text-muted-foreground whitespace-nowrap">From</Label>
+              <Input type="date" value={customFrom} onChange={(e) => setCustomFrom(e.target.value)} className="h-9 w-auto" data-testid="input-cost-sheet-from" />
+            </div>
+            <div className="flex items-center gap-1.5">
+              <Label className="text-xs text-muted-foreground whitespace-nowrap">To</Label>
+              <Input type="date" value={customTo} onChange={(e) => setCustomTo(e.target.value)} className="h-9 w-auto" data-testid="input-cost-sheet-to" />
+            </div>
+          </div>
+        )}
       </TableToolbar>
 
       <div className="bg-card border border-card-border rounded-lg overflow-hidden">

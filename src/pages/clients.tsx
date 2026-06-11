@@ -66,7 +66,7 @@ function useClients() {
         const c = getOrCreate(name);
         c.quotationCount++;
         c.quotationValue += num(q.totalAmount);
-        if ((q.status ?? "").toLowerCase() === "accepted") c.hasWonWork = true;
+        if ((q.status ?? "").toLowerCase() === "approved") c.hasWonWork = true;
         if (q.createdAt && (!c.lastActivity || q.createdAt > c.lastActivity)) {
           c.lastActivity = q.createdAt;
         }

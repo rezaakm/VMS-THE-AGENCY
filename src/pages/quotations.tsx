@@ -13,7 +13,7 @@ import { Plus, Trash2, Eye, Pencil } from "lucide-react";
 import { useVoiceInput } from "@/hooks/use-voice-input";
 import { VoiceButton } from "@/components/ui/voice-button";
 import { PageHeader } from "@/components/ui/page-header";
-import { StatusBadge } from "@/components/ui/badge";
+import { StatusBadge, statusLabel } from "@/components/ui/badge";
 import { formatOMR } from "@/lib/utils";
 import { format } from "date-fns";
 import { useTableControls } from "@/hooks/use-table-controls";
@@ -32,10 +32,13 @@ function fmtDate(v: any): string {
   return isNaN(d.getTime()) ? "—" : format(d, "dd MMM yyyy");
 }
 
-// Real DB statuses are draft / sent / accepted. Keep approved/rejected in the
-// ordering map too so any legacy rows still sort deterministically.
-const STATUS_ORDER: Record<string, number> = { draft: 0, sent: 1, accepted: 2, approved: 2, rejected: 3 };
-const STATUS_OPTIONS = ["draft", "sent", "accepted"];
+// Canonical 6-stage quotation workflow. Ordering reflects pipeline progression;
+// keep legacy draft/accepted in the order map so any old rows still sort.
+const STATUS_ORDER: Record<string, number> = {
+  preparing: 0, sent: 1, follow_up: 2, waiting_approval: 3, approved: 4, rejected: 5,
+  draft: 0, accepted: 4,
+};
+const STATUS_OPTIONS = ["preparing", "sent", "follow_up", "waiting_approval", "approved", "rejected"];
 
 interface FormData {
   serialNumber: string; clientName: string; clientCompany: string; subject: string; scopeOfWork: string;
@@ -48,7 +51,7 @@ const randomSN = () => String(Math.floor(1000 + Math.random() * 9000));
 const emptyForm: FormData = {
   serialNumber: randomSN(), clientName: "", clientCompany: "", subject: "", scopeOfWork: "",
   quotationDate: today, enquiryId: "", paymentTerms: "50% advance with LPO, balance on delivery/completion",
-  termsAndConditions: "", status: "draft",
+  termsAndConditions: "", status: "preparing",
 };
 
 export default function Quotations() {
@@ -153,7 +156,7 @@ export default function Quotations() {
         <FilterSelect
           value={ctl.filters.status}
           onChange={(v) => ctl.setFilter("status", v)}
-          options={STATUS_OPTIONS.map(s => ({ value: s, label: s.charAt(0).toUpperCase() + s.slice(1) }))}
+          options={STATUS_OPTIONS.map(s => ({ value: s, label: statusLabel(s) }))}
           placeholder="All statuses"
         />
       </TableToolbar>
@@ -198,7 +201,7 @@ export default function Quotations() {
                           <StatusBadge status={q.status} />
                         </SelectTrigger>
                         <SelectContent>
-                          {STATUS_OPTIONS.map(s => <SelectItem key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</SelectItem>)}
+                          {STATUS_OPTIONS.map(s => <SelectItem key={s} value={s}>{statusLabel(s)}</SelectItem>)}
                         </SelectContent>
                       </Select>
                     </td>
@@ -276,7 +279,7 @@ export default function Quotations() {
                 <Select value={form.status} onValueChange={(v) => setForm((f) => ({ ...f, status: v }))}>
                   <SelectTrigger data-testid="select-quotation-status"><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    {STATUS_OPTIONS.map((s) => <SelectItem key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</SelectItem>)}
+                    {STATUS_OPTIONS.map((s) => <SelectItem key={s} value={s}>{statusLabel(s)}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>

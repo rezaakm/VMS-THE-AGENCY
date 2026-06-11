@@ -29,10 +29,10 @@ function useDashboardData() {
   return useQuery({
     queryKey: ["dashboard", scope],
     queryFn: async () => {
-      // Bank balance. The shared Bank Muscat account is one pot. Fitness Bay has
-      // a "virtual bank" = the net of its own tagged transactions (credit - debit).
-      // The Agency slice is the remainder, so the two slices always sum to the
-      // real total (shown in Group scope).
+      // Bank balance. The shared Bank Muscat account is one pot. Fitness Bay's
+      // slice is its RETAINED (undistributed) value = cumulative gross profit
+      // minus owner draws taken — a positive figure. The Agency slice is the
+      // remainder, so the two slices always sum to the real total (Group scope).
       const { data: bankRows } = await supabase
         .from("bank_accounts")
         .select("*");
@@ -40,17 +40,22 @@ function useDashboardData() {
         (s, r) => s + num(r.current_balance),
         0,
       );
-      const { data: txRows } = await supabase
-        .from("bank_transactions")
-        .select("entity, debit, credit");
-      const fitnessVirtualBank = (txRows ?? [])
-        .filter((r) => r.entity === "fitnessbay")
-        .reduce((s, r) => s + num(r.credit) - num(r.debit), 0);
+      // Fitness retained = gross_profit − Σ owner_draws (≈ 6,415.90, positive).
+      const [profitShareRes, ownerDrawsRes] = await Promise.all([
+        supabase.from("fitness_profit_share").select("*").single(),
+        supabase.from("owner_draws").select("amount"),
+      ]);
+      const grossProfit = num(profitShareRes.data?.gross_profit);
+      const totalDraws = (ownerDrawsRes.data ?? []).reduce(
+        (s, r) => s + num(r.amount),
+        0,
+      );
+      const fitnessRetained = grossProfit - totalDraws;
       const bankBalance =
         entityFilter === "fitnessbay"
-          ? fitnessVirtualBank
+          ? fitnessRetained
           : entityFilter === "agency"
-            ? totalBank - fitnessVirtualBank
+            ? totalBank - fitnessRetained
             : totalBank;
 
       // AR — has entity column
@@ -87,17 +92,17 @@ function useDashboardData() {
       // Derive pipeline-by-status from already-fetched quotation rows (no new fetch)
       const statusAgg = new Map<string, { count: number; value: number }>();
       for (const r of qRows ?? []) {
-        const key = String(r.status ?? "draft").toLowerCase();
+        const key = String(r.status ?? "preparing").toLowerCase();
         const cur = statusAgg.get(key) ?? { count: 0, value: 0 };
         cur.count += 1;
         cur.value += num(r.totalAmount);
         statusAgg.set(key, cur);
       }
-      // Real quotation statuses in the DB are: draft, sent, accepted.
-      // (There is no "approved"/"rejected" — bucketing on those showed the 288
-      // accepted quotations as 0.) Surface any other status the data contains
-      // so nothing silently disappears, but always show the three core buckets.
-      const CORE_STATUSES = ["draft", "sent", "accepted"];
+      // Canonical 6-stage quotation workflow. Surface any other status the data
+      // contains so nothing silently disappears, but always show the six stages.
+      const CORE_STATUSES = [
+        "preparing", "sent", "follow_up", "waiting_approval", "approved", "rejected",
+      ];
       const extraStatuses = Array.from(statusAgg.keys()).filter(
         (s) => !CORE_STATUSES.includes(s),
       );
@@ -229,12 +234,15 @@ export default function Dashboard() {
   const ScopeIcon = scope === "fitnessbay" ? Dumbbell : Building2;
 
   const STATUS_TINT: Record<string, string> = {
-    draft: "text-amber-400",
-    sent: "text-amber-400",
-    accepted: "text-emerald-400",
-    // keep legacy/edge statuses tinted sensibly if they ever appear
+    preparing: "text-amber-400",
+    sent: "text-blue-400",
+    follow_up: "text-violet-400",
+    waiting_approval: "text-amber-400",
     approved: "text-emerald-400",
     rejected: "text-rose-400",
+    // keep legacy statuses tinted sensibly if they ever appear
+    draft: "text-amber-400",
+    accepted: "text-emerald-400",
   };
 
   return (
@@ -332,9 +340,12 @@ export default function Dashboard() {
             </div>
             <div className="space-y-2">
               {(data?.quotationByStatus ?? [
-                { status: "draft", count: 0, value: 0 },
+                { status: "preparing", count: 0, value: 0 },
                 { status: "sent", count: 0, value: 0 },
-                { status: "accepted", count: 0, value: 0 },
+                { status: "follow_up", count: 0, value: 0 },
+                { status: "waiting_approval", count: 0, value: 0 },
+                { status: "approved", count: 0, value: 0 },
+                { status: "rejected", count: 0, value: 0 },
               ]).map((s) => (
                 <div key={s.status} className="flex items-center justify-between">
                   <StatusBadge status={s.status} />
