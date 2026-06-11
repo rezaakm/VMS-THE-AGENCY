@@ -42,12 +42,18 @@ export default function Vendors() {
     return Array.from(set).sort().map(s => ({ value: s, label: s }));
   }, [vendors]);
 
-  const ctl = useTableControls<NonNullable<typeof vendors>[0], "name" | "company" | "specialty", "specialty">({
+  const statusOptions = useMemo(() => {
+    const set = new Set<string>();
+    (vendors ?? []).forEach(v => { if (v.status) set.add(v.status); });
+    return Array.from(set).sort().map(s => ({ value: s, label: s }));
+  }, [vendors]);
+
+  const ctl = useTableControls<NonNullable<typeof vendors>[0], "name" | "company" | "specialty", "specialty" | "status">({
     data: vendors,
     searchFields: (v) => [v.name, v.company, v.specialty, v.email, v.phone],
     sortAccessors: { name: (v) => v.name, company: (v) => v.company, specialty: (v) => v.specialty },
     defaultSort: { key: "name", dir: "asc" },
-    filterAccessors: { specialty: (v) => v.specialty },
+    filterAccessors: { specialty: (v) => v.specialty, status: (v) => v.status },
     pageSize: 24,
   });
 
@@ -97,7 +103,9 @@ export default function Vendors() {
     });
   }
 
-  const hasFilters = !!ctl.filters.specialty && ctl.filters.specialty !== "all";
+  const hasFilters =
+    (!!ctl.filters.specialty && ctl.filters.specialty !== "all") ||
+    (!!ctl.filters.status && ctl.filters.status !== "all");
 
   return (
     <div className="flex flex-col gap-4 animate-in fade-in duration-300">
@@ -142,6 +150,9 @@ export default function Vendors() {
         }
       >
         <FilterSelect value={ctl.filters.specialty} onChange={(v) => ctl.setFilter("specialty", v)} options={specialtyOptions} placeholder="All specialties" />
+        {statusOptions.length > 0 && (
+          <FilterSelect value={ctl.filters.status} onChange={(v) => ctl.setFilter("status", v)} options={statusOptions} placeholder="All statuses" />
+        )}
         {view === "grid" && (
           <Select
             value={ctl.sort ? `${ctl.sort.key}:${ctl.sort.dir}` : "name:asc"}

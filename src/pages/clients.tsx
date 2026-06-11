@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { PageHeader } from "@/components/ui/page-header";
 import { StatCard } from "@/components/ui/stat-card";
-import { TableEmpty, TableSkeleton } from "@/components/table-controls";
+import { TableEmpty, TableSkeleton, FilterSelect } from "@/components/table-controls";
 import { formatOMR } from "@/lib/utils";
 import { supabase } from "@/lib/supabase";
 
@@ -24,6 +24,7 @@ interface ClientRecord {
   arOutstanding: number;
   enquiryCount: number;
   activeEnquiries: number;
+  hasWonWork: boolean;
   lastActivity: string | null;
 }
 
@@ -32,7 +33,7 @@ function useClients() {
     queryKey: ["clients-derived"],
     queryFn: async () => {
       const [quotRes, invRes, arRes, enqRes] = await Promise.all([
-        supabase.from("quotations").select("client, totalAmount, createdAt"),
+        supabase.from("quotations").select("client, totalAmount, status, createdAt"),
         supabase.from("sales_invoices").select("client_name, amount, created_at"),
         supabase.from("ar_entries").select("client_name, balance"),
         supabase.from("enquiries").select("client, status, createdAt"),
@@ -51,6 +52,7 @@ function useClients() {
             arOutstanding: 0,
             enquiryCount: 0,
             activeEnquiries: 0,
+            hasWonWork: false,
             lastActivity: null,
           });
         }
@@ -64,6 +66,7 @@ function useClients() {
         const c = getOrCreate(name);
         c.quotationCount++;
         c.quotationValue += num(q.totalAmount);
+        if ((q.status ?? "").toLowerCase() === "accepted") c.hasWonWork = true;
         if (q.createdAt && (!c.lastActivity || q.createdAt > c.lastActivity)) {
           c.lastActivity = q.createdAt;
         }
@@ -109,10 +112,14 @@ function useClients() {
 export default function Clients() {
   const { data: clients, isLoading } = useClients();
   const [search, setSearch] = useState("");
+  const [wonFilter, setWonFilter] = useState("all");
 
-  const filtered = (clients ?? []).filter((c) =>
-    c.name.toLowerCase().includes(search.toLowerCase())
-  );
+  const filtered = (clients ?? []).filter((c) => {
+    if (!c.name.toLowerCase().includes(search.toLowerCase())) return false;
+    if (wonFilter === "won" && !c.hasWonWork) return false;
+    if (wonFilter === "none" && c.hasWonWork) return false;
+    return true;
+  });
 
   const totalClients = clients?.length ?? 0;
   const totalQuotationValue = (clients ?? []).reduce((s, c) => s + c.quotationValue, 0);
@@ -149,14 +156,25 @@ export default function Clients() {
         />
       </div>
 
-      {/* Search */}
-      <div className="relative max-w-sm">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-        <Input
-          placeholder="Search clients..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="pl-9"
+      {/* Search + filter */}
+      <div className="flex flex-wrap items-center gap-2">
+        <div className="relative max-w-sm flex-1 min-w-[220px]">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <Input
+            placeholder="Search clients..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="pl-9"
+          />
+        </div>
+        <FilterSelect
+          value={wonFilter}
+          onChange={setWonFilter}
+          options={[
+            { value: "won", label: "Has won work" },
+            { value: "none", label: "No won work yet" },
+          ]}
+          placeholder="All clients"
         />
       </div>
 
@@ -176,12 +194,12 @@ export default function Clients() {
               <thead className="bg-card/95 backdrop-blur sticky top-0 z-10">
                 <tr className="border-b border-card-border">
                   <th className="text-left px-3 py-2.5 text-[11px] uppercase tracking-wider text-muted-foreground font-medium">Client</th>
-                  <th className="text-right px-3 py-2.5 text-[11px] uppercase tracking-wider text-muted-foreground font-medium">Enquiries</th>
-                  <th className="text-right px-3 py-2.5 text-[11px] uppercase tracking-wider text-muted-foreground font-medium">Quotations</th>
-                  <th className="text-right px-3 py-2.5 text-[11px] uppercase tracking-wider text-muted-foreground font-medium">Quoted Value</th>
-                  <th className="text-right px-3 py-2.5 text-[11px] uppercase tracking-wider text-muted-foreground font-medium hidden sm:table-cell">Invoices</th>
-                  <th className="text-right px-3 py-2.5 text-[11px] uppercase tracking-wider text-muted-foreground font-medium hidden sm:table-cell">AR Outstanding</th>
-                  <th className="text-left px-3 py-2.5 text-[11px] uppercase tracking-wider text-muted-foreground font-medium hidden md:table-cell">Last Activity</th>
+                  <th title="Active enquiries in the pipeline (total enquiries on hover badge)" className="text-right px-3 py-2.5 text-[11px] uppercase tracking-wider text-muted-foreground font-medium">Enquiries</th>
+                  <th title="Number of quotations sent to this client" className="text-right px-3 py-2.5 text-[11px] uppercase tracking-wider text-muted-foreground font-medium">Quotations</th>
+                  <th title="Sum of this client's quotation totals" className="text-right px-3 py-2.5 text-[11px] uppercase tracking-wider text-muted-foreground font-medium">Quoted Value</th>
+                  <th title="Number of sales invoices issued to this client" className="text-right px-3 py-2.5 text-[11px] uppercase tracking-wider text-muted-foreground font-medium hidden sm:table-cell">Invoices</th>
+                  <th title="Unpaid receivable balance owed by this client" className="text-right px-3 py-2.5 text-[11px] uppercase tracking-wider text-muted-foreground font-medium hidden sm:table-cell">AR Outstanding</th>
+                  <th title="Most recent enquiry, quotation, or invoice date" className="text-left px-3 py-2.5 text-[11px] uppercase tracking-wider text-muted-foreground font-medium hidden md:table-cell">Last Activity</th>
                 </tr>
               </thead>
               <tbody>

@@ -289,10 +289,15 @@ export function useGetReportsOverview(): UseQueryResult<Row> {
     queryKey: ["reports", "overview"],
     queryFn: async () => {
       const now = Date.now();
-      const [v, po, inv, c, rfq, q, ev, vlist] = await Promise.all([
+      const [v, po, inv, ar, c, rfq, q, ev, vlist] = await Promise.all([
         supabase.from("vendors").select("id", { count: "exact", head: true }),
         supabase.from("purchase_orders").select("totalAmount"),
-        supabase.from("invoices").select("totalAmount,paidAmount,status"),
+        // Real client invoices live in sales_invoices (the `invoices` table is
+        // a near-empty legacy source). Count rows + sum `amount`.
+        supabase.from("sales_invoices").select("amount"),
+        // Outstanding/Paid mirror the Receivables panel: ar_entries.balance is
+        // the unpaid amount, original_amount is the total invoiced.
+        supabase.from("ar_entries").select("balance,original_amount"),
         supabase.from("contracts").select("id,status,endDate"),
         supabase.from("rfqs").select("id,status"),
         supabase.from("quotations").select("totalAmount", { count: "exact" }),
@@ -301,12 +306,17 @@ export function useGetReportsOverview(): UseQueryResult<Row> {
       ]);
       const poRows = po.data ?? [];
       const invRows = inv.data ?? [];
+      const arRows = ar.data ?? [];
       const cRows = c.data ?? [];
       const rfqRows = rfq.data ?? [];
       const qRows = q.data ?? [];
       const names = new Map((vlist.data ?? []).map((x) => [x.id, x.name]));
-      const invoicedAmount = invRows.reduce((s, r) => s + num(r.totalAmount), 0);
-      const paidAmount = invRows.reduce((s, r) => s + num(r.paidAmount), 0);
+      // Invoices card: count + total value from sales_invoices.
+      const invoicedAmount = invRows.reduce((s, r) => s + num(r.amount), 0);
+      // AR-aligned outstanding/paid (matches Receivables collection logic).
+      const totalArInvoiced = arRows.reduce((s, r) => s + num(r.original_amount), 0);
+      const outstandingAmount = arRows.reduce((s, r) => s + num(r.balance), 0);
+      const paidAmount = totalArInvoiced - outstandingAmount;
       const evAgg = new Map<number, { vendorId: number; company: string; sum: number; evalCount: number }>();
       for (const e of ev.data ?? []) {
         const id = e.vendorId; if (id == null) continue;
@@ -328,7 +338,7 @@ export function useGetReportsOverview(): UseQueryResult<Row> {
         totalInvoices: invRows.length,
         invoicedAmount,
         paidAmount,
-        outstandingAmount: invoicedAmount - paidAmount,
+        outstandingAmount,
         activeContracts: cRows.filter((r) => (r.status ?? "").toLowerCase() === "active").length,
         expiringContracts,
         activeRfqs: rfqRows.filter((r) => (r.status ?? "").toLowerCase() !== "closed").length,
