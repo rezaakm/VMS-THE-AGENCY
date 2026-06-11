@@ -53,10 +53,12 @@ const navItems: NavItem[] = [
 const GROUP_ORDER = ["Home", "Sales", "Pipeline", "Finance", "Procurement", "Admin / Tools"];
 
 // Segmented scope control — wired to existing EntityScope context (logic unchanged)
-const SCOPE_SEGMENTS: { value: EntityScope; short: string }[] = [
-  { value: "group", short: "Group" },
-  { value: "agency", short: "Agency" },
-  { value: "fitnessbay", short: "Fitness" },
+// activeClass: entity-specific color for the selected segment
+//   group   → neutral slate   agency → blue   fitness → emerald
+const SCOPE_SEGMENTS: { value: EntityScope; short: string; activeClass: string }[] = [
+  { value: "group", short: "Group", activeClass: "bg-slate-600 text-white shadow-sm" },
+  { value: "agency", short: "Agency", activeClass: "bg-blue-600 text-white shadow-sm" },
+  { value: "fitnessbay", short: "Fitness", activeClass: "bg-emerald-600 text-white shadow-sm" },
 ];
 
 export function Sidebar() {
@@ -104,9 +106,10 @@ export function Sidebar() {
                 <button
                   key={seg.value}
                   onClick={() => setScope(seg.value)}
+                  aria-pressed={active}
                   className={`flex-1 rounded-md px-2 py-1.5 text-[11px] font-medium transition-colors
                     ${active
-                      ? "bg-primary/90 text-primary-foreground shadow-sm"
+                      ? seg.activeClass
                       : "text-muted-foreground hover:text-foreground hover:bg-muted/60"
                     }`}
                 >
