@@ -70,6 +70,8 @@ export default function QuoteWizard() {
   const [lines, setLines] = useState<Line[]>([blank()]);
   const [suggest, setSuggest] = useState<Record<number, Match[]>>({});
   const [busy, setBusy] = useState<number | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [savedMsg, setSavedMsg] = useState("");
   const timers = useRef<Record<number, any>>({});
 
   // Auto-fill the next sequential quote number (S.N) so every quote carries a serial.
@@ -381,6 +383,67 @@ export default function QuoteWizard() {
     }
   };
 
+  // Persist this sheet to the database so it appears under Cost Sheets and
+  // isn't lost when the page closes. Saves the header + every line item.
+  const saveRecord = async () => {
+    if (!client.trim() && !scope.trim() && !refNo.trim()) {
+      alert("Add a client, scope or ref number before saving.");
+      return;
+    }
+    setSaving(true);
+    setSavedMsg("");
+    try {
+      const sheetConf = computeSheetConfidence(
+        lines.map((l) => ({
+          total: lineTotal(l),
+          confidence: computeLineConfidence(l.matchType, l.matchScore).score,
+        })),
+      );
+      const { data: sheet, error: e1 } = await supabase
+        .from("cost_sheets")
+        .insert({
+          jobNumber: refNo || null,
+          client: client || null,
+          event: scope || "Cost Sheet",
+          date: docDate,
+          status: "draft",
+          confidence: sheetConf,
+        })
+        .select()
+        .single();
+      if (e1) throw e1;
+
+      const items = lines
+        .filter((l) => l.description.trim())
+        .map((l, i) => ({
+          costSheetId: sheet.id,
+          itemNumber: i + 1,
+          description: l.description,
+          vendor: l.vendor || null,
+          days: l.qty,
+          unitCost: r3(l.cost),
+          totalCost: r3(l.cost * l.qty),
+          unitSellingPrice: sell(l),
+          totalSellingPrice: lineTotal(l),
+          match_type: l.matchType || null,
+          confidence: computeLineConfidence(l.matchType, l.matchScore).score,
+          price_source: l.source || null,
+        }));
+      if (items.length) {
+        const { error: e2 } = await supabase.from("cost_sheet_items").insert(items);
+        if (e2) throw e2;
+      }
+
+      setSavedMsg(
+        `Saved ✓  Cost sheet ${refNo || sheet.id} with ${items.length} item(s). Find it under Cost Sheets.`,
+      );
+    } catch (err: any) {
+      alert("Could not save the cost sheet: " + (err?.message || err));
+    } finally {
+      setSaving(false);
+    }
+  };
+
   // Fill the agency's real .docx template (via docxtemplater) and download it.
   const generateWordDoc = () => {
     try {
@@ -538,7 +601,8 @@ export default function QuoteWizard() {
         <div className="flex justify-between"><span className="text-gray-400">Profit</span><span className="text-green-400">{fmt(profit)}</span></div>
       </div>
 
-      <div className="flex gap-3 mt-4">
+      <div className="flex flex-wrap gap-3 mt-4">
+        <button onClick={saveRecord} disabled={saving} className="px-4 py-2 rounded bg-green-600 hover:bg-green-500 font-semibold disabled:opacity-50">{saving ? "Saving…" : "💾 Save Cost Sheet"}</button>
         <button onClick={() => generateDoc("quote")} className="px-4 py-2 rounded bg-blue-600 hover:bg-blue-500 font-semibold">Generate Quote</button>
         <button onClick={generateWordDoc} className="px-4 py-2 rounded bg-indigo-600 hover:bg-indigo-500 font-semibold">Download Word (.docx)</button>
         <button
@@ -566,6 +630,10 @@ export default function QuoteWizard() {
         <button onClick={() => generateDoc("invoice")} className="px-4 py-2 rounded bg-blue-600 hover:bg-blue-500 font-semibold">Generate Tax Invoice</button>
         <button onClick={() => generateDoc("cost")} className="px-4 py-2 rounded bg-gray-700 hover:bg-gray-600 font-semibold">Generate Cost Sheet</button>
       </div>
+
+      {savedMsg && (
+        <div className="mt-3 px-4 py-3 rounded bg-green-900/40 border border-green-700 text-green-300 text-sm">{savedMsg}</div>
+      )}
     </div>
   );
 }
