@@ -137,7 +137,7 @@ export default function QuoteWizard() {
 
       /* Line-items table */
       table.items{width:100%;border-collapse:collapse;margin-top:18px;table-layout:fixed;}
-      .items th{background:#111827;color:#fff;padding:8px 8px;font-size:10px;text-align:left;
+      .items th{background:${accent};color:#fff;padding:8px 8px;font-size:10px;text-align:left;
         font-weight:600;text-transform:uppercase;letter-spacing:.4px;
         word-wrap:break-word;overflow-wrap:break-word;}
       .items td{padding:7px 8px;border-bottom:1px solid #e7ebee;vertical-align:top;
