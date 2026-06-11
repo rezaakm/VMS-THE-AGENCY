@@ -49,6 +49,18 @@ export default function QuoteWizard() {
   const [scope, setScope] = useState("");
   const [refNo, setRefNo] = useState("");
   const [docDate, setDocDate] = useState(new Date().toISOString().slice(0, 10));
+  const [paymentTerms, setPaymentTerms] = useState(
+    "50% advance with LPO as confirmation. Remaining 50% payable on day of delivery.",
+  );
+  const [terms, setTerms] = useState(
+    [
+      "Pricing is indicative and may be revised based on final design, dimensions, and materials.",
+      "Delivery timeline: 5–7 working days. Delivery within Muscat included; other locations on request.",
+      "Cancellation/rescheduling: notice at least 7 days before production. Cancellation after production starts incurs 100%.",
+      "The Agency is not responsible for damage caused by weather, force majeure, or mishandling by others.",
+    ].join("\n"),
+  );
+  const [validity, setValidity] = useState("7 Working Days");
   const [lines, setLines] = useState<Line[]>([blank()]);
   const [suggest, setSuggest] = useState<Record<number, Match[]>>({});
   const [busy, setBusy] = useState<number | null>(null);
@@ -114,7 +126,7 @@ export default function QuoteWizard() {
       *{box-sizing:border-box;}
       @page{size:A4;margin:14mm;}
       html,body{margin:0;padding:0;}
-      body{font-family:Arial,Helvetica,sans-serif;color:#1f2937;font-size:12px;background:#fff;
+      body{font-family:Calibri,'Segoe UI',Arial,Helvetica,sans-serif;color:#1f2937;font-size:12px;background:#fff;
         -webkit-print-color-adjust:exact;print-color-adjust:exact;}
       .page{width:100%;max-width:182mm;margin:0 auto;background:#fff;padding:0;}
       .num{font-variant-numeric:tabular-nums;}
@@ -205,14 +217,10 @@ export default function QuoteWizard() {
         <tr><td class="lbl">Sub Total</td><td class="val">${fmt(subTotal)}</td></tr>
         <tr><td class="lbl">VAT (5%)</td><td class="val">${fmt(vatAmt)}</td></tr>
         <tr class="grand"><td class="lbl">Total (OMR)</td><td class="val">${fmt(grand)}</td></tr></table></div>
-        <div class="terms"><b>Payment Terms:</b> 50% advance with LPO as confirmation. Remaining 50% payable on day of delivery.<br/><br/>
-        <b>Terms &amp; Conditions:</b><ul>
-        <li>Pricing is indicative and may be revised based on final design, dimensions, and materials.</li>
-        <li>Delivery timeline: 5–7 working days. Delivery within Muscat included; other locations on request.</li>
-        <li>Cancellation/rescheduling: notice at least 7 days before production. Cancellation after production starts incurs 100%.</li>
-        <li>The Agency is not responsible for damage caused by weather, force majeure, or mishandling by others.</li></ul>
+        <div class="terms"><b>Payment Terms:</b> ${paymentTerms}<br/><br/>
+        <b>Terms &amp; Conditions:</b><ul>${terms.split("\n").map((t) => t.trim()).filter(Boolean).map((t) => `<li>${t}</li>`).join("")}</ul>
         All cheques payable to <b>Modern Lifestyle</b>. &nbsp; IBAN: OM110270323021625490018 &nbsp; SWIFT: BMUSOMRXXXX<br/>
-        Quotation Validity: 7 Working Days
+        Quotation Validity: ${validity}
         <div class="sig">To approve, please sign &amp; return with a PO. &nbsp;&nbsp; Received by: ____________ &nbsp;&nbsp; Date: ____________ &nbsp;&nbsp; Signature: ____________<br/><br/>
         <b>Modern Lifestyle L.L.C.</b> — Authorised Signatory</div></div>`;
     } else if (type === "invoice") {
@@ -322,6 +330,24 @@ export default function QuoteWizard() {
         <input className="bg-gray-800 rounded px-3 py-2" placeholder="Ref / Invoice No (e.g. 4240 or ML/26/060)" value={refNo} onChange={(e) => setRefNo(e.target.value)} />
         <input type="date" className="bg-gray-800 rounded px-3 py-2" value={docDate} onChange={(e) => setDocDate(e.target.value)} />
       </div>
+
+      <details className="mb-3 bg-gray-900 border border-gray-800 rounded">
+        <summary className="cursor-pointer px-3 py-2 text-sm text-gray-300 select-none">Terms &amp; Conditions (editable — used on the generated quote)</summary>
+        <div className="p-3 pt-0 space-y-2">
+          <div>
+            <label className="text-xs text-gray-400">Payment Terms</label>
+            <input className="w-full bg-gray-800 rounded px-3 py-2 text-sm" value={paymentTerms} onChange={(e) => setPaymentTerms(e.target.value)} />
+          </div>
+          <div>
+            <label className="text-xs text-gray-400">Terms &amp; Conditions (one bullet per line)</label>
+            <textarea className="w-full bg-gray-800 rounded px-3 py-2 text-sm" rows={5} value={terms} onChange={(e) => setTerms(e.target.value)} />
+          </div>
+          <div>
+            <label className="text-xs text-gray-400">Quotation Validity</label>
+            <input className="w-full bg-gray-800 rounded px-3 py-2 text-sm" value={validity} onChange={(e) => setValidity(e.target.value)} />
+          </div>
+        </div>
+      </details>
 
       <div className="flex items-center gap-2 mb-3 text-sm">
         <span className="text-gray-400">Apply margin to all:</span>
