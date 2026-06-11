@@ -4,6 +4,10 @@ import { supabase } from "@/lib/supabase";
 import * as XLSX from "xlsx";
 import { generateQuotePDF } from "@/lib/pdf-quote";
 import { AGENCY_LOGO_BLACK } from "@/lib/agency-logo";
+import PizZip from "pizzip";
+import Docxtemplater from "docxtemplater";
+import { saveAs } from "file-saver";
+import { QUOTE_TEMPLATE_B64 } from "@/lib/quote-template-b64";
 import {
   computeLineConfidence,
   computeSheetConfidence,
@@ -377,6 +381,44 @@ export default function QuoteWizard() {
     }
   };
 
+  // Fill the agency's real .docx template (via docxtemplater) and download it.
+  const generateWordDoc = () => {
+    try {
+      const dateStr = docDate.split("-").reverse().join("/");
+      const bin = Uint8Array.from(atob(QUOTE_TEMPLATE_B64), (c) => c.charCodeAt(0));
+      const zip = new PizZip(bin);
+      const doc = new Docxtemplater(zip, { paragraphLoop: true, linebreaks: true });
+      const data = {
+        client,
+        date: dateStr,
+        sn: refNo,
+        scope,
+        items: lines.map((l, i) => ({
+          no: String(i + 1),
+          desc: l.description,
+          qty: String(l.qty),
+          unit: fmt(sell(l)),
+          total: fmt(lineTotal(l)) + " OMR",
+        })),
+        subtotal: fmt(subTotal) + " OMR",
+        vat: fmt(vatAmt) + " OMR",
+        grandtotal: fmt(grand) + " OMR",
+        paymentTerms,
+        terms,
+        validity,
+      };
+      doc.render(data);
+      const out = doc.getZip().generate({
+        type: "blob",
+        mimeType:
+          "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      });
+      saveAs(out, `Quote ${refNo || "Agency"}.docx`);
+    } catch (err: any) {
+      alert("Could not generate the Word document: " + (err?.message || err));
+    }
+  };
+
   return (
     <div className="p-6 max-w-6xl mx-auto text-gray-100">
       <h1 className="text-2xl font-bold mb-1">Quote Wizard</h1>
@@ -498,6 +540,7 @@ export default function QuoteWizard() {
 
       <div className="flex gap-3 mt-4">
         <button onClick={() => generateDoc("quote")} className="px-4 py-2 rounded bg-blue-600 hover:bg-blue-500 font-semibold">Generate Quote</button>
+        <button onClick={generateWordDoc} className="px-4 py-2 rounded bg-indigo-600 hover:bg-indigo-500 font-semibold">Download Word (.docx)</button>
         <button
           onClick={() =>
             generateQuotePDF({
