@@ -1,4 +1,5 @@
 import { useState, useRef } from "react";
+import { useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 import * as XLSX from "xlsx";
 import { generateQuotePDF } from "@/lib/pdf-quote";
@@ -52,6 +53,18 @@ export default function QuoteWizard() {
   const [suggest, setSuggest] = useState<Record<number, Match[]>>({});
   const [busy, setBusy] = useState<number | null>(null);
   const timers = useRef<Record<number, any>>({});
+
+  // Auto-fill the next sequential quote number (S.N) so every quote carries a serial.
+  useEffect(() => {
+    (async () => {
+      const { data } = await supabase.from("quotations").select("quotationNumber");
+      const nums = (data ?? [])
+        .map((r: any) => String(r.quotationNumber ?? "").trim())
+        .filter((s: string) => /^\d{4}$/.test(s))
+        .map(Number);
+      if (nums.length) setRefNo((cur) => cur || String(Math.max(...nums) + 1));
+    })();
+  }, []);
 
   const update = (id: number, patch: Partial<Line>) =>
     setLines((ls) => ls.map((l) => (l.id === id ? { ...l, ...patch } : l)));
