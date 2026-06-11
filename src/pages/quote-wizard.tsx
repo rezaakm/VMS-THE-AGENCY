@@ -143,8 +143,8 @@ export default function QuoteWizard() {
       .meta{width:100%;border-collapse:collapse;margin:0 0 8px 0;table-layout:fixed;}
       .meta td{padding:6px 10px;vertical-align:top;font-size:11px;
         border-bottom:1px solid #eef2f5;word-wrap:break-word;overflow-wrap:break-word;}
-      .meta .k{width:120px;white-space:nowrap;color:#6b7280;font-weight:600;
-        text-transform:uppercase;font-size:9.5px;letter-spacing:.5px;background:#f6f8fa;}
+      .meta .k{width:130px;white-space:nowrap;color:#fff;font-weight:700;
+        font-size:10.5px;letter-spacing:.2px;background:${accent};}
       .meta .v{color:#1f2937;}
 
       /* Line-items table */
@@ -155,17 +155,18 @@ export default function QuoteWizard() {
       .items td{padding:7px 8px;border-bottom:1px solid #e7ebee;vertical-align:top;
         font-size:10.5px;word-wrap:break-word;overflow-wrap:break-word;}
       .items tbody tr:nth-child(even) td{background:#fafbfc;}
-      .r{text-align:right;} .c{text-align:center;} .l{text-align:left;}
+      .r{text-align:right;white-space:nowrap;} .c{text-align:center;white-space:nowrap;} .l{text-align:left;}
+      .items td.num,.items th.r{white-space:nowrap;}
 
       /* Totals */
       .tot-wrap{display:flex;justify-content:flex-end;margin-top:14px;}
       table.totals{width:62%;max-width:300px;border-collapse:collapse;table-layout:fixed;}
       .totals td{padding:6px 10px;font-size:11px;border-bottom:1px solid #eef2f5;}
-      .totals td.lbl{color:#6b7280;text-align:right;}
+      .totals td.lbl{background:${accent};color:#fff;text-align:left;font-weight:700;}
       .totals td.val{text-align:right;font-variant-numeric:tabular-nums;color:#1f2937;}
       .totals tr.grand td{border-top:2px solid ${accent};border-bottom:none;
         font-weight:700;font-size:12.5px;color:#111;padding-top:8px;}
-      .totals tr.grand td.lbl{color:#111;text-transform:uppercase;letter-spacing:.5px;}
+      .totals tr.grand td.lbl{color:#fff;text-transform:uppercase;letter-spacing:.5px;}
 
       tr,td,th,table{page-break-inside:avoid;}
 
