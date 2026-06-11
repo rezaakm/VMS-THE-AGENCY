@@ -2,6 +2,7 @@ import { useState, useRef } from "react";
 import { supabase } from "@/lib/supabase";
 import * as XLSX from "xlsx";
 import { generateQuotePDF } from "@/lib/pdf-quote";
+import { AGENCY_LOGO_BLACK } from "@/lib/agency-logo";
 import {
   computeLineConfidence,
   computeSheetConfidence,
@@ -93,26 +94,47 @@ export default function QuoteWizard() {
   const profit = r3(subTotal - totalCost);
 
   const generateDoc = (type: "quote" | "invoice" | "cost") => {
-    const logo = location.origin + "/logo.png";
+    const logo = AGENCY_LOGO_BLACK;
     const dateStr = docDate.split("-").reverse().join("/");
+    const accent = "#1c9ad6";
     const css = `
-      body{font-family:Arial,Helvetica,sans-serif;color:#222;font-size:12px;padding:24px;}
-      .top{display:flex;justify-content:space-between;align-items:flex-start;}
-      img.logo{height:70px;}
-      h1{font-size:26px;margin:0;color:#111;}
-      table{width:100%;border-collapse:collapse;margin-top:14px;}
-      th{background:#1c9ad6;color:#fff;padding:6px;font-size:11px;text-align:left;border:1px solid #1c9ad6;}
-      td{padding:6px;border:1px solid #cfd8dc;vertical-align:top;font-size:11px;}
+      *{box-sizing:border-box;}
+      @page{size:A4;margin:14mm;}
+      html,body{margin:0;padding:0;}
+      body{font-family:Arial,Helvetica,sans-serif;color:#222;font-size:12px;background:#fff;
+        -webkit-print-color-adjust:exact;print-color-adjust:exact;}
+      .page{width:100%;max-width:182mm;margin:0 auto;background:#fff;padding:0;}
+      .top{display:flex;justify-content:space-between;align-items:flex-start;
+        gap:16px;padding-bottom:10px;margin-bottom:14px;border-bottom:2px solid ${accent};}
+      img.logo{height:64px;width:auto;display:block;}
+      .title-wrap{text-align:right;}
+      h1{font-size:24px;line-height:1.1;margin:0;color:#111;font-weight:700;letter-spacing:.5px;}
+      table{width:100%;border-collapse:collapse;margin-top:12px;table-layout:fixed;}
+      th{background:${accent};color:#fff;padding:7px 6px;font-size:10.5px;text-align:left;
+        border:1px solid ${accent};word-wrap:break-word;overflow-wrap:break-word;}
+      td{padding:6px;border:1px solid #cfd8dc;vertical-align:top;font-size:10.5px;
+        word-wrap:break-word;overflow-wrap:break-word;}
+      .meta{margin-top:0;}
       .meta td{border:1px solid #cfd8dc;}
-      .meta .k{background:#1c9ad6;color:#fff;font-weight:bold;width:120px;}
+      .meta .k{background:${accent};color:#fff;font-weight:bold;width:120px;white-space:nowrap;}
+      .items td:first-child,.items th:first-child{width:34px;text-align:center;}
       .r{text-align:right;} .c{text-align:center;}
-      .tot{background:#1c9ad6;color:#fff;font-weight:bold;}
-      .terms{margin-top:16px;font-size:11px;}
-      .foot{margin-top:24px;border-top:2px solid #1c9ad6;padding-top:6px;color:#1c9ad6;font-size:10px;text-align:center;}
-      @media print{button{display:none;}}
+      tr,td,th,table{page-break-inside:avoid;}
+      .tot{background:${accent};color:#fff;font-weight:bold;}
+      .terms{margin-top:16px;font-size:10.5px;line-height:1.5;}
+      .terms ul{margin:6px 0 6px 18px;padding:0;}
+      .terms li{margin-bottom:3px;}
+      .foot{margin-top:26px;border-top:2px solid ${accent};padding-top:8px;
+        color:${accent};font-size:9.5px;line-height:1.6;text-align:center;width:100%;}
+      .printbtn{margin-top:18px;padding:8px 16px;border:0;border-radius:4px;
+        background:${accent};color:#fff;font-size:12px;cursor:pointer;}
+      @media print{.printbtn{display:none;}body{padding:0;}}
     `;
     const head = (title: string, metaRows: string) => `
-      <div class="top"><h1>${title}</h1><img class="logo" src="${logo}"/></div>
+      <div class="top">
+        <img class="logo" src="${logo}" alt="The Agency"/>
+        <div class="title-wrap"><h1>${title}</h1></div>
+      </div>
       <table class="meta">${metaRows}</table>`;
     const foot = `<div class="foot">Web: theagencyoman.com &nbsp;|&nbsp; Email: info@theagencyoman.com &nbsp;|&nbsp; Phone: +968 9317 1717<br/>
       Address: Azaiba, Muscat, P.O. Box 544, Postal Code 114, Kalbu &nbsp;|&nbsp; Modern Lifestyle L.L.C., C.R. No. 1156928</div>`;
@@ -127,7 +149,9 @@ export default function QuoteWizard() {
         <tr><td class="k">S. N</td><td>${refNo}</td></tr>
         <tr><td class="k">Subject</td><td>Quotation</td></tr>
         <tr><td class="k">Scope of Work</td><td>${scope}</td></tr>`) + `
-        <table><tr><th>No.</th><th>Description</th><th>Qty</th><th>Unit Cost</th><th>Total Amount</th></tr>${rows}
+        <table class="items">
+        <colgroup><col style="width:34px"/><col/><col style="width:48px"/><col style="width:90px"/><col style="width:110px"/></colgroup>
+        <tr><th>No.</th><th>Description</th><th>Qty</th><th>Unit Cost</th><th>Total Amount</th></tr>${rows}
         <tr><td colspan="4" class="r tot">Sub Total</td><td class="r">${fmt(subTotal)} OMR</td></tr>
         <tr><td colspan="4" class="r tot">VAT 5%</td><td class="r">${fmt(vatAmt)} OMR</td></tr>
         <tr><td colspan="4" class="r tot">Total Amount</td><td class="r tot">${fmt(grand)} OMR</td></tr></table>
@@ -149,7 +173,9 @@ export default function QuoteWizard() {
         <tr><td class="k">To</td><td>${client}</td><td class="k">Invoice No</td><td>${refNo}</td></tr>
         <tr><td class="k">Invoice Date</td><td>${dateStr}</td><td class="k">Your LPO No</td><td></td></tr>
         <tr><td class="k">Place of Supply</td><td>Sultanate of Oman</td><td class="k">VATIN</td><td>OM1100057497</td></tr>`) + `
-        <table><tr><th>SL</th><th>Description</th><th>Qty</th><th>Rate</th><th>Taxable</th><th>VAT%</th><th>VAT</th><th>Total</th></tr>${rows}
+        <table class="items">
+        <colgroup><col style="width:30px"/><col/><col style="width:54px"/><col style="width:64px"/><col style="width:70px"/><col style="width:42px"/><col style="width:62px"/><col style="width:70px"/></colgroup>
+        <tr><th>SL</th><th>Description</th><th>Qty</th><th>Rate</th><th>Taxable</th><th>VAT%</th><th>VAT</th><th>Total</th></tr>${rows}
         <tr><td colspan="4" class="r tot">Totals</td><td class="r tot">${fmt(subTotal)}</td><td></td><td class="r tot">${fmt(vatAmt)}</td><td class="r tot">${fmt(grand)}</td></tr></table>
         <div class="terms"><b>Bank:</b> Modern Lifestyle LLC &nbsp; A/C 0323021625490018 &nbsp; Bank Muscat, Bousher &nbsp; SWIFT BMUSOMRXXXX<br/>
         Invoice Total (OMR): <b>${fmt(grand)}</b></div>`;
@@ -161,7 +187,9 @@ export default function QuoteWizard() {
         <tr><td class="k">Company</td><td>${client}</td></tr>
         <tr><td class="k">Date</td><td>${dateStr}</td></tr>
         <tr><td class="k">Subject</td><td>${scope}</td></tr>`) + `
-        <table><tr><th>No.</th><th>Description</th><th>Qty</th><th>Unit Cost</th><th>Total Cost</th><th>Unit Sell</th><th>Total Sell</th><th>Vendor</th></tr>${rows}
+        <table class="items">
+        <colgroup><col style="width:30px"/><col/><col style="width:42px"/><col style="width:62px"/><col style="width:66px"/><col style="width:62px"/><col style="width:66px"/><col style="width:90px"/></colgroup>
+        <tr><th>No.</th><th>Description</th><th>Qty</th><th>Unit Cost</th><th>Total Cost</th><th>Unit Sell</th><th>Total Sell</th><th>Vendor</th></tr>${rows}
         <tr><td colspan="4" class="r tot">Sub Total</td><td class="r">${fmt(totalCost)}</td><td></td><td class="r">${fmt(subTotal)}</td><td></td></tr>
         <tr><td colspan="6" class="r tot">VAT 5%</td><td class="r">${fmt(vatAmt)}</td><td></td></tr>
         <tr><td colspan="6" class="r tot">TOTAL</td><td class="r tot">${fmt(grand)}</td><td></td></tr></table>`;
@@ -169,8 +197,8 @@ export default function QuoteWizard() {
 
     const w = window.open("", "_blank");
     if (!w) return;
-    w.document.write(`<html><head><title>${refNo || type}</title><style>${css}</style></head>
-      <body>${body}${foot}<br/><button onclick="window.print()">Print / Save PDF</button></body></html>`);
+    w.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"/><title>${refNo || type}</title><style>${css}</style></head>
+      <body><div class="page">${body}${foot}<button class="printbtn" onclick="window.print()">Print / Save PDF</button></div></body></html>`);
     w.document.close();
   };
 
