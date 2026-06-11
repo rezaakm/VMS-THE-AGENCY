@@ -50,14 +50,16 @@ export default function QuoteWizard() {
   const [refNo, setRefNo] = useState("");
   const [docDate, setDocDate] = useState(new Date().toISOString().slice(0, 10));
   const [paymentTerms, setPaymentTerms] = useState(
-    "50% advance with LPO as confirmation. Remaining 50% payable on day of delivery.",
+    "50% advance payment and balance after job completion, along with LPO as confirmation.",
   );
   const [terms, setTerms] = useState(
     [
-      "Pricing is indicative and may be revised based on final design, dimensions, and materials.",
-      "Delivery timeline: 5–7 working days. Delivery within Muscat included; other locations on request.",
-      "Cancellation/rescheduling: notice at least 7 days before production. Cancellation after production starts incurs 100%.",
-      "The Agency is not responsible for damage caused by weather, force majeure, or mishandling by others.",
+      "Timeline: 7 working days from the date of confirmation.",
+      "Electrical: The client must provide electrical connections suitable for the signage load.",
+      "Permissions: Obtaining approval from the municipality or building management is the client's responsibility.",
+      "Site Access: Client to ensure safe and clear access to the installation site.",
+      "Damage & Liability: Any damage to the signage due to external factors or during transit (excluding our team) will be subject to charges.",
+      "Cancellation & Rescheduling: In the event of cancellation or rescheduling by the Client, notice must be provided at least 5 days before the work begins. Failure to do so may result in a cancellation fee or partial charge based on expenses incurred by The Agency.",
     ].join("\n"),
   );
   const [validity, setValidity] = useState("7 Working Days");
@@ -139,6 +141,11 @@ export default function QuoteWizard() {
       h1{font-size:22px;line-height:1.1;margin:0;color:#111;font-weight:700;
         letter-spacing:2px;text-transform:uppercase;}
 
+      /* Quote header — logo top-right only, no title */
+      .qhead{display:flex;justify-content:flex-end;align-items:flex-start;
+        padding-bottom:12px;margin-bottom:0;}
+      .qrule{border:0;border-top:2px solid ${accent};margin:0 0 16px 0;}
+
       /* Info block */
       .meta{width:100%;border-collapse:collapse;margin:0 0 8px 0;table-layout:fixed;}
       .meta td{padding:6px 10px;vertical-align:top;font-size:11px;
@@ -146,6 +153,36 @@ export default function QuoteWizard() {
       .meta .k{width:130px;white-space:nowrap;color:#fff;font-weight:700;
         font-size:10.5px;letter-spacing:.2px;background:${accent};}
       .meta .v{color:#1f2937;}
+
+      /* Quote info table — ~60% width, blue labels, bordered white values */
+      table.qmeta{width:60%;border-collapse:collapse;margin:0 0 4px 0;table-layout:fixed;}
+      table.qmeta td{padding:6px 10px;vertical-align:top;font-size:11px;
+        border:1px solid #d7e6ef;word-wrap:break-word;overflow-wrap:break-word;}
+      table.qmeta col.qk{width:120px;}
+      table.qmeta td.qk{white-space:nowrap;color:#fff;font-weight:700;
+        font-size:10.5px;letter-spacing:.2px;background:${accent};border-color:${accent};}
+      table.qmeta td.qv{color:#1f2937;background:#fff;}
+
+      /* Quote below-table two columns */
+      .qsplit{margin-top:16px;width:100%;overflow:hidden;}
+      .qpay{float:left;width:58%;font-size:11px;line-height:1.5;color:#374151;}
+      .qpay b{color:#111;}
+      .qtot{float:right;width:38%;}
+      table.qtotals{width:100%;border-collapse:collapse;table-layout:fixed;}
+      table.qtotals td{padding:6px 10px;font-size:11px;border:1px solid #d7e6ef;}
+      table.qtotals td.qlbl{background:${accent};color:#fff;text-align:left;font-weight:700;
+        border-color:${accent};white-space:nowrap;}
+      table.qtotals td.qval{background:#fff;text-align:right;white-space:nowrap;
+        font-variant-numeric:tabular-nums;color:#1f2937;}
+      table.qtotals tr.qgrand td{font-weight:700;font-size:12px;}
+      table.qtotals tr.qgrand td.qval{color:#111;}
+
+      /* Quote terms & approval */
+      .qterms{clear:both;margin-top:22px;font-size:10.5px;line-height:1.6;color:#374151;}
+      .qterms b{color:#111;}
+      .qterms .tline{margin-bottom:4px;}
+      .qapprove{margin-top:18px;font-size:10.5px;line-height:1.8;color:#374151;}
+      .qapprove .acc{color:${accent};}
 
       /* Line-items table */
       table.items{width:100%;border-collapse:collapse;margin-top:18px;table-layout:fixed;}
@@ -195,35 +232,61 @@ export default function QuoteWizard() {
     // info-block row helper — omits the row entirely when the value is empty
     const row = (k: string, v: string) =>
       v && String(v).trim() ? `<tr><td class="k">${k}</td><td class="v">${v}</td></tr>` : "";
-    const foot = `<div class="foot">
-      <b>Modern Lifestyle L.L.C.</b> &nbsp;|&nbsp; C.R. No. 1156928<br/>
-      Web: theagencyoman.com &nbsp;|&nbsp; Email: info@theagencyoman.com &nbsp;|&nbsp; Phone: +968 9317 1717<br/>
-      Address: Azaiba, Muscat, P.O. Box 544, Postal Code 114, Sultanate of Oman</div>`;
+    // quote info-table row helper — blue label cell + bordered white value cell
+    const qrow = (k: string, v: string) =>
+      v && String(v).trim()
+        ? `<tr><td class="qk">${k}</td><td class="qv">${v}</td></tr>`
+        : "";
+    const foot = `<div class="foot" style="text-align:center;color:${accent};">
+      Web: theagencyoman.com &nbsp;|&nbsp; Email: info@theagencyoman.com &nbsp;|&nbsp; Phone: +968 9317 1717 &nbsp;|&nbsp; Direct Line: +968 9617 5866<br/>
+      Address: Bausher, Muscat &nbsp;|&nbsp; P.O. Box 544, Postal Code 114, Kalbu &nbsp;|&nbsp; Modern Lifestyle L.L.C.  C.R. No. 1156928</div>`;
 
     let body = "";
     if (type === "quote") {
       const rows = lines.map((l, i) => `<tr><td class="c num">${i + 1}</td><td class="l">${l.description.replace(/\n/g, "<br/>")}</td>
-        <td class="r num">${l.qty}</td><td class="r num">${fmt(sell(l))}</td><td class="r num">${fmt(lineTotal(l))}</td></tr>`).join("");
-      body = head("Quotation", `
-        ${row("To", client)}
-        ${row("Date", dateStr)}
-        ${row("S. N", refNo)}
-        ${row("Subject", "Quotation")}
-        ${row("Scope of Work", scope)}`) + `
+        <td class="r num">${l.qty}</td><td class="r num">${fmt(sell(l))}</td><td class="r num">${fmt(lineTotal(l))} OMR</td></tr>`).join("");
+      const termLines = terms
+        .split("\n")
+        .map((t) => t.trim())
+        .filter(Boolean)
+        .map((t) => {
+          const ci = t.indexOf(":");
+          const html =
+            ci > 0
+              ? `<b>${t.slice(0, ci)}:</b>${t.slice(ci + 1)}`
+              : t;
+          return `<div class="tline">${html}</div>`;
+        })
+        .join("");
+      body = `
+        <div class="qhead"><img class="logo" src="${logo}" alt="The Agency"/></div>
+        <hr class="qrule"/>
+        <table class="qmeta"><colgroup><col class="qk"/><col/></colgroup>
+        ${qrow("To", client)}
+        ${qrow("Date", dateStr)}
+        ${qrow("S. N", refNo)}
+        ${qrow("Subject", "Quotation")}
+        ${qrow("Scope of Work", scope)}</table>
         <table class="items">
-        <colgroup><col style="width:34px"/><col/><col style="width:48px"/><col style="width:96px"/><col style="width:112px"/></colgroup>
-        <thead><tr><th class="c">No.</th><th>Description</th><th class="r">Qty</th><th class="r">Unit Price (OMR)</th><th class="r">Total (OMR)</th></tr></thead>
+        <colgroup><col style="width:34px"/><col/><col style="width:48px"/><col style="width:70px"/><col style="width:84px"/></colgroup>
+        <thead><tr><th class="c">No.</th><th>Description</th><th class="r">Qty</th><th class="r">Unit Cost</th><th class="r">Total Cost</th></tr></thead>
         <tbody>${rows}</tbody></table>
-        <div class="tot-wrap"><table class="totals">
-        <tr><td class="lbl">Sub Total</td><td class="val">${fmt(subTotal)}</td></tr>
-        <tr><td class="lbl">VAT (5%)</td><td class="val">${fmt(vatAmt)}</td></tr>
-        <tr class="grand"><td class="lbl">Total (OMR)</td><td class="val">${fmt(grand)}</td></tr></table></div>
-        <div class="terms"><b>Payment Terms:</b> ${paymentTerms}<br/><br/>
-        <b>Terms &amp; Conditions:</b><ul>${terms.split("\n").map((t) => t.trim()).filter(Boolean).map((t) => `<li>${t}</li>`).join("")}</ul>
-        All cheques payable to <b>Modern Lifestyle</b>. &nbsp; IBAN: OM110270323021625490018 &nbsp; SWIFT: BMUSOMRXXXX<br/>
-        Quotation Validity: ${validity}
-        <div class="sig">To approve, please sign &amp; return with a PO. &nbsp;&nbsp; Received by: ____________ &nbsp;&nbsp; Date: ____________ &nbsp;&nbsp; Signature: ____________<br/><br/>
-        <b>Modern Lifestyle L.L.C.</b> — Authorised Signatory</div></div>`;
+        <div class="qsplit">
+          <div class="qpay"><b>Payment Terms:</b> ${paymentTerms}</div>
+          <div class="qtot"><table class="qtotals">
+          <tr><td class="qlbl">Sub Total</td><td class="qval">${fmt(subTotal)} OMR</td></tr>
+          <tr><td class="qlbl">Vat 5%</td><td class="qval">${fmt(vatAmt)} OMR</td></tr>
+          <tr class="qgrand"><td class="qlbl">Total Amount</td><td class="qval">${fmt(grand)} OMR</td></tr></table></div>
+        </div>
+        <div class="qterms"><b>Terms &amp; Conditions:</b>${termLines}</div>
+        <div class="qapprove">
+        To approve the quotation, please sign &amp; return with a PO.<br/>
+        Received by: ____________<br/>
+        Date: ____________<br/>
+        Signature: ____________<br/><br/>
+        <span class="acc"><b>Please Note:</b> All Cheques must be made payable to <b>Modern Lifestyle</b></span><br/>
+        <span class="acc">Quotation Validity: ${validity}</span>
+        </div>`;
     } else if (type === "invoice") {
       const rows = lines.map((l, i) => { const tx = lineTotal(l); const v = r3(tx * VAT);
         return `<tr><td class="c num">${String(i + 1).padStart(2, "0")}</td><td class="l">${l.description.replace(/\n/g, "<br/>")}</td>
@@ -332,8 +395,8 @@ export default function QuoteWizard() {
         <input type="date" className="bg-gray-800 rounded px-3 py-2" value={docDate} onChange={(e) => setDocDate(e.target.value)} />
       </div>
 
-      <details className="mb-3 bg-gray-900 border border-gray-800 rounded">
-        <summary className="cursor-pointer px-3 py-2 text-sm text-gray-300 select-none">Terms &amp; Conditions (editable — used on the generated quote)</summary>
+      <details open className="mb-3 bg-gray-900 border border-gray-800 rounded">
+        <summary className="cursor-pointer px-3 py-2 text-sm text-gray-300 select-none font-semibold">Terms &amp; Conditions (editable — used on the generated quote)</summary>
         <div className="p-3 pt-0 space-y-2">
           <div>
             <label className="text-xs text-gray-400">Payment Terms</label>
