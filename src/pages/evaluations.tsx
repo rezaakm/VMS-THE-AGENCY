@@ -130,7 +130,7 @@ export default function EvaluationsPage() {
                   <div className="text-xs text-muted-foreground mt-1">{e.evaluationDate}{e.evaluator ? ` · ${e.evaluator}` : ""}</div>
                 </div>
                 <div className="text-right shrink-0">
-                  <div className="text-2xl font-bold text-primary">{e.overallScore}<span className="text-sm text-muted-foreground">/5</span></div>
+                  <div className="text-2xl font-bold text-primary">{e.overallScore ?? "—"}<span className="text-sm text-muted-foreground">/5</span></div>
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-2 text-xs">
@@ -141,7 +141,7 @@ export default function EvaluationsPage() {
               </div>
               <div className="text-xs">
                 <span className="text-muted-foreground">Would recommend: </span>
-                <span className={`font-semibold ${e.wouldRecommend === "yes" ? "text-emerald-400" : e.wouldRecommend === "no" ? "text-red-400" : "text-yellow-400"}`}>{e.wouldRecommend.toUpperCase()}</span>
+                <span className={`font-semibold ${e.wouldRecommend === "yes" ? "text-emerald-400" : e.wouldRecommend === "no" ? "text-red-400" : "text-yellow-400"}`}>{(e.wouldRecommend ?? "—").toUpperCase()}</span>
               </div>
               {e.comments && <p className="text-xs text-muted-foreground border-t border-border pt-2 line-clamp-3">{e.comments}</p>}
               <div className="flex justify-end gap-1 pt-1">
