@@ -1,13 +1,13 @@
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import {
-  UserCircle, FileText, ArrowDownLeft, Search, Building2,
+  UserCircle, FileText, Building2, Trophy, Target,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
 import { PageHeader } from "@/components/ui/page-header";
 import { StatCard } from "@/components/ui/stat-card";
-import { TableEmpty, TableSkeleton, FilterSelect } from "@/components/table-controls";
+import { TableEmpty, TableSkeleton, FilterSelect, TableToolbar, SortHeader, Pagination } from "@/components/table-controls";
+import { useTableControls } from "@/hooks/use-table-controls";
 import { formatOMR } from "@/lib/utils";
 import { supabase } from "@/lib/supabase";
 
@@ -26,6 +26,16 @@ interface ClientRecord {
   activeEnquiries: number;
   hasWonWork: boolean;
   lastActivity: string | null;
+  // analytics derived from this client's quotations
+  wonCount: number;
+  wonValue: number;
+  lostCount: number;
+  decided: number;
+  successRate: number | null;
+  rejectRate: number | null;
+  jobsPerMonth: number;
+  /** internal: track distinct YYYY-MM keys spanned by quotations */
+  _months: Set<string>;
 }
 
 function useClients() {
@@ -54,21 +64,37 @@ function useClients() {
             activeEnquiries: 0,
             hasWonWork: false,
             lastActivity: null,
+            wonCount: 0,
+            wonValue: 0,
+            lostCount: 0,
+            decided: 0,
+            successRate: null,
+            rejectRate: null,
+            jobsPerMonth: 0,
+            _months: new Set<string>(),
           });
         }
         return clientMap.get(key)!;
       };
 
-      // Quotations
+      // Quotations — source of all conversion analytics
       for (const q of quotRes.data ?? []) {
         const name = q.client;
         if (!name) continue;
         const c = getOrCreate(name);
         c.quotationCount++;
         c.quotationValue += num(q.totalAmount);
-        if ((q.status ?? "").toLowerCase() === "approved") c.hasWonWork = true;
-        if (q.createdAt && (!c.lastActivity || q.createdAt > c.lastActivity)) {
-          c.lastActivity = q.createdAt;
+        const status = (q.status ?? "").toLowerCase();
+        if (status === "approved") {
+          c.hasWonWork = true;
+          c.wonCount++;
+          c.wonValue += num(q.totalAmount);
+        } else if (status === "rejected") {
+          c.lostCount++;
+        }
+        if (q.createdAt) {
+          c._months.add(String(q.createdAt).slice(0, 7)); // YYYY-MM
+          if (!c.lastActivity || q.createdAt > c.lastActivity) c.lastActivity = q.createdAt;
         }
       }
 
@@ -101,6 +127,15 @@ function useClients() {
         }
       }
 
+      // Finalise derived conversion metrics
+      for (const c of clientMap.values()) {
+        c.decided = c.wonCount + c.lostCount;
+        c.successRate = c.decided > 0 ? c.wonCount / c.decided : null;
+        c.rejectRate = c.decided > 0 ? c.lostCount / c.decided : null;
+        const monthSpan = Math.max(1, c._months.size);
+        c.jobsPerMonth = Math.round((c.quotationCount / monthSpan) * 10) / 10;
+      }
+
       return Array.from(clientMap.values()).sort((a, b) =>
         b.quotationValue - a.quotationValue
       );
@@ -109,32 +144,58 @@ function useClients() {
   });
 }
 
+/** Win-rate dot colour: green >=60%, amber 30-59%, red <30%. */
+function rateDot(rate: number | null): { dot: string; text: string } {
+  if (rate == null) return { dot: "", text: "text-muted-foreground" };
+  if (rate >= 0.6) return { dot: "bg-emerald-400", text: "text-emerald-400" };
+  if (rate >= 0.3) return { dot: "bg-amber-400", text: "text-amber-400" };
+  return { dot: "bg-rose-400", text: "text-rose-400" };
+}
+
+const pct = (r: number | null) => (r == null ? "—" : `${Math.round(r * 100)}%`);
+
 export default function Clients() {
   const { data: clients, isLoading } = useClients();
-  const [search, setSearch] = useState("");
   const [wonFilter, setWonFilter] = useState("all");
 
-  const filtered = (clients ?? []).filter((c) => {
-    if (!c.name.toLowerCase().includes(search.toLowerCase())) return false;
+  const ctl = useTableControls<ClientRecord, "winRate" | "wonValue" | "quotedValue" | "jobs", never>({
+    data: clients,
+    searchFields: (c) => [c.name],
+    sortAccessors: {
+      winRate: (c) => (c.successRate == null ? -1 : c.successRate),
+      wonValue: (c) => c.wonValue,
+      quotedValue: (c) => c.quotationValue,
+      jobs: (c) => c.jobsPerMonth,
+    },
+    defaultSort: { key: "quotedValue", dir: "desc" },
+    pageSize: 25,
+  });
+
+  // Won/not filter sits alongside the table-controls search.
+  const rows = ctl.rows.filter((c) => {
     if (wonFilter === "won" && !c.hasWonWork) return false;
     if (wonFilter === "none" && c.hasWonWork) return false;
     return true;
   });
 
+  // Aggregate KPIs across all clients
   const totalClients = clients?.length ?? 0;
   const totalQuotationValue = (clients ?? []).reduce((s, c) => s + c.quotationValue, 0);
-  const totalAR = (clients ?? []).reduce((s, c) => s + c.arOutstanding, 0);
+  const totalBusinessWon = (clients ?? []).reduce((s, c) => s + c.wonValue, 0);
+  const aggWon = (clients ?? []).reduce((s, c) => s + c.wonCount, 0);
+  const aggDecided = (clients ?? []).reduce((s, c) => s + c.decided, 0);
+  const overallWinRate = aggDecided > 0 ? aggWon / aggDecided : null;
 
   return (
     <div className="flex flex-col gap-4 animate-in fade-in duration-300">
       <PageHeader
         title="Clients"
-        description="Account list derived from quotations and invoices"
+        description="Conversion analytics derived from quotations and invoices"
         showScope
       />
 
       {/* KPIs */}
-      <div className="grid gap-3 sm:grid-cols-3">
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard
           loading={isLoading}
           title="Total Clients"
@@ -143,30 +204,37 @@ export default function Clients() {
         />
         <StatCard
           loading={isLoading}
+          title="Total Business Won"
+          value={formatOMR(totalBusinessWon)}
+          icon={Trophy}
+          accent="positive"
+        />
+        <StatCard
+          loading={isLoading}
+          title="Overall Win Rate"
+          value={pct(overallWinRate)}
+          icon={Target}
+          accent={overallWinRate != null && overallWinRate >= 0.5 ? "positive" : "info"}
+          sub={aggDecided > 0 ? `${aggWon} won of ${aggDecided} decided` : "No decided quotes yet"}
+        />
+        <StatCard
+          loading={isLoading}
           title="Total Quoted Value"
           value={formatOMR(totalQuotationValue)}
           icon={FileText}
         />
-        <StatCard
-          loading={isLoading}
-          title="Total AR Outstanding"
-          value={formatOMR(totalAR)}
-          icon={ArrowDownLeft}
-          accent={totalAR > 0 ? "negative" : "default"}
-        />
       </div>
 
-      {/* Search + filter */}
-      <div className="flex flex-wrap items-center gap-2">
-        <div className="relative max-w-sm flex-1 min-w-[220px]">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <Input
-            placeholder="Search clients..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="pl-9"
-          />
-        </div>
+      {/* Search + won/not filter */}
+      <TableToolbar
+        search={ctl.search}
+        onSearch={ctl.setSearch}
+        searchPlaceholder="Search clients..."
+        totalCount={totalClients}
+        filteredCount={rows.length}
+        hasActiveFilters={wonFilter !== "all"}
+        onClearFilters={() => { ctl.clearFilters(); setWonFilter("all"); }}
+      >
         <FilterSelect
           value={wonFilter}
           onChange={setWonFilter}
@@ -176,17 +244,17 @@ export default function Clients() {
           ]}
           placeholder="All clients"
         />
-      </div>
+      </TableToolbar>
 
       {/* Client Table */}
       <div className="bg-card border border-card-border rounded-lg overflow-hidden">
         {isLoading ? (
-          <TableSkeleton rows={8} cols={6} />
-        ) : filtered.length === 0 ? (
+          <TableSkeleton rows={8} cols={7} />
+        ) : rows.length === 0 ? (
           <TableEmpty
             icon={UserCircle}
-            title={search ? "No matching clients" : "No clients yet"}
-            description={search ? "Try a different search term." : "Clients appear here once quotations or invoices exist."}
+            title={ctl.search || wonFilter !== "all" ? "No matching clients" : "No clients yet"}
+            description={ctl.search || wonFilter !== "all" ? "Try a different search or filter." : "Clients appear here once quotations or invoices exist."}
           />
         ) : (
           <div className="overflow-x-auto">
@@ -194,62 +262,100 @@ export default function Clients() {
               <thead className="bg-card/95 backdrop-blur sticky top-0 z-10">
                 <tr className="border-b border-card-border">
                   <th className="text-left px-3 py-2.5 text-[11px] uppercase tracking-wider text-muted-foreground font-medium">Client</th>
-                  <th title="Active enquiries in the pipeline (total enquiries on hover badge)" className="text-right px-3 py-2.5 text-[11px] uppercase tracking-wider text-muted-foreground font-medium">Enquiries</th>
-                  <th title="Number of quotations sent to this client" className="text-right px-3 py-2.5 text-[11px] uppercase tracking-wider text-muted-foreground font-medium">Quotations</th>
-                  <th title="Sum of this client's quotation totals" className="text-right px-3 py-2.5 text-[11px] uppercase tracking-wider text-muted-foreground font-medium">Quoted Value</th>
-                  <th title="Number of sales invoices issued to this client" className="text-right px-3 py-2.5 text-[11px] uppercase tracking-wider text-muted-foreground font-medium hidden sm:table-cell">Invoices</th>
-                  <th title="Unpaid receivable balance owed by this client" className="text-right px-3 py-2.5 text-[11px] uppercase tracking-wider text-muted-foreground font-medium hidden sm:table-cell">AR Outstanding</th>
-                  <th title="Most recent enquiry, quotation, or invoice date" className="text-left px-3 py-2.5 text-[11px] uppercase tracking-wider text-muted-foreground font-medium hidden md:table-cell">Last Activity</th>
+                  <SortHeader label="Win Rate" sortKey="winRate" current={ctl.sort} onToggle={ctl.toggleSort} className="!text-right" />
+                  <SortHeader label="Won" sortKey="wonValue" current={ctl.sort} onToggle={ctl.toggleSort} className="!text-right" />
+                  <th title="Share of decided quotes that were rejected" className="text-right px-3 py-2.5 text-[11px] uppercase tracking-wider text-muted-foreground font-medium hidden sm:table-cell">Reject Rate</th>
+                  <th title="Number of quotations sent to this client" className="text-right px-3 py-2.5 text-[11px] uppercase tracking-wider text-muted-foreground font-medium hidden md:table-cell">Quotations</th>
+                  <SortHeader label="Quoted Value" sortKey="quotedValue" current={ctl.sort} onToggle={ctl.toggleSort} className="!text-right" />
+                  <SortHeader label="Jobs/mo" sortKey="jobs" current={ctl.sort} onToggle={ctl.toggleSort} className="!text-right hidden lg:table-cell" />
+                  <th title="Number of sales invoices issued to this client" className="text-right px-3 py-2.5 text-[11px] uppercase tracking-wider text-muted-foreground font-medium hidden lg:table-cell">Invoices</th>
+                  <th title="Unpaid receivable balance owed by this client" className="text-right px-3 py-2.5 text-[11px] uppercase tracking-wider text-muted-foreground font-medium hidden xl:table-cell">AR Outstanding</th>
+                  <th title="Most recent enquiry, quotation, or invoice date" className="text-left px-3 py-2.5 text-[11px] uppercase tracking-wider text-muted-foreground font-medium hidden xl:table-cell">Last Activity</th>
                 </tr>
               </thead>
               <tbody>
-                {filtered.map((client) => (
-                  <tr key={client.name} className="border-b border-border/40 hover:bg-muted/40 transition-colors">
-                    <td className="px-3 py-2.5">
-                      <div className="flex items-center gap-2">
-                        <Building2 className="w-4 h-4 text-muted-foreground shrink-0" />
-                        <span className="font-medium text-foreground">{client.name}</span>
-                      </div>
-                    </td>
-                    <td className="px-3 py-2.5 text-right">
-                      {client.activeEnquiries > 0 ? (
-                        <Badge variant="info" className="tabular-nums text-[10px]">
-                          {client.activeEnquiries} active
-                        </Badge>
-                      ) : client.enquiryCount > 0 ? (
-                        <span className="text-muted-foreground text-xs tabular-nums">{client.enquiryCount}</span>
-                      ) : (
-                        <span className="text-muted-foreground">—</span>
-                      )}
-                    </td>
-                    <td className="px-3 py-2.5 text-right text-muted-foreground tabular-nums text-xs">
-                      {client.quotationCount || "—"}
-                    </td>
-                    <td className="px-3 py-2.5 text-right font-mono text-sm tabular-nums text-foreground whitespace-nowrap">
-                      {formatOMR(client.quotationValue)}
-                    </td>
-                    <td className="px-3 py-2.5 text-right text-muted-foreground tabular-nums text-xs hidden sm:table-cell">
-                      {client.invoiceCount || "—"}
-                    </td>
-                    <td className={`px-3 py-2.5 text-right font-mono text-sm tabular-nums whitespace-nowrap hidden sm:table-cell ${client.arOutstanding > 0 ? "text-amber-400" : "text-muted-foreground"}`}>
-                      {client.arOutstanding > 0 ? formatOMR(client.arOutstanding) : "—"}
-                    </td>
-                    <td className="px-3 py-2.5 text-muted-foreground text-xs whitespace-nowrap hidden md:table-cell">
-                      {client.lastActivity
-                        ? new Date(client.lastActivity).toLocaleDateString("en-GB", {
-                            day: "2-digit",
-                            month: "short",
-                            year: "numeric",
-                          })
-                        : "—"}
-                    </td>
-                  </tr>
-                ))}
+                {rows.map((client) => {
+                  const rd = rateDot(client.successRate);
+                  return (
+                    <tr key={client.name} className="border-b border-border/40 hover:bg-muted/40 transition-colors">
+                      <td className="px-3 py-2.5">
+                        <div className="flex items-center gap-2">
+                          <Building2 className="w-4 h-4 text-muted-foreground shrink-0" />
+                          <span className="font-medium text-foreground">{client.name}</span>
+                          {client.activeEnquiries > 0 && (
+                            <Badge variant="info" className="tabular-nums text-[10px]">
+                              {client.activeEnquiries} active
+                            </Badge>
+                          )}
+                        </div>
+                      </td>
+                      <td className="px-3 py-2.5 text-right">
+                        {client.successRate == null ? (
+                          <span className="text-muted-foreground">—</span>
+                        ) : (
+                          <span className="inline-flex items-center justify-end gap-1.5 tabular-nums">
+                            <span className={`inline-block w-1.5 h-1.5 rounded-full ${rd.dot}`} />
+                            <span className={`font-medium ${rd.text}`}>{pct(client.successRate)}</span>
+                          </span>
+                        )}
+                      </td>
+                      <td className="px-3 py-2.5 text-right whitespace-nowrap">
+                        {client.wonCount > 0 ? (
+                          <span className="tabular-nums">
+                            <span className="text-foreground font-medium">{client.wonCount}</span>
+                            <span className="text-muted-foreground/60 mx-1">·</span>
+                            <span className="font-mono text-xs text-emerald-400">{formatOMR(client.wonValue)}</span>
+                          </span>
+                        ) : (
+                          <span className="text-muted-foreground">—</span>
+                        )}
+                      </td>
+                      <td className="px-3 py-2.5 text-right tabular-nums text-xs hidden sm:table-cell text-muted-foreground">
+                        {client.rejectRate == null ? "—" : pct(client.rejectRate)}
+                      </td>
+                      <td className="px-3 py-2.5 text-right text-muted-foreground tabular-nums text-xs hidden md:table-cell">
+                        {client.quotationCount || "—"}
+                      </td>
+                      <td className="px-3 py-2.5 text-right font-mono text-sm tabular-nums text-foreground whitespace-nowrap">
+                        {formatOMR(client.quotationValue)}
+                      </td>
+                      <td className="px-3 py-2.5 text-right text-muted-foreground tabular-nums text-xs hidden lg:table-cell">
+                        {client.quotationCount > 0 ? client.jobsPerMonth.toFixed(1) : "—"}
+                      </td>
+                      <td className="px-3 py-2.5 text-right text-muted-foreground tabular-nums text-xs hidden lg:table-cell">
+                        {client.invoiceCount || "—"}
+                      </td>
+                      <td className={`px-3 py-2.5 text-right font-mono text-sm tabular-nums whitespace-nowrap hidden xl:table-cell ${client.arOutstanding > 0 ? "text-amber-400" : "text-muted-foreground"}`}>
+                        {client.arOutstanding > 0 ? formatOMR(client.arOutstanding) : "—"}
+                      </td>
+                      <td className="px-3 py-2.5 text-muted-foreground text-xs whitespace-nowrap hidden xl:table-cell">
+                        {client.lastActivity
+                          ? new Date(client.lastActivity).toLocaleDateString("en-GB", {
+                              day: "2-digit",
+                              month: "short",
+                              year: "numeric",
+                            })
+                          : "—"}
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
         )}
       </div>
+
+      {!isLoading && rows.length > 0 && (
+        <Pagination
+          page={ctl.page}
+          totalPages={ctl.totalPages}
+          onPage={ctl.setPage}
+          pageSize={ctl.pageSize}
+          onPageSize={ctl.setPageSize}
+          filteredCount={ctl.filteredCount}
+        />
+      )}
     </div>
   );
 }
