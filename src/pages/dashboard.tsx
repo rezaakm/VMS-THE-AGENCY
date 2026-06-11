@@ -29,14 +29,29 @@ function useDashboardData() {
   return useQuery({
     queryKey: ["dashboard", scope],
     queryFn: async () => {
-      // Bank balance — table has no entity column, so fetch all and never entity-filter
+      // Bank balance. The shared Bank Muscat account is one pot. Fitness Bay has
+      // a "virtual bank" = the net of its own tagged transactions (credit - debit).
+      // The Agency slice is the remainder, so the two slices always sum to the
+      // real total (shown in Group scope).
       const { data: bankRows } = await supabase
         .from("bank_accounts")
         .select("*");
-      const bankBalance = (bankRows ?? []).reduce(
+      const totalBank = (bankRows ?? []).reduce(
         (s, r) => s + num(r.current_balance),
         0,
       );
+      const { data: txRows } = await supabase
+        .from("bank_transactions")
+        .select("entity, debit, credit");
+      const fitnessVirtualBank = (txRows ?? [])
+        .filter((r) => r.entity === "fitnessbay")
+        .reduce((s, r) => s + num(r.credit) - num(r.debit), 0);
+      const bankBalance =
+        entityFilter === "fitnessbay"
+          ? fitnessVirtualBank
+          : entityFilter === "agency"
+            ? totalBank - fitnessVirtualBank
+            : totalBank;
 
       // AR — has entity column
       const { data: arRows } = await supabase
