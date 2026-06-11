@@ -101,32 +101,62 @@ export default function QuoteWizard() {
       *{box-sizing:border-box;}
       @page{size:A4;margin:14mm;}
       html,body{margin:0;padding:0;}
-      body{font-family:Arial,Helvetica,sans-serif;color:#222;font-size:12px;background:#fff;
+      body{font-family:Arial,Helvetica,sans-serif;color:#1f2937;font-size:12px;background:#fff;
         -webkit-print-color-adjust:exact;print-color-adjust:exact;}
       .page{width:100%;max-width:182mm;margin:0 auto;background:#fff;padding:0;}
+      .num{font-variant-numeric:tabular-nums;}
+
+      /* Header */
       .top{display:flex;justify-content:space-between;align-items:flex-start;
-        gap:16px;padding-bottom:10px;margin-bottom:14px;border-bottom:2px solid ${accent};}
-      img.logo{height:64px;width:auto;display:block;}
+        gap:16px;padding-bottom:14px;margin-bottom:20px;border-bottom:2px solid ${accent};}
+      img.logo{height:50px;width:auto;display:block;}
       .title-wrap{text-align:right;}
-      h1{font-size:24px;line-height:1.1;margin:0;color:#111;font-weight:700;letter-spacing:.5px;}
-      table{width:100%;border-collapse:collapse;margin-top:12px;table-layout:fixed;}
-      th{background:${accent};color:#fff;padding:7px 6px;font-size:10.5px;text-align:left;
-        border:1px solid ${accent};word-wrap:break-word;overflow-wrap:break-word;}
-      td{padding:6px;border:1px solid #cfd8dc;vertical-align:top;font-size:10.5px;
+      h1{font-size:22px;line-height:1.1;margin:0;color:#111;font-weight:700;
+        letter-spacing:2px;text-transform:uppercase;}
+
+      /* Info block */
+      .meta{width:100%;border-collapse:collapse;margin:0 0 8px 0;table-layout:fixed;}
+      .meta td{padding:6px 10px;vertical-align:top;font-size:11px;
+        border-bottom:1px solid #eef2f5;word-wrap:break-word;overflow-wrap:break-word;}
+      .meta .k{width:120px;white-space:nowrap;color:#6b7280;font-weight:600;
+        text-transform:uppercase;font-size:9.5px;letter-spacing:.5px;background:#f6f8fa;}
+      .meta .v{color:#1f2937;}
+
+      /* Line-items table */
+      table.items{width:100%;border-collapse:collapse;margin-top:18px;table-layout:fixed;}
+      .items th{background:#111827;color:#fff;padding:8px 8px;font-size:10px;text-align:left;
+        font-weight:600;text-transform:uppercase;letter-spacing:.4px;
         word-wrap:break-word;overflow-wrap:break-word;}
-      .meta{margin-top:0;}
-      .meta td{border:1px solid #cfd8dc;}
-      .meta .k{background:${accent};color:#fff;font-weight:bold;width:120px;white-space:nowrap;}
-      .items td:first-child,.items th:first-child{width:34px;text-align:center;}
-      .r{text-align:right;} .c{text-align:center;}
+      .items td{padding:7px 8px;border-bottom:1px solid #e7ebee;vertical-align:top;
+        font-size:10.5px;word-wrap:break-word;overflow-wrap:break-word;}
+      .items tbody tr:nth-child(even) td{background:#fafbfc;}
+      .r{text-align:right;} .c{text-align:center;} .l{text-align:left;}
+
+      /* Totals */
+      .tot-wrap{display:flex;justify-content:flex-end;margin-top:14px;}
+      table.totals{width:62%;max-width:300px;border-collapse:collapse;table-layout:fixed;}
+      .totals td{padding:6px 10px;font-size:11px;border-bottom:1px solid #eef2f5;}
+      .totals td.lbl{color:#6b7280;text-align:right;}
+      .totals td.val{text-align:right;font-variant-numeric:tabular-nums;color:#1f2937;}
+      .totals tr.grand td{border-top:2px solid ${accent};border-bottom:none;
+        font-weight:700;font-size:12.5px;color:#111;padding-top:8px;}
+      .totals tr.grand td.lbl{color:#111;text-transform:uppercase;letter-spacing:.5px;}
+
       tr,td,th,table{page-break-inside:avoid;}
-      .tot{background:${accent};color:#fff;font-weight:bold;}
-      .terms{margin-top:16px;font-size:10.5px;line-height:1.5;}
-      .terms ul{margin:6px 0 6px 18px;padding:0;}
+
+      /* Terms / notes */
+      .terms{margin-top:20px;font-size:10px;line-height:1.55;color:#374151;}
+      .terms b{color:#111;}
+      .terms ul{margin:6px 0 6px 16px;padding:0;}
       .terms li{margin-bottom:3px;}
-      .foot{margin-top:26px;border-top:2px solid ${accent};padding-top:8px;
-        color:${accent};font-size:9.5px;line-height:1.6;text-align:center;width:100%;}
-      .printbtn{margin-top:18px;padding:8px 16px;border:0;border-radius:4px;
+      .sig{margin-top:14px;padding-top:10px;border-top:1px solid #eef2f5;font-size:10px;color:#374151;}
+
+      /* Footer */
+      .foot{margin-top:30px;border-top:1px solid ${accent};padding-top:10px;
+        color:#6b7280;font-size:9px;line-height:1.7;text-align:left;width:100%;}
+      .foot b{color:#374151;}
+
+      .printbtn{margin-top:22px;padding:8px 16px;border:0;border-radius:4px;
         background:${accent};color:#fff;font-size:12px;cursor:pointer;}
       @media print{.printbtn{display:none;}body{padding:0;}}
     `;
@@ -136,63 +166,80 @@ export default function QuoteWizard() {
         <div class="title-wrap"><h1>${title}</h1></div>
       </div>
       <table class="meta">${metaRows}</table>`;
-    const foot = `<div class="foot">Web: theagencyoman.com &nbsp;|&nbsp; Email: info@theagencyoman.com &nbsp;|&nbsp; Phone: +968 9317 1717<br/>
-      Address: Azaiba, Muscat, P.O. Box 544, Postal Code 114, Kalbu &nbsp;|&nbsp; Modern Lifestyle L.L.C., C.R. No. 1156928</div>`;
+    // info-block row helper — omits the row entirely when the value is empty
+    const row = (k: string, v: string) =>
+      v && String(v).trim() ? `<tr><td class="k">${k}</td><td class="v">${v}</td></tr>` : "";
+    const foot = `<div class="foot">
+      <b>Modern Lifestyle L.L.C.</b> &nbsp;|&nbsp; C.R. No. 1156928<br/>
+      Web: theagencyoman.com &nbsp;|&nbsp; Email: info@theagencyoman.com &nbsp;|&nbsp; Phone: +968 9317 1717<br/>
+      Address: Azaiba, Muscat, P.O. Box 544, Postal Code 114, Sultanate of Oman</div>`;
 
     let body = "";
     if (type === "quote") {
-      const rows = lines.map((l, i) => `<tr><td class="c">${i + 1}</td><td>${l.description.replace(/\n/g, "<br/>")}</td>
-        <td class="c">${l.qty}</td><td class="r">${fmt(sell(l))}</td><td class="r">${fmt(lineTotal(l))} OMR</td></tr>`).join("");
+      const rows = lines.map((l, i) => `<tr><td class="c num">${i + 1}</td><td class="l">${l.description.replace(/\n/g, "<br/>")}</td>
+        <td class="r num">${l.qty}</td><td class="r num">${fmt(sell(l))}</td><td class="r num">${fmt(lineTotal(l))}</td></tr>`).join("");
       body = head("Quotation", `
-        <tr><td class="k">To</td><td>${client}</td></tr>
-        <tr><td class="k">Date</td><td>${dateStr}</td></tr>
-        <tr><td class="k">S. N</td><td>${refNo}</td></tr>
-        <tr><td class="k">Subject</td><td>Quotation</td></tr>
-        <tr><td class="k">Scope of Work</td><td>${scope}</td></tr>`) + `
+        ${row("To", client)}
+        ${row("Date", dateStr)}
+        ${row("S. N", refNo)}
+        ${row("Subject", "Quotation")}
+        ${row("Scope of Work", scope)}`) + `
         <table class="items">
-        <colgroup><col style="width:34px"/><col/><col style="width:48px"/><col style="width:90px"/><col style="width:110px"/></colgroup>
-        <tr><th>No.</th><th>Description</th><th>Qty</th><th>Unit Cost</th><th>Total Amount</th></tr>${rows}
-        <tr><td colspan="4" class="r tot">Sub Total</td><td class="r">${fmt(subTotal)} OMR</td></tr>
-        <tr><td colspan="4" class="r tot">VAT 5%</td><td class="r">${fmt(vatAmt)} OMR</td></tr>
-        <tr><td colspan="4" class="r tot">Total Amount</td><td class="r tot">${fmt(grand)} OMR</td></tr></table>
+        <colgroup><col style="width:34px"/><col/><col style="width:48px"/><col style="width:96px"/><col style="width:112px"/></colgroup>
+        <thead><tr><th class="c">No.</th><th>Description</th><th class="r">Qty</th><th class="r">Unit Price (OMR)</th><th class="r">Total (OMR)</th></tr></thead>
+        <tbody>${rows}</tbody></table>
+        <div class="tot-wrap"><table class="totals">
+        <tr><td class="lbl">Sub Total</td><td class="val">${fmt(subTotal)}</td></tr>
+        <tr><td class="lbl">VAT (5%)</td><td class="val">${fmt(vatAmt)}</td></tr>
+        <tr class="grand"><td class="lbl">Total (OMR)</td><td class="val">${fmt(grand)}</td></tr></table></div>
         <div class="terms"><b>Payment Terms:</b> 50% advance with LPO as confirmation. Remaining 50% payable on day of delivery.<br/><br/>
         <b>Terms &amp; Conditions:</b><ul>
         <li>Pricing is indicative and may be revised based on final design, dimensions, and materials.</li>
         <li>Delivery timeline: 5–7 working days. Delivery within Muscat included; other locations on request.</li>
         <li>Cancellation/rescheduling: notice at least 7 days before production. Cancellation after production starts incurs 100%.</li>
         <li>The Agency is not responsible for damage caused by weather, force majeure, or mishandling by others.</li></ul>
-        To approve, please sign &amp; return with a PO. &nbsp; Received by: ______ &nbsp; Date: ______ &nbsp; Signature: ______<br/><br/>
-        All cheques payable to <b>Modern Lifestyle</b>. IBAN: OM110270323021625490018 &nbsp; SWIFT: BMUSOMRXXXX<br/>
-        Quotation Validity: 7 Working Days<br/><br/><b>Modern Lifestyle L.L.C.</b> — Authorised Signatory</div>`;
+        All cheques payable to <b>Modern Lifestyle</b>. &nbsp; IBAN: OM110270323021625490018 &nbsp; SWIFT: BMUSOMRXXXX<br/>
+        Quotation Validity: 7 Working Days
+        <div class="sig">To approve, please sign &amp; return with a PO. &nbsp;&nbsp; Received by: ____________ &nbsp;&nbsp; Date: ____________ &nbsp;&nbsp; Signature: ____________<br/><br/>
+        <b>Modern Lifestyle L.L.C.</b> — Authorised Signatory</div></div>`;
     } else if (type === "invoice") {
       const rows = lines.map((l, i) => { const tx = lineTotal(l); const v = r3(tx * VAT);
-        return `<tr><td class="c">${String(i + 1).padStart(2, "0")}</td><td>${l.description.replace(/\n/g, "<br/>")}</td>
-        <td class="c">${l.qty} Nos</td><td class="r">${fmt(sell(l))}</td><td class="r">${fmt(tx)}</td><td class="c">5%</td>
-        <td class="r">${fmt(v)}</td><td class="r">${fmt(r3(tx + v))}</td></tr>`; }).join("");
-      body = head("TAX INVOICE", `
-        <tr><td class="k">To</td><td>${client}</td><td class="k">Invoice No</td><td>${refNo}</td></tr>
-        <tr><td class="k">Invoice Date</td><td>${dateStr}</td><td class="k">Your LPO No</td><td></td></tr>
-        <tr><td class="k">Place of Supply</td><td>Sultanate of Oman</td><td class="k">VATIN</td><td>OM1100057497</td></tr>`) + `
+        return `<tr><td class="c num">${String(i + 1).padStart(2, "0")}</td><td class="l">${l.description.replace(/\n/g, "<br/>")}</td>
+        <td class="r num">${l.qty}</td><td class="r num">${fmt(sell(l))}</td><td class="r num">${fmt(tx)}</td>
+        <td class="r num">${fmt(v)}</td><td class="r num">${fmt(r3(tx + v))}</td></tr>`; }).join("");
+      body = head("Tax Invoice", `
+        ${row("To", client)}
+        ${row("Invoice No", refNo)}
+        ${row("Invoice Date", dateStr)}
+        ${row("Place of Supply", "Sultanate of Oman")}
+        ${row("VATIN", "OM1100057497")}`) + `
         <table class="items">
-        <colgroup><col style="width:30px"/><col/><col style="width:54px"/><col style="width:64px"/><col style="width:70px"/><col style="width:42px"/><col style="width:62px"/><col style="width:70px"/></colgroup>
-        <tr><th>SL</th><th>Description</th><th>Qty</th><th>Rate</th><th>Taxable</th><th>VAT%</th><th>VAT</th><th>Total</th></tr>${rows}
-        <tr><td colspan="4" class="r tot">Totals</td><td class="r tot">${fmt(subTotal)}</td><td></td><td class="r tot">${fmt(vatAmt)}</td><td class="r tot">${fmt(grand)}</td></tr></table>
-        <div class="terms"><b>Bank:</b> Modern Lifestyle LLC &nbsp; A/C 0323021625490018 &nbsp; Bank Muscat, Bousher &nbsp; SWIFT BMUSOMRXXXX<br/>
-        Invoice Total (OMR): <b>${fmt(grand)}</b></div>`;
+        <colgroup><col style="width:30px"/><col/><col style="width:50px"/><col style="width:74px"/><col style="width:80px"/><col style="width:74px"/><col style="width:82px"/></colgroup>
+        <thead><tr><th class="c">SL</th><th>Description</th><th class="r">Qty</th><th class="r">Rate</th><th class="r">Taxable</th><th class="r">VAT (5%)</th><th class="r">Total</th></tr></thead>
+        <tbody>${rows}</tbody></table>
+        <div class="tot-wrap"><table class="totals">
+        <tr><td class="lbl">Total Taxable</td><td class="val">${fmt(subTotal)}</td></tr>
+        <tr><td class="lbl">Total VAT (5%)</td><td class="val">${fmt(vatAmt)}</td></tr>
+        <tr class="grand"><td class="lbl">Grand Total (OMR)</td><td class="val">${fmt(grand)}</td></tr></table></div>
+        <div class="terms"><b>Bank Details:</b> Modern Lifestyle LLC &nbsp;|&nbsp; A/C 0323021625490018 &nbsp;|&nbsp; Bank Muscat, Bousher<br/>
+        IBAN: OM110270323021625490018 &nbsp;|&nbsp; SWIFT: BMUSOMRXXXX</div>`;
     } else {
-      const rows = lines.map((l, i) => `<tr><td class="c">${i + 1}</td><td>${l.description.replace(/\n/g, "<br/>")}</td>
-        <td class="c">${l.qty}</td><td class="r">${fmt(l.cost)}</td><td class="r">${fmt(r3(l.cost * l.qty))}</td>
-        <td class="r">${fmt(sell(l))}</td><td class="r">${fmt(lineTotal(l))}</td><td>${l.vendor}</td></tr>`).join("");
-      body = head("Quotation Sheet", `
-        <tr><td class="k">Company</td><td>${client}</td></tr>
-        <tr><td class="k">Date</td><td>${dateStr}</td></tr>
-        <tr><td class="k">Subject</td><td>${scope}</td></tr>`) + `
+      const rows = lines.map((l, i) => `<tr><td class="c num">${i + 1}</td><td class="l">${l.description.replace(/\n/g, "<br/>")}</td>
+        <td class="r num">${l.qty}</td><td class="r num">${fmt(l.cost)}</td><td class="r num">${fmt(r3(l.cost * l.qty))}</td>
+        <td class="r num">${fmt(sell(l))}</td><td class="r num">${fmt(lineTotal(l))}</td><td class="l">${l.vendor}</td></tr>`).join("");
+      body = head("Cost Sheet", `
+        ${row("Company", client)}
+        ${row("Date", dateStr)}
+        ${row("Subject", scope)}`) + `
         <table class="items">
-        <colgroup><col style="width:30px"/><col/><col style="width:42px"/><col style="width:62px"/><col style="width:66px"/><col style="width:62px"/><col style="width:66px"/><col style="width:90px"/></colgroup>
-        <tr><th>No.</th><th>Description</th><th>Qty</th><th>Unit Cost</th><th>Total Cost</th><th>Unit Sell</th><th>Total Sell</th><th>Vendor</th></tr>${rows}
-        <tr><td colspan="4" class="r tot">Sub Total</td><td class="r">${fmt(totalCost)}</td><td></td><td class="r">${fmt(subTotal)}</td><td></td></tr>
-        <tr><td colspan="6" class="r tot">VAT 5%</td><td class="r">${fmt(vatAmt)}</td><td></td></tr>
-        <tr><td colspan="6" class="r tot">TOTAL</td><td class="r tot">${fmt(grand)}</td><td></td></tr></table>`;
+        <colgroup><col style="width:28px"/><col/><col style="width:38px"/><col style="width:58px"/><col style="width:62px"/><col style="width:58px"/><col style="width:62px"/><col style="width:78px"/></colgroup>
+        <thead><tr><th class="c">No.</th><th>Description</th><th class="r">Qty</th><th class="r">Unit Cost</th><th class="r">Total Cost</th><th class="r">Unit Sell</th><th class="r">Total Sell</th><th>Vendor</th></tr></thead>
+        <tbody>${rows}</tbody></table>
+        <div class="tot-wrap"><table class="totals">
+        <tr><td class="lbl">Total Cost</td><td class="val">${fmt(totalCost)}</td></tr>
+        <tr><td class="lbl">Sub Total (Sell)</td><td class="val">${fmt(subTotal)}</td></tr>
+        <tr><td class="lbl">VAT (5%)</td><td class="val">${fmt(vatAmt)}</td></tr>
+        <tr class="grand"><td class="lbl">Total (OMR)</td><td class="val">${fmt(grand)}</td></tr></table></div>`;
     }
 
     const w = window.open("", "_blank");
