@@ -15,12 +15,21 @@ import { VoiceButton } from "@/components/ui/voice-button";
 import { PageHeader } from "@/components/ui/page-header";
 import { StatusBadge } from "@/components/ui/badge";
 import { formatOMR } from "@/lib/utils";
+import { format } from "date-fns";
 import { useTableControls } from "@/hooks/use-table-controls";
 import { TableToolbar, FilterSelect, SortHeader, Pagination, RowAction, TableSkeleton, TableEmpty } from "@/components/table-controls";
 
 function num(v: any): number {
   const n = typeof v === "string" ? parseFloat(v) : v;
   return Number.isFinite(n) ? n : 0;
+}
+
+// Real quotations rows expose `createdAt` (ISO string). Format defensively so a
+// missing / malformed value never throws.
+function fmtDate(v: any): string {
+  if (!v) return "—";
+  const d = new Date(v);
+  return isNaN(d.getTime()) ? "—" : format(d, "dd MMM yyyy");
 }
 
 // Real DB statuses are draft / sent / accepted. Keep approved/rejected in the
@@ -61,12 +70,12 @@ export default function Quotations() {
 
   const ctl = useTableControls<NonNullable<typeof quotations>[0], "sn" | "client" | "subject" | "date" | "status", "status">({
     data: quotations,
-    searchFields: (q) => [q.serialNumber, q.clientName, q.clientCompany, q.subject, q.scopeOfWork],
+    searchFields: (q) => [q.quotationNumber, q.client, q.title],
     sortAccessors: {
-      sn: (q) => parseInt(q.serialNumber, 10) || 0,
-      client: (q) => q.clientName,
-      subject: (q) => q.subject,
-      date: (q) => new Date(q.quotationDate),
+      sn: (q) => parseInt(q.quotationNumber, 10) || 0,
+      client: (q) => q.client ?? "",
+      subject: (q) => q.title ?? "",
+      date: (q) => new Date(q.createdAt),
       status: (q) => STATUS_ORDER[q.status] ?? 99,
     },
     defaultSort: { key: "date", dir: "desc" },
@@ -174,15 +183,14 @@ export default function Quotations() {
               <tbody>
                 {ctl.rows.map((q) => (
                   <tr key={q.id} className="border-b border-border/40 hover:bg-muted/40 transition-colors group" data-testid={`row-quotation-${q.id}`}>
-                    <td className="px-3 py-2.5">
-                      <Link href={`/quotations/${q.id}`} className="text-primary font-mono text-xs font-semibold hover:underline">{q.serialNumber}</Link>
+                    <td className="px-3 py-2.5 text-left">
+                      <Link href={`/quotations/${q.id}`} className="text-primary font-mono text-xs font-semibold hover:underline">{q.quotationNumber}</Link>
                     </td>
-                    <td className="px-3 py-2.5">
-                      <div className="font-medium text-foreground">{q.clientName}</div>
-                      {q.clientCompany && <div className="text-xs text-muted-foreground">{q.clientCompany}</div>}
+                    <td className="px-3 py-2.5 text-left">
+                      <div className="font-medium text-foreground">{q.client}</div>
                     </td>
-                    <td className="px-3 py-2.5 text-muted-foreground hidden md:table-cell truncate max-w-[220px]">{q.subject}</td>
-                    <td className="px-3 py-2.5 text-muted-foreground font-mono text-xs whitespace-nowrap">{q.quotationDate}</td>
+                    <td className="px-3 py-2.5 text-left text-muted-foreground hidden md:table-cell truncate max-w-[220px]">{q.title}</td>
+                    <td className="px-3 py-2.5 text-muted-foreground font-mono text-xs whitespace-nowrap">{fmtDate(q.createdAt)}</td>
                     <td className="px-3 py-2.5 text-right font-mono text-sm tabular-nums text-foreground whitespace-nowrap">{formatOMR(num((q as any).totalAmount))}</td>
                     <td className="px-3 py-2.5">
                       <Select value={q.status} onValueChange={(v) => quickSetStatus(q.id, v)}>

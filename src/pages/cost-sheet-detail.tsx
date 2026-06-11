@@ -24,7 +24,9 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, Plus, Pencil, Trash2, FileText, Printer, Download } from "lucide-react";
+import { ArrowLeft, Plus, Pencil, Trash2, FileText, Printer, Download, ExternalLink } from "lucide-react";
+import { StatusBadge } from "@/components/ui/badge";
+import { format } from "date-fns";
 import { useVoiceInput } from "@/hooks/use-voice-input";
 import { VoiceButton } from "@/components/ui/voice-button";
 import { AutocompleteInput } from "@/components/ui/autocomplete-input";
@@ -73,8 +75,10 @@ export default function CostSheetDetail() {
   const [inlineEditId, setInlineEditId] = useState<number | string | null>(null);
   const [inlineForm, setInlineForm] = useState<any>({});
 
-  const { data: linkedEnquiry } = useGetEnquiry(sheet?.enquiryId ?? 0, {
-    query: { enabled: !!sheet?.enquiryId },
+  // cost_sheets uses the snake_case `enquiry_id` column.
+  const enquiryId = sheet?.enquiry_id ?? null;
+  const { data: linkedEnquiry } = useGetEnquiry(enquiryId ?? 0, {
+    query: { enabled: !!enquiryId },
   });
 
   const suggestions = useItemSuggestions();
@@ -199,7 +203,7 @@ export default function CostSheetDetail() {
       const q = await createQuotation.mutateAsync({
         data: {
           serialNumber: genForm.serialNumber,
-          enquiryId: sheet.enquiryId ?? null,
+          enquiryId: enquiryId,
           clientName: genForm.clientName,
           clientCompany: genForm.clientCompany || null,
           subject: genForm.subject,
@@ -304,11 +308,27 @@ export default function CostSheetDetail() {
           </Button>
           <div className="min-w-0">
             <div className="t-label text-muted-foreground mb-1">Internal cost sheet · vendor costs → client quotation</div>
-            <h1 className="t-page-title text-foreground truncate" data-testid="text-cost-sheet-title">{sheet.title}</h1>
-            {sheet.notes && <p className="text-xs text-muted-foreground mt-0.5">{sheet.notes}</p>}
+            <h1 className="t-page-title text-foreground truncate" data-testid="text-cost-sheet-client">{sheet.client || "—"}</h1>
+            {sheet.title && <p className="text-sm text-foreground/80 mt-0.5 truncate" data-testid="text-cost-sheet-title">{sheet.title}</p>}
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1.5 text-xs text-muted-foreground">
+              {sheet.jobNumber && <span className="font-mono" data-testid="text-cost-sheet-jobnumber">{sheet.jobNumber}</span>}
+              {sheet.date && <span className="font-mono">{(() => { const d = new Date(sheet.date); return isNaN(d.getTime()) ? sheet.date : format(d, "dd MMM yyyy"); })()}</span>}
+              {sheet.status && <StatusBadge status={sheet.status} />}
+            </div>
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-2 print:hidden shrink-0">
+          {sheet.driveFileId ? (
+            <Button asChild variant="outline" size="sm" className="gap-1.5 text-xs font-semibold" data-testid="button-view-source">
+              <a href={`https://drive.google.com/file/d/${sheet.driveFileId}/view`} target="_blank" rel="noopener noreferrer">
+                <ExternalLink className="w-4 h-4" /> View Source
+              </a>
+            </Button>
+          ) : sheet.fileName ? (
+            <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground px-2.5 py-1.5 rounded-md border border-border/50" title="No linked Drive file" data-testid="text-source-filename">
+              <FileText className="w-4 h-4" /> {sheet.fileName}
+            </span>
+          ) : null}
           <Button onClick={exportCsv} disabled={rows.length === 0} variant="outline" size="sm" className="gap-1.5 text-xs font-semibold" data-testid="button-export-csv">
             <Download className="w-4 h-4" /> CSV
           </Button>
