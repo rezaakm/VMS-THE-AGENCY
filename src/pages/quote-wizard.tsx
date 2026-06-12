@@ -482,10 +482,7 @@ export default function QuoteWizard() {
       const sheetConf = computeSheetConfidence(
         lines.map((l) => ({
           total: lineTotal(l),
-          confidence: computeLineConfidence(l.matchType, l.matchScore, {
-            timesUsed: l.timesUsed,
-            vendor: l.usualVendor || l.vendor,
-          }).score,
+          confidence: computeLineConfidence(l.matchType, l.matchScore).score,
         })),
       );
       // Payload for cost_sheets — only columns that exist per schema (client NOT NULL, event for scope/title).
@@ -521,10 +518,7 @@ export default function QuoteWizard() {
           unitSellingPrice: sell(l),
           totalSellingPrice: lineTotal(l),
           match_type: l.matchType || null,
-          confidence: computeLineConfidence(l.matchType, l.matchScore, {
-            timesUsed: l.timesUsed,
-            vendor: l.usualVendor || l.vendor,
-          }).score,
+          confidence: computeLineConfidence(l.matchType, l.matchScore).score,
           price_source: l.source || null,
         }));
       if (items.length) {
@@ -894,10 +888,7 @@ export default function QuoteWizard() {
                   <div className="flex items-center gap-2 flex-wrap">
                     {l.source && <span className="text-gray-500">{l.source}{l.vendor ? ` | ${l.vendor}` : ""}</span>}
                     {(l.matchType || l.source) && (() => {
-                      const conf = computeLineConfidence(l.matchType, l.matchScore, {
-                        timesUsed: l.timesUsed,
-                        vendor: l.usualVendor || l.vendor,
-                      });
+                      const conf = computeLineConfidence(l.matchType, l.matchScore);
                       return (
                         <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[9px] font-medium border ${CONFIDENCE_COLORS[conf.bucket]}`}>
                           <span className={`w-1.5 h-1.5 rounded-full ${CONFIDENCE_DOT_COLORS[conf.bucket]}`} />
@@ -963,17 +954,11 @@ export default function QuoteWizard() {
         {(() => {
           const confLines = lines.map((l) => ({
             total: lineTotal(l),
-            confidence: computeLineConfidence(l.matchType, l.matchScore, {
-              timesUsed: l.timesUsed,
-              vendor: l.usualVendor || l.vendor,
-            }).score,
+            confidence: computeLineConfidence(l.matchType, l.matchScore).score,
           }));
           const sheetConf = computeSheetConfidence(confLines);
           const bucket = sheetConf >= 80 ? "high" : sheetConf >= 50 ? "medium" : sheetConf > 0 ? "low" : "none";
-          const hasZero = lines.some((l) => computeLineConfidence(l.matchType, l.matchScore, {
-            timesUsed: l.timesUsed,
-            vendor: l.usualVendor || l.vendor,
-          }).score === 0 && l.cost === 0);
+          const hasZero = lines.some((l) => computeLineConfidence(l.matchType, l.matchScore).score === 0 && l.cost === 0);
           return (
             <div className="flex items-center justify-between mb-3 pb-3 border-b border-gray-800">
               <span className="text-gray-400">Sheet Confidence</span>

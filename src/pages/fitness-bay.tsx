@@ -381,10 +381,10 @@ function MembersSection() {
             <table className="w-full text-sm">
               <thead className="bg-card/95 backdrop-blur sticky top-0 z-10">
                 <tr className="border-b border-card-border">
-                  <SortHeader label="Name" sortKey="name" current={ctl.sort} onToggle={ctl.toggleSort} />
+                  <SortHeader label="Name" sortKey="name" current={ctl.sort} onToggle={(k) => ctl.toggleSort(k as "name")} />
                   <th className="text-left px-3 py-2.5 text-[11px] uppercase tracking-wider text-muted-foreground font-medium">Plan</th>
                   <th className="text-right px-3 py-2.5 text-[11px] uppercase tracking-wider text-muted-foreground font-medium hidden sm:table-cell">Start</th>
-                  <SortHeader label="End" sortKey="end" current={ctl.sort} onToggle={ctl.toggleSort} className="!text-right" />
+                  <SortHeader label="End" sortKey="end" current={ctl.sort} onToggle={(k) => ctl.toggleSort(k as "end")} className="!text-right" />
                   <th className="text-left px-3 py-2.5 text-[11px] uppercase tracking-wider text-muted-foreground font-medium">Status</th>
                 </tr>
               </thead>
