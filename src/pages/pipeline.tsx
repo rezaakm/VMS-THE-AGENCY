@@ -107,15 +107,11 @@ function useBuildCostSheet() {
       }
 
       // Create draft cost sheet
-      const clientName = enquiry.client || enquiry.clientName || "Untitled Client";
-      if (!enquiry.client && !enquiry.clientName) {
-        // defensive, though caller may handle
-      }
       const { data: sheet, error: sheetErr } = await supabase
         .from("cost_sheets")
         .insert({
           jobNumber: enquiry.enquiryNumber || `ENQ-${enquiry.id}`,
-          client: clientName,
+          client: enquiry.client || enquiry.clientName || "",
           event: enquiry.title || "",
           date: new Date().toISOString().slice(0, 10),
           status: "draft",

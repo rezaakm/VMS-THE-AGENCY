@@ -38,8 +38,6 @@ interface ExtractedCostSheetItem {
 }
 interface ExtractedCostSheet {
   title: string; notes?: string | null; items: ExtractedCostSheetItem[];
-  client?: string | null;
-  clientName?: string | null;
 }
 interface ExtractedQuotationItem {
   description: string; qty: number; unit?: string | null;
@@ -218,12 +216,7 @@ export default function ImportData() {
 
     for (const cs of entities.costSheets) {
       try {
-        const sheet = await createCostSheet.mutateAsync({ data: { 
-          title: cs.title, 
-          enquiryId: null, 
-          notes: cs.notes ?? null,
-          client: cs.client || cs.clientName || "Untitled Client"  // ensure non-null for DB constraint
-        } });
+        const sheet = await createCostSheet.mutateAsync({ data: { title: cs.title, enquiryId: null, notes: cs.notes ?? null } });
         success++;
         for (const item of cs.items) {
           try {

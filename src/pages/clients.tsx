@@ -262,12 +262,12 @@ export default function Clients() {
               <thead className="bg-card/95 backdrop-blur sticky top-0 z-10">
                 <tr className="border-b border-card-border">
                   <th className="text-left px-3 py-2.5 text-[11px] uppercase tracking-wider text-muted-foreground font-medium">Client</th>
-                  <SortHeader label="Win Rate" sortKey="winRate" current={ctl.sort} onToggle={(k) => ctl.toggleSort(k as "winRate")} className="!text-right" />
-                  <SortHeader label="Won" sortKey="wonValue" current={ctl.sort} onToggle={(k) => ctl.toggleSort(k as "wonValue")} className="!text-right" />
+                  <SortHeader label="Win Rate" sortKey="winRate" current={ctl.sort} onToggle={ctl.toggleSort} className="!text-right" />
+                  <SortHeader label="Won" sortKey="wonValue" current={ctl.sort} onToggle={ctl.toggleSort} className="!text-right" />
                   <th title="Share of decided quotes that were rejected" className="text-right px-3 py-2.5 text-[11px] uppercase tracking-wider text-muted-foreground font-medium hidden sm:table-cell">Reject Rate</th>
                   <th title="Number of quotations sent to this client" className="text-right px-3 py-2.5 text-[11px] uppercase tracking-wider text-muted-foreground font-medium hidden md:table-cell">Quotations</th>
-                  <SortHeader label="Quoted Value" sortKey="quotedValue" current={ctl.sort} onToggle={(k) => ctl.toggleSort(k as "quotedValue")} className="!text-right" />
-                  <SortHeader label="Jobs/mo" sortKey="jobs" current={ctl.sort} onToggle={(k) => ctl.toggleSort(k as "jobs")} className="!text-right hidden lg:table-cell" />
+                  <SortHeader label="Quoted Value" sortKey="quotedValue" current={ctl.sort} onToggle={ctl.toggleSort} className="!text-right" />
+                  <SortHeader label="Jobs/mo" sortKey="jobs" current={ctl.sort} onToggle={ctl.toggleSort} className="!text-right hidden lg:table-cell" />
                   <th title="Number of sales invoices issued to this client" className="text-right px-3 py-2.5 text-[11px] uppercase tracking-wider text-muted-foreground font-medium hidden lg:table-cell">Invoices</th>
                   <th title="Unpaid receivable balance owed by this client" className="text-right px-3 py-2.5 text-[11px] uppercase tracking-wider text-muted-foreground font-medium hidden xl:table-cell">AR Outstanding</th>
                   <th title="Most recent enquiry, quotation, or invoice date" className="text-left px-3 py-2.5 text-[11px] uppercase tracking-wider text-muted-foreground font-medium hidden xl:table-cell">Last Activity</th>

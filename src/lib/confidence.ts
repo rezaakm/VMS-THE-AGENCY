@@ -14,14 +14,9 @@ export interface ConfidenceResult {
 
 export function computeLineConfidence(
   matchType: string | null | undefined,
-  matchScore: number | null | undefined,
-  context?: { timesUsed?: number; vendor?: string | null }
+  matchScore: number | null | undefined
 ): ConfidenceResult {
   if (!matchType || matchScore == null) {
-    // Soften for history-backed cases even without strong matchType/score
-    if (context && ((context.timesUsed ?? 0) >= 3 || /rehan/i.test(context.vendor || ""))) {
-      return { score: 60, bucket: "low", label: "History-based (soft)" };
-    }
     return { score: 0, bucket: "none", label: "Manual price required" };
   }
 
@@ -29,45 +24,18 @@ export function computeLineConfidence(
     return { score: 95, bucket: "high", label: "Exact match" };
   }
 
-  // Fuzzy match (base tiers)
-  let score: number;
-  let label: string;
+  // Fuzzy match
   if (matchScore >= 0.75) {
-    score = 85;
-    label = "Strong fuzzy match";
-  } else if (matchScore >= 0.6) {
-    score = 70;
-    label = "Fuzzy match";
-  } else if (matchScore >= 0.45) {
-    score = 55;
-    label = "Weak match — review";
-  } else {
-    score = 0;
-    label = "No reliable match";
+    return { score: 85, bucket: "high", label: "Strong fuzzy match" };
+  }
+  if (matchScore >= 0.6) {
+    return { score: 70, bucket: "medium", label: "Fuzzy match" };
+  }
+  if (matchScore >= 0.45) {
+    return { score: 55, bucket: "low", label: "Weak match — review" };
   }
 
-  // Soften: fuzzy + used ≥3× or known good vendor (e.g. Rehan) → at least >50%
-  if (matchType !== "exact" && context) {
-    const used = context.timesUsed ?? 0;
-    const vend = (context.vendor || "").toLowerCase();
-    if (used >= 3 || vend.includes("rehan")) {
-      if (score < 60) {
-        score = 60;
-        label = "Good history match";
-      }
-    }
-  }
-
-  // Final floor for any history-backed line that would otherwise be 0
-  if (score === 0 && context && ((context.timesUsed ?? 0) > 0 || context.vendor)) {
-    score = 60;
-    label = "History-based (review)";
-  }
-
-  const bucket: ConfidenceBucket =
-    score >= 80 ? "high" : score >= 60 ? "medium" : score >= 50 ? "low" : "none";
-
-  return { score, bucket, label };
+  return { score: 0, bucket: "none", label: "No reliable match" };
 }
 
 export function computeSheetConfidence(
